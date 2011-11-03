@@ -1,0 +1,34 @@
+loading data from file: /home/milian/uni/scivi/javaview/../proj1/sphere.obj
+euler characteristic for this file:2
+
+=> no handles
+
+loading data from file: /home/milian/uni/scivi/javaview/../proj1/torus.obj
+euler characteristic for this file:0
+
+=> one handle -> -2 to euler
+
+loading data from file: /home/milian/uni/scivi/javaview/../proj1/buddha.obj
+euler characteristic for this file:-10
+
+=> handles: 6 -> -12 to euler
+
+loading data from file: /home/milian/uni/scivi/javaview/../proj1/bunny.obj
+euler characteristic for this file:2
+
+=> no handles == sphere
+
+loading data from file: /home/milian/uni/scivi/javaview/../proj1/feline.obj
+euler characteristic for this file:-2
+
+=> 2 handles -> -4 to euler
+
+loading data from file: /home/milian/uni/scivi/javaview/../proj1/hand.obj
+euler characteristic for this file:0
+
+=> 1 handle -> -2 to euler
+
+loading data from file: /home/milian/uni/scivi/javaview/../proj1/dragon.obj
+euler characteristic for this file:0
+
+=> 1 handle -> -2 to euler
