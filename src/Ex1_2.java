@@ -3,10 +3,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.io.File;
-
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 
 import jv.object.PsMainFrame;
 import jv.project.PgGeometryIf;
@@ -35,8 +31,13 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	private TextField m_3DCheckerboard_L;
 	private Checkbox m_polygonId;
 	private Button m_icosahedronButton;
+	// unweighted surface visibility
 	private Checkbox m_usv;
+	// weighted surface visibility
 	private Checkbox m_wsv;
+	// geometry that surrounds selected geometry
+	// its vertices are the view points for the usv/wsv calculations
+	private PgElementSet m_sv_view_geometry;
 
 	public Ex1_2(String args[]) {
 		// Create toplevel window of application containing the applet
@@ -173,6 +174,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	public void openGeometry(PgElementSet geometry) {
 		// remove existing geometry
 		m_disp.removeGeometries();
+		m_sv_view_geometry = null;
 		// make sure our assumptions hold
 		geometry.assureElementColors();
 		geometry.showElementColors(true);
@@ -196,6 +198,10 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 	}
 	private void updateGeometry(PgElementSet geometry) {
+		if (m_sv_view_geometry != null) {
+			m_disp.removeGeometry(m_sv_view_geometry);
+			m_sv_view_geometry = null;
+		}
 		geometry.removeElementColors();
 		geometry.removeVertexColors();
 		geometry.showVertices(false);
@@ -226,12 +232,6 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			);
 			geometry.setElementColor(i, c);
 		}
-	}
-	private void setWSVColors(PgElementSet geometry) {
-		System.err.println("weighted surface visibility: not yet implemented...");
-	}
-	private void setUSVColors(PgElementSet geometry) {
-		System.err.println("unweighted surface visibility: not yet implemented...");
 	}
 	// f(n) as defined in ex. 2.b for the 3d checkerboard
 	private int f(double v, double L) {
@@ -287,5 +287,29 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			}
 			geometry.setElementColor(i, new Color(r, g, b));
 		}
+	}
+	private void setUSVColors(PgElementSet geometry) {
+		// create octahedron
+		m_sv_view_geometry = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
+		m_sv_view_geometry.setTransparency(0.8);
+		m_sv_view_geometry.showTransparency(true);
+		m_sv_view_geometry.setCenter(geometry.getCenter());
+		// rescale platonic to encaps the geometry
+		// get maximum size of geometry
+		PdVector[] bounds = geometry.getBounds();
+		double maxGeomSize = Math.max(bounds[0].maxAbs(), bounds[1].maxAbs());
+		// get size of platonic
+		bounds = m_sv_view_geometry.getBounds();
+		double platonicSize = m_sv_view_geometry.getBounds()[0].maxAbs();
+		// scale platonic to enclose geometry
+		m_sv_view_geometry.scale(maxGeomSize / platonicSize * 1.5);
+		System.out.println("geom size: " + maxGeomSize + ", platonic: " + platonicSize);
+		// add view-geometry to see what's going on
+		m_disp.addGeometry(m_sv_view_geometry);
+
+
+	}
+	private void setWSVColors(PgElementSet geometry) {
+		System.err.println("weighted surface visibility: not yet implemented...");
 	}
 }
