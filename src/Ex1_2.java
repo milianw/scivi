@@ -35,6 +35,8 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	private TextField m_3DCheckerboard_L;
 	private Checkbox m_polygonId;
 	private Button m_icosahedronButton;
+	private Checkbox m_usv;
+	private Checkbox m_wsv;
 
 	public Ex1_2(String args[]) {
 		// Create toplevel window of application containing the applet
@@ -107,6 +109,18 @@ public class Ex1_2 implements ActionListener, ItemListener {
         m_polygonId.addItemListener(this);
         c.gridy++;
         buttons.add(m_polygonId, c);
+
+        // unweighted surface visibility
+        m_usv = new Checkbox("USV", group, false);
+        m_usv.addItemListener(this);
+        c.gridy++;
+        buttons.add(m_usv, c);
+
+        // weighted surface visibility
+        m_wsv = new Checkbox("WSV", group, false);
+        m_wsv.addItemListener(this);
+        c.gridy++;
+        buttons.add(m_wsv, c);
 
 		m_frame.pack();
 
@@ -181,8 +195,46 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			updateGeometry((PgElementSet) geometry);
 		}
 	}
+	private void updateGeometry(PgElementSet geometry) {
+		geometry.removeElementColors();
+		geometry.removeVertexColors();
+		geometry.showVertices(false);
+		if (m_default.getState()) {
+			System.out.println("updating geometry: default colors");
+			// nothing to do
+		} else if (m_normalMapping.getState()) {
+			setNormalMappingColors(geometry);
+		} else if (m_3DCheckerboard.getState()) {
+			set3DCheckerboardColors(geometry);
+		} else if (m_polygonId.getState()) {
+			setPolygonIdColors(geometry);
+		} else if (m_usv.getState()) {
+			setUSVColors(geometry);
+		} else if (m_wsv.getState()) {
+			setWSVColors(geometry);
+		}
+		m_disp.update(geometry);
+	}
+	private void setNormalMappingColors(PgElementSet geometry) {
+		System.out.println("updating geometry: normal mapping");
+		for (int i = 0; i < geometry.getNumElements(); ++i) {
+			PdVector normal = geometry.getElementNormal(i);
+			Color c = new Color(
+				(int) (255 * Math.abs(normal.getEntry(0))),
+				(int) (255 * Math.abs(normal.getEntry(1))),
+				(int) (255 * Math.abs(normal.getEntry(2)))
+			);
+			geometry.setElementColor(i, c);
+		}
+	}
+	private void setWSVColors(PgElementSet geometry) {
+		System.err.println("weighted surface visibility: not yet implemented...");
+	}
+	private void setUSVColors(PgElementSet geometry) {
+		System.err.println("unweighted surface visibility: not yet implemented...");
+	}
 	// f(n) as defined in ex. 2.b for the 3d checkerboard
-	public int f(double v, double L) {
+	private int f(double v, double L) {
 		int r = (int) Math.floor(v / L);
 		if (r % 2 == 0) {
 			return 1;
@@ -190,73 +242,50 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			return 0;
 		}
 	}
-	public void updateGeometry(PgElementSet geometry) {
-		if (m_default.getState()) {
-			System.out.println("updating geometry: default colors");
-			geometry.removeElementColors();
-			geometry.removeVertexColors();
-			geometry.showVertices(false);
-		} else if (m_normalMapping.getState()) {
-			geometry.removeVertexColors();
-			geometry.showVertices(false);
-			System.out.println("updating geometry: normal mapping");
-			for (int i = 0; i < geometry.getNumElements(); ++i) {
-				PdVector normal = geometry.getElementNormal(i);
-				Color c = new Color(
-					(int) (255 * Math.abs(normal.getEntry(0))),
-					(int) (255 * Math.abs(normal.getEntry(1))),
-					(int) (255 * Math.abs(normal.getEntry(2)))
-				);
-				geometry.setElementColor(i, c);
-			}
-		} else if (m_3DCheckerboard.getState()) {
-			geometry.removeElementColors();
-			geometry.showVertices(true);
-			System.out.println("updating geometry: 3D checkerboard");
-			double L = 0;
-			try {
-				L = Double.valueOf(m_3DCheckerboard_L.getText());
-			} catch(NumberFormatException ex) {
-				L = 0;
-			}
-			if (L <= 0) {
-				System.err.println("invalid L!");
-				return;
-			}
-			for(int i = 0; i < geometry.getNumVertices(); ++i) {
-				PdVector vertex = geometry.getVertex(i);
-				Color c = new Color(
-					255 * f(vertex.getEntry(0), L),
-					255 * f(vertex.getEntry(1), L),
-					255 * f(vertex.getEntry(2), L)
-				);
-				geometry.setVertexColor(i, c);
-			}
-//			geometry.showElementFromVertexColors(true);
-		} else if (m_polygonId.getState()) {
-			geometry.removeVertexColors();
-			geometry.showVertices(false);
-			System.out.println("updating geometry: polygon ID");
-			int r = 0; 
-			int g = 0;
-			int b = 0;
-			for(int i = 0; i < geometry.getNumElements(); ++i) {
-				++r;
-				if (r > 255) {
-					r = 0;
-					++g;
-				}
-				if (g > 255) {
-					g = 0;
-					++b;
-				}
-				if (b > 255) {
-					b = 0;
-					System.err.println("polygon id color overflow");
-				}
-				geometry.setElementColor(i, new Color(r, g, b));
-			}
+	private void set3DCheckerboardColors(PgElementSet geometry) {
+		geometry.showVertices(true);
+		System.out.println("updating geometry: 3D checkerboard");
+		double L = 0;
+		try {
+			L = Double.valueOf(m_3DCheckerboard_L.getText());
+		} catch(NumberFormatException ex) {
+			L = 0;
 		}
-		m_disp.update(geometry);
+		if (L <= 0) {
+			System.err.println("invalid L!");
+			return;
+		}
+		for(int i = 0; i < geometry.getNumVertices(); ++i) {
+			PdVector vertex = geometry.getVertex(i);
+			Color c = new Color(
+				255 * f(vertex.getEntry(0), L),
+				255 * f(vertex.getEntry(1), L),
+				255 * f(vertex.getEntry(2), L)
+			);
+			geometry.setVertexColor(i, c);
+		}
+//		geometry.showElementFromVertexColors(true);
+	}
+	private void setPolygonIdColors(PgElementSet geometry) {
+		System.out.println("updating geometry: polygon ID");
+		int r = 0; 
+		int g = 0;
+		int b = 0;
+		for(int i = 0; i < geometry.getNumElements(); ++i) {
+			++r;
+			if (r > 255) {
+				r = 0;
+				++g;
+			}
+			if (g > 255) {
+				g = 0;
+				++b;
+			}
+			if (b > 255) {
+				b = 0;
+				System.err.println("polygon id color overflow");
+			}
+			geometry.setElementColor(i, new Color(r, g, b));
+		}
 	}
 }
