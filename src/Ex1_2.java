@@ -232,7 +232,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 				);
 				geometry.setVertexColor(i, c);
 			}
-			//why the hell is this required?!
+//			geometry.showElementFromVertexColors(true);
 		} else if (m_polygonId.getState()) {
 			geometry.removeVertexColors();
 			geometry.showVertices(false);
