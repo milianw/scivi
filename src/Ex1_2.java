@@ -3,10 +3,19 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.PixelGrabber;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.swing.ImageIcon;
 
 import jv.object.PsMainFrame;
 import jv.project.PgGeometryIf;
 import jv.project.PvDisplayIf;
+import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 import jv.viewer.PvViewer;
 import jv.object.PsConfig;
@@ -199,9 +208,10 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	}
 	private void updateGeometry(PgElementSet geometry) {
 		if (m_sv_view_geometry != null) {
-			m_disp.removeGeometry(m_sv_view_geometry);
+//			m_disp.removeGeometry(m_sv_view_geometry);
 			m_sv_view_geometry = null;
 		}
+		m_disp.setLightingModel(1);
 		geometry.removeElementColors();
 		geometry.removeVertexColors();
 		geometry.showVertices(false);
@@ -289,8 +299,15 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 	}
 	private void setUSVColors(PgElementSet geometry) {
+		m_disp.setLightingModel(0);
 		// create octahedron
-		m_sv_view_geometry = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
+		//TODO: use octahedron and loop-based algorithm...
+		//      but how to add a vertex + edge properly?
+		//      how to interpolate to the sphere?
+//		m_sv_view_geometry = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
+		m_sv_view_geometry = new PgElementSet();
+		m_sv_view_geometry.computeSphere(15, 15, 1);
+		System.out.println(m_sv_view_geometry.getNumVertices());
 		m_sv_view_geometry.setTransparency(0.8);
 		m_sv_view_geometry.showTransparency(true);
 		m_sv_view_geometry.setCenter(geometry.getCenter());
