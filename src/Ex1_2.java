@@ -17,12 +17,14 @@ import jv.project.PgGeometryIf;
 import jv.project.PvDisplayIf;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
+import jv.vecmath.PiVector;
 import jv.viewer.PvViewer;
 import jv.object.PsConfig;
 import jv.geom.PgElementSet;
 import jv.loader.PgFileDialog;
 import jv.loader.PjImportModel;
 import jvx.geom.PwPlatonic;
+import jvx.numeric.PnJacobi;
 
 /**
  * Solution to the first exercise
@@ -34,6 +36,8 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	private Button m_openButton;
 	private PsMainFrame m_frame;
 	private PvDisplayIf m_disp;
+	// main geometry
+	private PgElementSet m_geometry;
 	private Checkbox m_default;
 	private Checkbox m_normalMapping;
 	private Checkbox m_3DCheckerboard;
@@ -45,8 +49,11 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	// weighted surface visibility
 	private Checkbox m_wsv;
 	// geometry that surrounds selected geometry
-	// its vertices are the view points for the usv/wsv calculations
+	// its vertices are the view points for the usv/wsv calculations 
 	private PgElementSet m_sv_view_geometry;
+	private Button m_boundingBoxButton;
+	private int m_boundingBoxStatus;
+	private PgElementSet m_boundingBox;
 
 	public Ex1_2(String args[]) {
 		// Create toplevel window of application containing the applet
@@ -83,6 +90,13 @@ public class Ex1_2 implements ActionListener, ItemListener {
         c.gridy++;
         buttons.add(m_icosahedronButton, c);
 
+        // show bounding box
+        m_boundingBoxButton = new Button("Bounding Box");
+        m_boundingBoxButton.addActionListener(this);
+        m_boundingBoxStatus = 0;
+        c.gridy++;
+        buttons.add(m_boundingBoxButton, c);
+        
         // color choice
         CheckboxGroup group = new CheckboxGroup();
 
@@ -151,6 +165,8 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			update();
 		} else if (source == m_icosahedronButton) {
 			openIcosahedron();
+		} else if (source == m_boundingBoxButton) {
+			toggleBoundingBox();
 		}
 	}
 	@Override
@@ -184,6 +200,9 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		// remove existing geometry
 		m_disp.removeGeometries();
 		m_sv_view_geometry = null;
+		m_boundingBox = null;
+		m_boundingBoxStatus = 0;
+		m_geometry = geometry;
 		// make sure our assumptions hold
 		geometry.assureElementColors();
 		geometry.showElementColors(true);
@@ -191,7 +210,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		geometry.showVertexColors(true);
 		geometry.assureElementNormals();
 		// apply colors
-		updateGeometry(geometry);
+		update();
 		// add to display
 		m_disp.addGeometry(geometry);
 		m_disp.selectGeometry(geometry);
@@ -199,37 +218,32 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	}
 	// update all geometries
 	public void update() {
-		if (m_disp.getNumGeometries() == 0) {
+		if (m_geometry == null) {
 			return;
 		}
-		for(PgGeometryIf geometry : m_disp.getGeometries()) {
-			updateGeometry((PgElementSet) geometry);
-		}
-	}
-	private void updateGeometry(PgElementSet geometry) {
 		if (m_sv_view_geometry != null) {
 //			m_disp.removeGeometry(m_sv_view_geometry);
 			m_sv_view_geometry = null;
 		}
 		m_disp.setLightingModel(1);
-		geometry.removeElementColors();
-		geometry.removeVertexColors();
-		geometry.showVertices(false);
+		m_geometry.removeElementColors();
+		m_geometry.removeVertexColors();
+		m_geometry.showVertices(false);
 		if (m_default.getState()) {
 			System.out.println("updating geometry: default colors");
 			// nothing to do
 		} else if (m_normalMapping.getState()) {
-			setNormalMappingColors(geometry);
+			setNormalMappingColors(m_geometry);
 		} else if (m_3DCheckerboard.getState()) {
-			set3DCheckerboardColors(geometry);
+			set3DCheckerboardColors(m_geometry);
 		} else if (m_polygonId.getState()) {
-			setPolygonIdColors(geometry);
+			setPolygonIdColors(m_geometry);
 		} else if (m_usv.getState()) {
-			setUSVColors(geometry);
+			setUSVColors(m_geometry);
 		} else if (m_wsv.getState()) {
-			setWSVColors(geometry);
+			setWSVColors(m_geometry);
 		}
-		m_disp.update(geometry);
+		m_disp.update(m_geometry);
 	}
 	private void setNormalMappingColors(PgElementSet geometry) {
 		System.out.println("updating geometry: normal mapping");
@@ -300,7 +314,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	}
 	private void setUSVColors(PgElementSet geometry) {
 		m_disp.setLightingModel(0);
-		// create octahedron
+		// create octahedron 
 		//TODO: use octahedron and loop-based algorithm...
 		//      but how to add a vertex + edge properly?
 		//      how to interpolate to the sphere?
@@ -319,14 +333,134 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		bounds = m_sv_view_geometry.getBounds();
 		double platonicSize = m_sv_view_geometry.getBounds()[0].maxAbs();
 		// scale platonic to enclose geometry
-		m_sv_view_geometry.scale(maxGeomSize / platonicSize * 1.5);
+		m_sv_view_geometry.scale(maxGeomSize / platonicSize * 10);
 		System.out.println("geom size: " + maxGeomSize + ", platonic: " + platonicSize);
 		// add view-geometry to see what's going on
-		m_disp.addGeometry(m_sv_view_geometry);
-
-
+//		m_disp.addGeometry(m_sv_view_geometry);
+		
+		setPolygonIdColors(geometry);
+		m_disp.setBackgroundColor(new Color(255, 255, 255, 0));
+		
+		for(int v = 0; v < m_sv_view_geometry.getNumVertices(); ++v) {
+			// rotate camera
+			m_disp.getCamera().setPosition(m_sv_view_geometry.getVertex(v));
+			// update, just to make sure we get the updated view
+			m_disp.update(geometry);
+			// get image buffer
+			BufferedImage image = (BufferedImage) m_disp.getImage();
+			Set<Integer> knownIds = new HashSet<Integer>();
+			for(int w = 0; w < image.getWidth(); ++w) {
+				for(int h = 0; h < image.getHeight(); ++h) {
+					Color color = new Color(image.getRGB(w, h));
+					if (color.getAlpha() == 0) {
+						continue;
+					}
+					Integer polygonId = color.getRed() + color.getGreen() * 255 + color.getBlue() * 255 * 255;
+					if (polygonId < 0 || polygonId >= geometry.getNumElements()) {
+						System.err.println("unknown polygonid: " + polygonId + "c: " + color);
+						continue;
+					}
+					if (knownIds.add(polygonId)) {
+						System.out.println("id: " + polygonId + "known: " + knownIds.size());
+					}
+				}
+			}
+			break;
+		}
+		
 	}
 	private void setWSVColors(PgElementSet geometry) {
 		System.err.println("weighted surface visibility: not yet implemented...");
+	}
+	private void toggleBoundingBox() {
+		if (m_geometry == null) {
+			return;
+		}
+		m_boundingBoxStatus++;
+		if (m_boundingBoxStatus > 1) {
+			m_boundingBoxStatus = 0;
+		}
+		if (m_boundingBoxStatus == 0) {
+			// remove bounding box
+			System.out.println("Hiding Bounding Box");
+			m_disp.removeGeometry(m_boundingBox);
+			m_disp.update(m_boundingBox);
+			m_boundingBox = null;
+		} else {
+			// create bounding box
+			System.out.println("Showing Bounding Box");
+			// center of mass
+			PdVector c = m_geometry.getCenterOfGravity();
+			// fill covariance matrix
+			PdMatrix m = new PdMatrix(3,3);
+			for(int v = 0; v < m_geometry.getNumVertices(); ++v) {
+				PdVector p = m_geometry.getVertex(v);
+				for(int i = 0; i < 3; ++i) {
+					for(int j = 0; j < 3; ++j) {
+						double val = (p.getEntry(i) - c.getEntry(i))
+								   * (p.getEntry(j) - c.getEntry(j));
+						m.setEntry(i, j, m.getEntry(i, j) + val);
+					}
+				}
+			}
+			// get eigen values: note, we first have to init the output vars O_o stupid api...
+			PdVector[] eigenVectors = new PdVector[3]; 
+			for(int i = 0; i < 3; ++i) {
+				eigenVectors[i] = new PdVector(0, 0, 0);
+			}
+			PdVector eigenValues = new PdVector(0, 0, 0);
+			PnJacobi.computeEigenvectors(m, 3, eigenValues, eigenVectors);
+//			PnJacobi.printEigenvectors(3, eigenValues, eigenVectors);
+			PdVector x = eigenVectors[0];
+			PdVector y = eigenVectors[1];
+			PdVector z = eigenVectors[2];
+			// now visualize bounding box via new element set
+			m_boundingBox = new PgElementSet();
+			// first add the vertices, basically possible additions/subtractions of x,y,z 
+			for (int xSign = -1; xSign <= 1; xSign += 2) {
+				for (int ySign = -1; ySign <= 1; ySign += 2) {
+					for (int zSign = -1; zSign <= 1; zSign += 2) {
+						PdVector sum = new PdVector(0, 0, 0);
+						// x * xSign + y * ySign + z * zSign - stupid api!
+						for(int i = 0; i < 3; ++i) {
+							sum.setEntry(i, x.getEntry(i) * xSign
+											+ y.getEntry(i) * ySign
+											+ z.getEntry(i) * zSign);
+						}
+						m_boundingBox.addVertex(sum);
+					}
+				}
+			}
+			// now also show some edges by connecting all
+			// vertices that share two coordinates
+			int edgeNum = 0;
+			m_boundingBox.setNumEdges(12);
+			for(int i = 0; i < m_boundingBox.getNumVertices(); ++i) {
+				PdVector pi = m_boundingBox.getVertex(i);
+				for(int j = i; j < m_boundingBox.getNumVertices(); ++j) {
+					PdVector pj = m_boundingBox.getVertex(j);
+					int sameCoordinates = 0;
+					for(int k = 0; k < 3; ++k) {
+						if (pi.getEntry(k) == pj.getEntry(k)) {
+							sameCoordinates++;
+						}
+					}
+					if (sameCoordinates == 2) {
+						// connect vertices
+						PiVector edge = new PiVector(i, j);
+						m_boundingBox.setEdge(edgeNum, edge);
+						//FIXME: HOW DO I SET THE EDGE COLOR?
+						++edgeNum;
+					}
+				}
+			}
+			m_boundingBox.showVertices(true);
+			//FIXME: HOW DO I MAKE THE EDGES VISIBLE?
+			m_boundingBox.showEdges(true);
+			m_boundingBox.showEdgeColors(true);
+			m_disp.addGeometry(m_boundingBox);
+			m_disp.update(m_boundingBox);
+			m_disp.fit();
+		}
 	}
 }
