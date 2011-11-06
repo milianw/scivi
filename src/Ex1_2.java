@@ -414,6 +414,30 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			PdVector x = eigenVectors[0];
 			PdVector y = eigenVectors[1];
 			PdVector z = eigenVectors[2];
+			// now find dimensions of bounding box by getting the biggest + smallest
+			// projections of vertices onto the eigen vectors
+			double minX = 0, maxX = 0, minY = 0, maxY = 0, minZ = 0, maxZ = 0;
+			for(int v = 0; v < m_geometry.getNumVertices(); ++v) {
+				PdVector p = m_geometry.getVertex(v);
+				double px = p.dot(x);
+				if (px > maxX) {
+					maxX = px;
+				} else if (px < minX) {
+					minX = px;
+				}
+				double py = p.dot(y);
+				if (py > maxY) {
+					maxY = py;
+				} else if (py < minY) {
+					minY = py;
+				}
+				double pz = p.dot(z);
+				if (pz > maxZ) {
+					maxZ = pz;
+				} else if (pz < minZ) {
+					minZ = pz;
+				}
+			}
 			// now visualize bounding box via new element set
 			m_boundingBox = new PgElementSet();
 			// first add the vertices, basically possible additions/subtractions of x,y,z 
@@ -423,9 +447,9 @@ public class Ex1_2 implements ActionListener, ItemListener {
 						PdVector sum = new PdVector(0, 0, 0);
 						// x * xSign + y * ySign + z * zSign - stupid api!
 						for(int i = 0; i < 3; ++i) {
-							sum.setEntry(i, x.getEntry(i) * xSign
-											+ y.getEntry(i) * ySign
-											+ z.getEntry(i) * zSign);
+							sum.setEntry(i, x.getEntry(i) * (xSign < 0 ? minX : maxX)
+											+ y.getEntry(i) * (ySign < 0 ? minY : maxY)
+											+ z.getEntry(i) * (zSign < 0 ? minZ : maxZ));
 						}
 						m_boundingBox.addVertex(sum);
 					}
