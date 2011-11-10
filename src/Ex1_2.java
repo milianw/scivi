@@ -545,22 +545,23 @@ public class Ex1_2 implements ActionListener, ItemListener {
 						// white, i.e. background color
 						continue;
 					}
+					if (!knownIds.add(rgb)) {
+						continue;
+					}
 					Color color = new Color(rgb);
-					Integer polygonId = color.getRed() + color.getGreen() * 255 + color.getBlue() * 255 * 255;
+					int polygonId = color.getRed() + color.getGreen() * 255 + color.getBlue() * 255 * 255;
 					if (polygonId < 0 || polygonId >= geometry.getNumElements()) {
 						System.err.println("unknown polygonid: " + polygonId + ", c: " + color + ", w:" + w + ", h: " + h);
 						continue;
 					}
-					if (knownIds.add(polygonId)) {
-						if (weighted) {
-							double weight = Math.abs(view.dot(geometry.getElementNormal(polygonId)));
-							usv[polygonId] += weight;
-							if (weight > viewWeights[v]) {
-								viewWeights[v] = weight;
-							}
-						} else {
-							usv[polygonId] += 1.0;
+					if (weighted) {
+						double weight = Math.abs(view.dot(geometry.getElementNormal(polygonId)));
+						usv[polygonId] += weight;
+						if (weight > viewWeights[v]) {
+							viewWeights[v] = weight;
 						}
+					} else {
+						usv[polygonId] += 1.0;
 					}
 				}
 			}
@@ -611,8 +612,8 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 		
 		// DEBUG: add view-geometry to see what's going on
-//		m_disp.addGeometry(m_sv_view_geometry);
-//		m_disp.fit();
+		m_disp.addGeometry(m_sv_view_geometry);
+		m_disp.fit();
 	}
 	private void setUSVColors(PgElementSet geometry) {
 		System.out.println("updating geometry: usv colors");
