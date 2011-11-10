@@ -354,9 +354,13 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		m_disp.render();
 		gfx.drawImage(m_disp.getImage(), 0, 0, Color.white, null);
 	}
-	private Map<Integer, Integer> getUSV(PgElementSet geometry, PgElementSet viewPoints) {
+	private double[] getSurfaceVisibility(PgElementSet geometry, PgElementSet viewPoints, boolean weighted) {
 		// set colors based on polygon id
 		setPolygonIdColors(geometry);
+
+		if (weighted) {
+			geometry.assureElementNormals();
+		}
 
 		//create image
 		final BufferedImage image = new BufferedImage(m_disp.getCanvas().getWidth(),
@@ -386,11 +390,23 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		PdVector oldCamPos = cam.getPosition();
 		PdVector oldCamPOI = cam.getInterest();
 
-		Map<Integer, Integer> usv = new HashMap<Integer, Integer>();
-		for(int v = 0; v < m_sv_view_geometry.getNumVertices(); ++v) {
+		double[] usv = new double[geometry.getNumElements()];
+		for(int i = 0; i < usv.length; ++i) {
+			usv[i] = 0;
+		}
+
+		System.out.println("calculating surface visibility from " + viewPoints.getNumVertices() + " view points...");
+		for(int v = 0; v < viewPoints.getNumVertices(); ++v) {
+			// view vector for weighted surface visibility
+			PdVector view = null;
+			if (weighted) {
+				view = viewPoints.getVertex(v);
+				view.sub(viewPoints.getCenter());
+				view.normalize();
+			}
 			// rotate camera
-			cam.setPosition(m_sv_view_geometry.getVertex(v));
-			cam.setInterest(m_sv_view_geometry.getCenter());
+			cam.setPosition(viewPoints.getVertex(v));
+			cam.setInterest(viewPoints.getCenter());
 			m_disp.update(geometry);
 			renderOffscreen(image);
 			
@@ -409,15 +425,16 @@ public class Ex1_2 implements ActionListener, ItemListener {
 						continue;
 					}
 					if (knownIds.add(polygonId)) {
-						if (usv.containsKey(polygonId)) {
-							usv.put(polygonId, usv.get(polygonId) + 1);
-						}  else {
-							usv.put(polygonId, 1);
+						if (weighted) {
+							usv[polygonId] += Math.abs(view.dot(geometry.getElementNormal(polygonId)));
+						} else {
+							usv[polygonId] += 1.0;
 						}
 					}
 				}
 			}
 		}
+		System.out.println("done");
 		// Restore stuff with border, do it after image has been used
 		m_disp.setEnabledExternalRendering(false);
 		m_disp.setPaintTag(PAINT_FOCUS, wasShowingFocus);
@@ -432,39 +449,35 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		cam.setPosition(oldCamPos);
 		cam.setInterest(oldCamPOI);
 
+		// normalize
+		for(int i = 0; i < usv.length; ++i) {
+			usv[i] /= viewPoints.getNumVertices();
+		}
+
 		return usv;
 	}
-	private void setUSVColors(PgElementSet geometry) {
-		if (m_disp.getNumGeometries() != 1) {
-			System.err.println("invalid number of geometries :-/");
-			return;
-		}
-		System.out.println("updating geometry: usv colors");
+	private void setSVColors(PgElementSet geometry, boolean weighted) {
 		// get view points
 		m_sv_view_geometry = getViewPoints(geometry);
-		Map<Integer, Integer> usv = getUSV(geometry, m_sv_view_geometry);
+		double[] usv = getSurfaceVisibility(geometry, m_sv_view_geometry, weighted);
 		// set colors based on usv map
 		for(int p = 0; p < geometry.getNumElements(); ++p) {
-			if (usv.containsKey(p)) {
-				int w = usv.get(p);
-				int vis = (int) Math.round(255.0 * w / m_sv_view_geometry.getNumVertices());
-		        System.out.println("polygon: " + w + ", encountered:" + w + " vis: " + vis);
-		        Color color = new Color(vis, vis, vis);
-		        geometry.setElementColor(p, color);
-			} else {
-				geometry.setElementColor(p, Color.black);
-			}
+			float w = (float) usv[p];
+			System.out.println("polygon: " + p + ", sv:" + w);
+			geometry.setElementColor(p, new Color(w, w, w));
 		}
 		
 		// DEBUG: add view-geometry to see what's going on
-		m_disp.addGeometry(m_sv_view_geometry);
-
-		m_disp.fit();
-		
-		m_disp.update(geometry);
+//		m_disp.addGeometry(m_sv_view_geometry);
+//		m_disp.fit();
+	}
+	private void setUSVColors(PgElementSet geometry) {
+		System.out.println("updating geometry: usv colors");
+		setSVColors(geometry, false);
 	}
 	private void setWSVColors(PgElementSet geometry) {
-		System.err.println("weighted surface visibility: not yet implemented...");
+		System.out.println("updating geometry: wsv colors");
+		setSVColors(geometry, true);
 	}
 	private void toggleBoundingBox() {
 		if (m_geometry == null) {
