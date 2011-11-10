@@ -354,27 +354,20 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		m_disp.render();
 		gfx.drawImage(m_disp.getImage(), 0, 0, Color.white, null);
 	}
-	private void setUSVColors(PgElementSet geometry) {
-		if (m_disp.getNumGeometries() != 1) {
-			System.err.println("invalid number of geometries :-/");
-			return;
-		}
-		System.out.println("updating geometry: usv colors");
-		// get view points
-		m_sv_view_geometry = getViewPoints(geometry);
-
+	private Map<Integer, Integer> getUSV(PgElementSet geometry, PgElementSet viewPoints) {
 		// set colors based on polygon id
 		setPolygonIdColors(geometry);
-		boolean wasShowingVertices = geometry.isShowingVertices();
-		geometry.showVertices(false);
-		boolean wasShowingEdges = geometry.isShowingEdges();
-		geometry.showEdges(false);
 
 		//create image
 		final BufferedImage image = new BufferedImage(m_disp.getCanvas().getWidth(),
 													  m_disp.getCanvas().getHeight(),
 													  BufferedImage.TYPE_INT_RGB);
+
 		// disable lighting / unwanted settings that might temper with colors
+		boolean wasShowingVertices = geometry.isShowingVertices();
+		geometry.showVertices(false);
+		boolean wasShowingEdges = geometry.isShowingEdges();
+		geometry.showEdges(false);
 		int oldLightningModel = m_disp.getLightingModel();
 		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
 		Color oldBackgroundColor = m_disp.getBackgroundColor();
@@ -425,7 +418,31 @@ public class Ex1_2 implements ActionListener, ItemListener {
 				}
 			}
 		}
+		// Restore stuff with border, do it after image has been used
+		m_disp.setEnabledExternalRendering(false);
+		m_disp.setPaintTag(PAINT_FOCUS, wasShowingFocus);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, wasShowingBorder);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, hadAntiAliasing);
+		m_disp.setBackgroundColor(oldBackgroundColor);
+		m_disp.setLightingModel(oldLightningModel);
 
+		geometry.showVertices(wasShowingVertices);
+		geometry.showEdges(wasShowingEdges);
+
+		cam.setPosition(oldCamPos);
+		cam.setInterest(oldCamPOI);
+
+		return usv;
+	}
+	private void setUSVColors(PgElementSet geometry) {
+		if (m_disp.getNumGeometries() != 1) {
+			System.err.println("invalid number of geometries :-/");
+			return;
+		}
+		System.out.println("updating geometry: usv colors");
+		// get view points
+		m_sv_view_geometry = getViewPoints(geometry);
+		Map<Integer, Integer> usv = getUSV(geometry, m_sv_view_geometry);
 		// set colors based on usv map
 		for(int p = 0; p < geometry.getNumElements(); ++p) {
 			if (usv.containsKey(p)) {
@@ -440,22 +457,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 		
 		// DEBUG: add view-geometry to see what's going on
-//		m_disp.addGeometry(m_sv_view_geometry);
-//		m_disp.fit();
-
-		// Restore stuff with border, do it after image has been used
-		m_disp.setEnabledExternalRendering(false);
-		m_disp.setPaintTag(PAINT_FOCUS, wasShowingFocus);
-		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, wasShowingBorder);
-		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, hadAntiAliasing);
-		m_disp.setBackgroundColor(oldBackgroundColor);
-		m_disp.setLightingModel(oldLightningModel);
-		
-		geometry.showVertices(wasShowingVertices);
-		geometry.showEdges(wasShowingEdges);
-		
-		cam.setPosition(oldCamPos);
-		cam.setInterest(oldCamPOI);
+		m_disp.addGeometry(m_sv_view_geometry);
 
 		m_disp.fit();
 		
