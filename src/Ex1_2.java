@@ -323,18 +323,12 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			}
 		}
 	}
-	private PgElementSet getViewPoints(PgElementSet geometry) {
+	private PgElementSet getViewPoints(PgElementSet geometry, int minViewPoints) {
 		// create octahedron 
-		//TODO: use octahedron and loop-based algorithm...
-		//      but how to add a vertex + edge properly?
-		//      how to interpolate to the sphere?
-//		PgelementSet view = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
-		//FIXME: for now we just pick the default sphere...
-		PgElementSet view = new PgElementSet(3);
-		view.computeSphere(15, 15, 1); // 15^2 = 225 points 
-		view.setTransparency(0.8);
-		view.showTransparency(true);
-		view.setCenter(geometry.getCenter());
+		PgElementSet view = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
+
+		PdVector center = geometry.getCenter();
+		view.setCenter(center);
 		// rescale platonic to encaps the geometry
 		// get maximum size of geometry
 		PdVector[] bounds = geometry.getBounds();
@@ -343,8 +337,94 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		bounds = view.getBounds();
 		double platonicSize = view.getBounds()[0].maxAbs();
 		// scale platonic to enclose geometry
-		// TODO: *10 is a bit arbitrary, no?
-		view.scale(maxGeomSize / platonicSize * 10);
+		// TODO: *2 is a bit arbitrary, no?
+		view.scale(maxGeomSize / platonicSize * 2);
+
+		/* DEBUG:
+		view.showVertices(true);
+		view.setTransparency(0.8);
+		view.showTransparency(true);
+		view.showVertexLabels(true);
+		*/
+
+		// calculate radius of our platonic solid
+		// just get length of vector from any vertex to the center
+		PdVector rV = new PdVector(0, 0, 0);
+		rV.add(view.getVertex(0));
+		rV.sub(center);
+		double radius = rV.length();
+
+		// loop and refine structure until we have enough points
+		while(view.getNumVertices() < minViewPoints) {
+			PgElementSet newView = new PgElementSet();
+			// copy old vertices
+			// NOTE: newView.setVertices(view.getVertices()) DOES NOT WORK - :-@
+			for(int v = 0; v < view.getNumVertices(); ++v) {
+				newView.addVertex(view.getVertex(v));
+			}
+			// make sure we don't count edges twice
+			// stupid javaview doesn't let me iterate over the edges :-X
+			Map<Integer, Integer> known = new HashMap<Integer, Integer>();
+			for(int p = 0; p < view.getNumElements(); ++p) {
+				PiVector vertices = view.getElement(p);
+				// first get point in middle of element
+				PdVector elementCenter = new PdVector(0, 0, 0);
+				for(int i = 0; i < vertices.getSize(); ++i) {
+					elementCenter.add(view.getVertex(vertices.getEntry(i)));
+				}
+				// scale to sphere
+				elementCenter.normalize();
+				elementCenter.multScalar(view.getVertex(0).length());
+				int pC = newView.addVertex(elementCenter);
+
+				// now also get points between vertices of the element
+				for(int i = 0; i < vertices.getSize(); ++i) {
+					int a = vertices.getEntry(i);
+					int b = vertices.getEntry((i == vertices.getSize() - 1) ? 0 : i + 1);
+					// some number to make sure we don't try to add the
+					// center point between two vertices twice
+					// (since it's on an edge, it will always be shared between
+					//  adjacent elements)
+					Integer index = Math.min(a, b) + Math.max(a, b) * view.getNumVertices();
+					int c = -1;
+					if (known.containsKey(index)) {
+						// already handled
+						c = known.get(index);
+					} else {
+						// calculate vector to point between a and b
+						PdVector cV = new PdVector(0, 0, 0);
+						cV.add(view.getVertex(a));
+						cV.add(view.getVertex(b));
+						cV.multScalar(0.5);
+						// now make a vector from center to point between a and b
+						PdVector sV = new PdVector(0, 0, 0);
+						sV.add(cV);
+						sV.sub(center);
+						// now scale it to sphere
+						sV.multScalar(1.0 - sV.length() / radius);
+						// now add it to cV and be done with it...
+						cV.add(sV);
+						c = newView.addVertex(cV);
+						known.put(index, c);
+					}
+					// a - pC - c
+					newView.addElement(new PiVector(a, pC, c));
+					// b - c - pC
+					newView.addElement(new PiVector(b, c, pC));
+				}
+			}
+// DEBUG:			m_disp.addGeometry(view);
+			view = newView;
+/* DEBUG:
+			view.showVertices(true);
+			view.setTransparency(0.8);
+			view.showTransparency(true);
+			view.showVertexLabels(true);
+			System.out.println(view.getNumVertices());
+			break;
+*/
+		}
+
 		return view;
 	}
 	private void renderOffscreen(BufferedImage image) {
@@ -480,12 +560,12 @@ public class Ex1_2 implements ActionListener, ItemListener {
 	}
 	private void setSVColors(PgElementSet geometry, boolean weighted) {
 		// get view points
-		m_sv_view_geometry = getViewPoints(geometry);
+		m_sv_view_geometry = getViewPoints(geometry, 200);
 		double[] usv = getSurfaceVisibility(geometry, m_sv_view_geometry, weighted);
 		// set colors based on usv map
 		for(int p = 0; p < geometry.getNumElements(); ++p) {
 			float w = (float) usv[p];
-			System.out.println("polygon: " + p + ", sv:" + w);
+//			System.out.println("polygon: " + p + ", sv:" + w);
 			geometry.setElementColor(p, new Color(w, w, w));
 		}
 		
