@@ -628,22 +628,29 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			return;
 		}
 		m_boundingBoxStatus++;
-		if (m_boundingBoxStatus > 1) {
+		if (m_boundingBoxStatus > 2) {
 			m_boundingBoxStatus = 0;
 		}
-		if (m_boundingBoxStatus == 0) {
-			// remove bounding box
-			System.out.println("Hiding Bounding Box");
+		PdMatrix m = null;
+
+		if (m_boundingBox != null) {
+			// always hide old variant
 			m_disp.removeGeometry(m_boundingBox);
 			m_disp.update(m_boundingBox);
 			m_boundingBox = null;
-		} else {
-			// create bounding box
-			System.out.println("Showing Bounding Box");
+		}
+
+		if (m_boundingBoxStatus == 0) {
+			// remove bounding box
+			System.out.println("Hiding Bounding Box");
+			// nothing to do
+		} else if (m_boundingBoxStatus == 1) {
+			// create bounding box based on first and second moment
+			System.out.println("Showing Normal Based Bounding Box");
 			// center of mass
 			PdVector c = m_geometry.getCenterOfGravity();
 			// fill covariance matrix
-			PdMatrix m = new PdMatrix(3,3);
+			m = new PdMatrix(3,3);
 			for(int v = 0; v < m_geometry.getNumVertices(); ++v) {
 				PdVector p = m_geometry.getVertex(v);
 				for(int i = 0; i < 3; ++i) {
@@ -654,80 +661,117 @@ public class Ex1_2 implements ActionListener, ItemListener {
 					}
 				}
 			}
-			// get eigen values: note, we first have to init the output vars O_o stupid api...
-			PdVector[] eigenVectors = {new PdVector(0, 0, 0),
-									   new PdVector(0, 0, 0),
-									   new PdVector(0, 0, 0)};
-			PdVector eigenValues = new PdVector(0, 0, 0);
-			PnJacobi.computeEigenvectors(m, 3, eigenValues, eigenVectors);
-//			PnJacobi.printEigenvectors(3, eigenValues, eigenVectors);
-			//note: looks like the result is already sorted
-			// 0 -> minor, 1 -> middle, 2 -> major
-			// now find dimensions of bounding box by getting the biggest + smallest
-			// projections of vertices onto the eigen vectors
-			double[] min = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY};
-			double[] max = {Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
-			for(int v = 0; v < m_geometry.getNumVertices(); ++v) {
-				PdVector p = m_geometry.getVertex(v);
-				for(int i = 0; i < 3; ++i) {
-					double dot = p.dot(eigenVectors[i]);
-					if (dot > max[i]) {
-						max[i] = dot;
-					} else if (dot < min[i]) {
-						min[i] = dot;
-					}
-				}
-			}
-			// now visualize bounding box via new element set
-			m_boundingBox = new PgElementSet(3);
-			// first add the vertices, basically possible additions/subtractions of x,y,z 
-			// top right far: 0
-			// bottom right far: 1
-			// top right near: 2
-			// bottom right near: 3
-			// top left far: 4
-			// bottom left far: 5
-			// top left near: 6
-			// bottom left near: 7
-			PdVector x = eigenVectors[0];
-			PdVector y = eigenVectors[1];
-			PdVector z = eigenVectors[2];
-			for (int xSign = -1; xSign <= 1; xSign += 2) {
-				for (int ySign = -1; ySign <= 1; ySign += 2) {
-					for (int zSign = -1; zSign <= 1; zSign += 2) {
-						PdVector sum = new PdVector(0, 0, 0);
-						// x * xSign + y * ySign + z * zSign - stupid api!
-						for(int i = 0; i < 3; ++i) {
-							sum.setEntry(i, x.getEntry(i) * (xSign < 0 ? min[0] : max[0])
-											+ y.getEntry(i) * (ySign < 0 ? min[1] : max[1])
-											+ z.getEntry(i) * (zSign < 0 ? min[2] : max[2]));
+		} else {
+			// create bounding box based on first + second moment while taking total area into account
+			// we do that by weighting each vertex by the sum of the third of all adjacent triangles
+			System.out.println("Showing Normal Based Bounding Box + Areas");
+			// center of mass
+			PdVector c = m_geometry.getCenterOfGravity();
+			// fill covariance matrix
+			m = new PdMatrix(3,3);
+			for(int p = 0; p < m_geometry.getNumElements(); ++p) {
+				PdVector[] vertices = m_geometry.getElementVertices(p);
+				// calculate area
+				// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
+				double area = 0.5 * PdVector.crossNew(vertices[0], vertices[1]).length();
+				for(int v = 0; v < vertices.length; ++v) {
+					PdVector vertex = vertices[v];
+					for(int i = 0; i < 3; ++i) {
+						for(int j = 0; j < 3; ++j) {
+							double val = (vertex.getEntry(i) - c.getEntry(i))
+									   * (vertex.getEntry(j) - c.getEntry(j))
+									   * area / 3;
+							m.setEntry(i, j, m.getEntry(i, j) + val);
 						}
-						m_boundingBox.addVertex(sum);
 					}
 				}
 			}
-			// now add elements to show the edges
-			m_boundingBox.setNumElements(6);
-			//NOTE: we must keep the ordering intact
-			// top
-			m_boundingBox.setElement(1, new PiVector(0, 2, 6, 4));
-			// bottom
-			m_boundingBox.setElement(2, new PiVector(1, 3, 7, 5));
-			// left
-			m_boundingBox.setElement(3, new PiVector(4, 5, 7, 6));
-			// right
-			m_boundingBox.setElement(4, new PiVector(0, 1, 3, 2));
-			// enough for a bounding box, as we just need the edges
-			// and the edges of near + far will all overlap
-			// with those of top, bottom, left, right
-			m_boundingBox.assureEdgeColors();
-			m_boundingBox.showVertices(true);
-			m_boundingBox.showEdges(true);
-			m_boundingBox.showElements(false);
-			m_boundingBox.showEdgeColors(true);
+		}
+		if (m != null) {
+			m_boundingBox = getBoundingBox(m);
 			m_disp.addGeometry(m_boundingBox);
 			m_disp.update(m_boundingBox);
 			m_disp.fit();
 		}
+	}
+	private PgElementSet getBoundingBox(PdMatrix m) {
+		// get eigen values: note, we first have to init the output vars O_o stupid api...
+		PdVector[] eigenVectors = {new PdVector(0, 0, 0),
+								   new PdVector(0, 0, 0),
+								   new PdVector(0, 0, 0)};
+		PdVector eigenValues = new PdVector(0, 0, 0);
+		PnJacobi.computeEigenvectors(m, 3, eigenValues, eigenVectors);
+//		PnJacobi.printEigenvectors(3, eigenValues, eigenVectors);
+		//note: looks like the result is already sorted
+		// 0 -> minor, 1 -> middle, 2 -> major
+		// now find dimensions of bounding box by getting the biggest + smallest
+		// projections of vertices onto the eigen vectors
+		double[] min = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY};
+		double[] max = {Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+		for(int v = 0; v < m_geometry.getNumVertices(); ++v) {
+			PdVector p = m_geometry.getVertex(v);
+			for(int i = 0; i < 3; ++i) {
+				double dot = p.dot(eigenVectors[i]);
+				if (dot > max[i]) {
+					max[i] = dot;
+				} else if (dot < min[i]) {
+					min[i] = dot;
+				}
+			}
+		}
+		// now visualize bounding box via new element set
+		PgElementSet box = new PgElementSet(3);
+		// first add the vertices, basically possible additions/subtractions of x,y,z
+		// top right far: 0
+		// bottom right far: 1
+		// top right near: 2
+		// bottom right near: 3
+		// top left far: 4
+		// bottom left far: 5
+		// top left near: 6
+		// bottom left near: 7
+		PdVector x = eigenVectors[0];
+		PdVector y = eigenVectors[1];
+		PdVector z = eigenVectors[2];
+		for (int xSign = -1; xSign <= 1; xSign += 2) {
+			for (int ySign = -1; ySign <= 1; ySign += 2) {
+				for (int zSign = -1; zSign <= 1; zSign += 2) {
+					PdVector sum = new PdVector(0, 0, 0);
+					// x * xSign + y * ySign + z * zSign - stupid api!
+					for(int i = 0; i < 3; ++i) {
+						sum.setEntry(i, x.getEntry(i) * (xSign < 0 ? min[0] : max[0])
+										+ y.getEntry(i) * (ySign < 0 ? min[1] : max[1])
+										+ z.getEntry(i) * (zSign < 0 ? min[2] : max[2]));
+					}
+					box.addVertex(sum);
+				}
+			}
+		}
+		// now add elements to show the edges
+		box.setNumElements(6);
+		//NOTE: we must keep the ordering intact
+		// top
+		box.setElement(1, new PiVector(0, 2, 6, 4));
+		// bottom
+		box.setElement(2, new PiVector(1, 3, 7, 5));
+		// left
+		box.setElement(3, new PiVector(4, 5, 7, 6));
+		// right
+		box.setElement(4, new PiVector(0, 1, 3, 2));
+		// enough for a bounding box, as we just need the edges
+		// and the edges of near + far will all overlap
+		// with those of top, bottom, left, right
+		box.assureEdgeColors();
+		box.showVertices(true);
+		box.showEdges(true);
+		box.showElements(false);
+		box.showEdgeColors(true);
+		// top right far:
+		PdVector vol = (PdVector) box.getVertex(0).clone();
+		// subtract bottom left near:
+		vol.sub(box.getVertex(7));
+		double volume = Math.abs(vol.getEntry(0) * vol.getEntry(1) * vol.getEntry(2));
+		System.out.println("Bounding box volumen: " + volume);
+		return box;
 	}
 }
