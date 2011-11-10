@@ -324,6 +324,47 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 	}
 	private PgElementSet getViewPoints(PgElementSet geometry, int minViewPoints) {
+		if (false) {
+			// platonic solid solution, which sucks
+			return getViewPointsPlatonic(geometry, minViewPoints);
+		}
+		// better: xsophe grid, see e.g. http://books.google.com/books?id=pQe3y-lHMw0C&lpg=PA150&ots=sg7wrAQDwz&dq=sophe%20grid&pg=PA150#v=onepage&q=sophe%20grid&f=false
+		PdVector[] bounds = geometry.getBounds();
+		double maxGeomSize = Math.max(bounds[0].maxAbs(), bounds[1].maxAbs());
+		double radius = maxGeomSize * 4;
+		PgElementSet view = new PgElementSet(3);
+		int N = (int) Math.ceil(-1.5 + 0.5 * Math.sqrt(5 + 2 * minViewPoints));
+		// add zenith
+		view.addVertex(new PdVector(0, 0, radius));
+		view.addVertex(new PdVector(0, 0, -radius));
+		for(int i = 1; i < N; ++i) {
+			double theta = Math.PI / 2 * i / (N-1);
+			for (int j = 0; j < i; ++j) {
+				double phi = Math.PI / 2 * j / i;
+				for(int k = 0; k < 4; ++k) {
+					phi += k * Math.PI / 2;
+					PdVector vertex = new PdVector(
+							radius * Math.sin(theta) * Math.cos(phi),
+							radius * Math.sin(theta) * Math.sin(phi),
+							radius * Math.cos(theta)
+					);
+					if (i != N-1) {
+						// also add for -z but don't duplicate äquator
+						PdVector mVertex = (PdVector) vertex.clone();
+						mVertex.setEntry(2, -mVertex.getEntry(2));
+						mVertex.add(geometry.getCenter());
+						view.addVertex(mVertex);
+					}
+					vertex.add(geometry.getCenter());
+					view.addVertex(vertex);
+				}
+			}
+		}
+		view.showVertices(true);
+		System.out.println(view.getNumVertices());
+		return view;
+	}
+	private PgElementSet getViewPointsPlatonic(PgElementSet geometry, int minViewPoints) {
 		// create octahedron 
 		PgElementSet view = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
 
