@@ -395,14 +395,20 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			usv[i] = 0;
 		}
 
+		double[] viewWeights = new double[viewPoints.getNumVertices()];
+
 		System.out.println("calculating surface visibility from " + viewPoints.getNumVertices() + " view points...");
 		for(int v = 0; v < viewPoints.getNumVertices(); ++v) {
 			// view vector for weighted surface visibility
 			PdVector view = null;
 			if (weighted) {
-				view = viewPoints.getVertex(v);
+				view = (PdVector) viewPoints.getVertex(v).clone();
 				view.sub(viewPoints.getCenter());
 				view.normalize();
+
+				viewWeights[v] = 0;
+			} else {
+				viewWeights[v] = 1;
 			}
 			// rotate camera
 			cam.setPosition(viewPoints.getVertex(v));
@@ -426,7 +432,11 @@ public class Ex1_2 implements ActionListener, ItemListener {
 					}
 					if (knownIds.add(polygonId)) {
 						if (weighted) {
-							usv[polygonId] += Math.abs(view.dot(geometry.getElementNormal(polygonId)));
+							double weight = Math.abs(view.dot(geometry.getElementNormal(polygonId)));
+							usv[polygonId] += weight;
+							if (weight > viewWeights[v]) {
+								viewWeights[v] = weight;
+							}
 						} else {
 							usv[polygonId] += 1.0;
 						}
@@ -450,8 +460,20 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		cam.setInterest(oldCamPOI);
 
 		// normalize
-		for(int i = 0; i < usv.length; ++i) {
-			usv[i] /= viewPoints.getNumVertices();
+		if (weighted) {
+			// weight by sum of weighted views
+			double normalization = 0;
+			for(int i = 0; i < viewWeights.length; ++i) {
+				normalization += viewWeights[i];
+			}
+
+			for(int i = 0; i < usv.length; ++i) {
+				usv[i] /= normalization;
+			}
+		} else {
+			for(int i = 0; i < usv.length; ++i) {
+				usv[i] /= viewPoints.getNumVertices();
+			}
 		}
 
 		return usv;
