@@ -5,19 +5,28 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
+import java.awt.image.ImageObserver;
 import java.awt.image.PixelGrabber;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.swing.ImageIcon;
 
 import jv.object.PsMainFrame;
 import jv.project.PgGeometryIf;
+import jv.project.PvCameraIf;
 import jv.project.PvDisplayIf;
+import jv.project.PvLightIf;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 import jv.vecmath.PiVector;
+import jv.viewer.PvDisplay;
 import jv.viewer.PvViewer;
 import jv.object.PsConfig;
 import jv.geom.PgElementSet;
@@ -35,7 +44,7 @@ import jvx.numeric.PnJacobi;
 public class Ex1_2 implements ActionListener, ItemListener {
 	private Button m_openButton;
 	private PsMainFrame m_frame;
-	private PvDisplayIf m_disp;
+	private PvDisplay m_disp;
 	// main geometry
 	private PgElementSet m_geometry;
 	private Checkbox m_default;
@@ -63,7 +72,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		PvViewer viewer = new PvViewer(null, m_frame);
 
 		// Get default display from viewer
-		m_disp = viewer.getDisplay();
+		m_disp = (PvDisplay) viewer.getDisplay();
 
 		// Add display to m_frame
 		m_frame.add((Component)m_disp, BorderLayout.CENTER);
@@ -209,23 +218,22 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		geometry.assureVertexColors();
 		geometry.showVertexColors(true);
 		geometry.assureElementNormals();
-		// apply colors
-		update();
 		// add to display
 		m_disp.addGeometry(geometry);
 		m_disp.selectGeometry(geometry);
 		m_disp.fit();
+		// apply colors
+		update();
 	}
 	// update all geometries
 	public void update() {
 		if (m_geometry == null) {
 			return;
 		}
-		if (m_sv_view_geometry != null) {
-//			m_disp.removeGeometry(m_sv_view_geometry);
+		if (m_sv_view_geometry != null && Arrays.asList(m_disp.getGeometries()).contains(m_sv_view_geometry)) {
+			m_disp.removeGeometry(m_sv_view_geometry);
 			m_sv_view_geometry = null;
 		}
-		m_disp.setLightingModel(1);
 		m_geometry.removeElementColors();
 		m_geometry.removeVertexColors();
 		m_geometry.showVertices(false);
@@ -296,6 +304,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		int g = 0;
 		int b = 0;
 		for(int i = 0; i < geometry.getNumElements(); ++i) {
+			geometry.setElementColor(i, new Color(r, g, b));
 			++r;
 			if (r > 255) {
 				r = 0;
@@ -305,70 +314,152 @@ public class Ex1_2 implements ActionListener, ItemListener {
 				g = 0;
 				++b;
 			}
-			if (b > 255) {
+			// note: 255,255,255 is forbidden as it's our background
+			// for usv/wsv colorization
+			if (b > 254) {
 				b = 0;
 				System.err.println("polygon id color overflow");
+				return;
 			}
-			geometry.setElementColor(i, new Color(r, g, b));
 		}
 	}
-	private void setUSVColors(PgElementSet geometry) {
-		m_disp.setLightingModel(0);
+	private PgElementSet getViewPoints(PgElementSet geometry) {
 		// create octahedron 
 		//TODO: use octahedron and loop-based algorithm...
 		//      but how to add a vertex + edge properly?
 		//      how to interpolate to the sphere?
-//		m_sv_view_geometry = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
-		m_sv_view_geometry = new PgElementSet();
-		m_sv_view_geometry.computeSphere(15, 15, 1);
-		System.out.println(m_sv_view_geometry.getNumVertices());
-		m_sv_view_geometry.setTransparency(0.8);
-		m_sv_view_geometry.showTransparency(true);
-		m_sv_view_geometry.setCenter(geometry.getCenter());
+//		PgelementSet view = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
+		//FIXME: for now we just pick the default sphere...
+		PgElementSet view = new PgElementSet(3);
+		view.computeSphere(15, 15, 1); // 15^2 = 225 points 
+		view.setTransparency(0.8);
+		view.showTransparency(true);
+		view.setCenter(geometry.getCenter());
 		// rescale platonic to encaps the geometry
 		// get maximum size of geometry
 		PdVector[] bounds = geometry.getBounds();
 		double maxGeomSize = Math.max(bounds[0].maxAbs(), bounds[1].maxAbs());
 		// get size of platonic
-		bounds = m_sv_view_geometry.getBounds();
-		double platonicSize = m_sv_view_geometry.getBounds()[0].maxAbs();
+		bounds = view.getBounds();
+		double platonicSize = view.getBounds()[0].maxAbs();
 		// scale platonic to enclose geometry
-		m_sv_view_geometry.scale(maxGeomSize / platonicSize * 10);
-		System.out.println("geom size: " + maxGeomSize + ", platonic: " + platonicSize);
-		// add view-geometry to see what's going on
-//		m_disp.addGeometry(m_sv_view_geometry);
-		
+		// TODO: *10 is a bit arbitrary, no?
+		view.scale(maxGeomSize / platonicSize * 10);
+		return view;
+	}
+	private void renderOffscreen(BufferedImage image) {
+		//render
+		m_disp.update(m_disp.getCanvas().getGraphics());
+		Graphics2D gfx = image.createGraphics();
+		m_disp.render();
+		gfx.drawImage(m_disp.getImage(), 0, 0, Color.white, null);
+	}
+	private void setUSVColors(PgElementSet geometry) {
+		if (m_disp.getNumGeometries() != 1) {
+			System.err.println("invalid number of geometries :-/");
+			return;
+		}
+		System.out.println("updating geometry: usv colors");
+		// get view points
+		m_sv_view_geometry = getViewPoints(geometry);
+
+		// set colors based on polygon id
 		setPolygonIdColors(geometry);
-		m_disp.setBackgroundColor(new Color(255, 255, 255, 0));
-		
+		boolean wasShowingVertices = geometry.isShowingVertices();
+		geometry.showVertices(false);
+		boolean wasShowingEdges = geometry.isShowingEdges();
+		geometry.showEdges(false);
+
+		//create image
+		final BufferedImage image = new BufferedImage(m_disp.getCanvas().getWidth(),
+													  m_disp.getCanvas().getHeight(),
+													  BufferedImage.TYPE_INT_RGB);
+		// disable lighting / unwanted settings that might temper with colors
+		int oldLightningModel = m_disp.getLightingModel();
+		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
+		Color oldBackgroundColor = m_disp.getBackgroundColor();
+		m_disp.setBackgroundColor(Color.WHITE);
+		boolean wasShowingBorder = m_disp.hasPaintTag(PvDisplayIf.PAINT_BORDER);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, false);
+		boolean hadAntiAliasing = m_disp.hasPaintTag(PvDisplayIf.PAINT_ANTIALIAS);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, false);
+		final long PAINT_FOCUS = 536870912;
+		boolean wasShowingFocus	= m_disp.hasPaintTag(PAINT_FOCUS);
+		m_disp.setPaintTag(PAINT_FOCUS, false);
+		m_disp.setEnabledExternalRendering(true);
+		m_disp.setExternalRenderSize(m_disp.getSize().width, m_disp.getSize().height);
+
+		PvCameraIf cam = m_disp.getCamera();
+		PdVector oldCamPos = cam.getPosition();
+		PdVector oldCamPOI = cam.getInterest();
+
+		Map<Integer, Integer> usv = new HashMap<Integer, Integer>();
 		for(int v = 0; v < m_sv_view_geometry.getNumVertices(); ++v) {
 			// rotate camera
-			m_disp.getCamera().setPosition(m_sv_view_geometry.getVertex(v));
-			// update, just to make sure we get the updated view
+			cam.setPosition(m_sv_view_geometry.getVertex(v));
+			cam.setInterest(m_sv_view_geometry.getCenter());
 			m_disp.update(geometry);
-
-			// get image buffer
-			BufferedImage image = (BufferedImage) m_disp.getImage();
+			renderOffscreen(image);
+			
 			Set<Integer> knownIds = new HashSet<Integer>();
 			for(int w = 0; w < image.getWidth(); ++w) {
 				for(int h = 0; h < image.getHeight(); ++h) {
-					Color color = new Color(image.getRGB(w, h));
-					if (color.getAlpha() == 0) {
+					int rgb = image.getRGB(w, h);
+					if (rgb == -1) {
+						// white, i.e. background color
 						continue;
 					}
+					Color color = new Color(rgb);
 					Integer polygonId = color.getRed() + color.getGreen() * 255 + color.getBlue() * 255 * 255;
 					if (polygonId < 0 || polygonId >= geometry.getNumElements()) {
-						System.err.println("unknown polygonid: " + polygonId + "c: " + color);
+						System.err.println("unknown polygonid: " + polygonId + ", c: " + color + ", w:" + w + ", h: " + h);
 						continue;
 					}
 					if (knownIds.add(polygonId)) {
-						System.out.println("id: " + polygonId + "known: " + knownIds.size());
+						if (usv.containsKey(polygonId)) {
+							usv.put(polygonId, usv.get(polygonId) + 1);
+						}  else {
+							usv.put(polygonId, 1);
+						}
 					}
 				}
 			}
-			break;
+		}
+
+		// set colors based on usv map
+		for(int p = 0; p < geometry.getNumElements(); ++p) {
+			if (usv.containsKey(p)) {
+				int w = usv.get(p);
+				int vis = (int) Math.round(255.0 * w / m_sv_view_geometry.getNumVertices());
+		        System.out.println("polygon: " + w + ", encountered:" + w + " vis: " + vis);
+		        Color color = new Color(vis, vis, vis);
+		        geometry.setElementColor(p, color);
+			} else {
+				geometry.setElementColor(p, Color.black);
+			}
 		}
 		
+		// DEBUG: add view-geometry to see what's going on
+//		m_disp.addGeometry(m_sv_view_geometry);
+//		m_disp.fit();
+
+		// Restore stuff with border, do it after image has been used
+		m_disp.setEnabledExternalRendering(false);
+		m_disp.setPaintTag(PAINT_FOCUS, wasShowingFocus);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, wasShowingBorder);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, hadAntiAliasing);
+		m_disp.setBackgroundColor(oldBackgroundColor);
+		m_disp.setLightingModel(oldLightningModel);
+		
+		geometry.showVertices(wasShowingVertices);
+		geometry.showEdges(wasShowingEdges);
+		
+		cam.setPosition(oldCamPos);
+		cam.setInterest(oldCamPOI);
+
+		m_disp.fit();
+		
+		m_disp.update(geometry);
 	}
 	private void setWSVColors(PgElementSet geometry) {
 		System.err.println("weighted surface visibility: not yet implemented...");
