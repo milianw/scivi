@@ -405,38 +405,27 @@ public class Ex1_2 implements ActionListener, ItemListener {
 				}
 			}
 			// get eigen values: note, we first have to init the output vars O_o stupid api...
-			PdVector[] eigenVectors = new PdVector[3]; 
-			for(int i = 0; i < 3; ++i) {
-				eigenVectors[i] = new PdVector(0, 0, 0);
-			}
+			PdVector[] eigenVectors = {new PdVector(0, 0, 0),
+									   new PdVector(0, 0, 0),
+									   new PdVector(0, 0, 0)};
 			PdVector eigenValues = new PdVector(0, 0, 0);
 			PnJacobi.computeEigenvectors(m, 3, eigenValues, eigenVectors);
 //			PnJacobi.printEigenvectors(3, eigenValues, eigenVectors);
-			PdVector x = eigenVectors[0];
-			PdVector y = eigenVectors[1];
-			PdVector z = eigenVectors[2];
+			//note: looks like the result is already sorted
+			// 0 -> minor, 1 -> middle, 2 -> major
 			// now find dimensions of bounding box by getting the biggest + smallest
 			// projections of vertices onto the eigen vectors
-			double minX = 0, maxX = 0, minY = 0, maxY = 0, minZ = 0, maxZ = 0;
+			double[] min = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY};
+			double[] max = {Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
 			for(int v = 0; v < m_geometry.getNumVertices(); ++v) {
 				PdVector p = m_geometry.getVertex(v);
-				double px = p.dot(x);
-				if (px > maxX) {
-					maxX = px;
-				} else if (px < minX) {
-					minX = px;
-				}
-				double py = p.dot(y);
-				if (py > maxY) {
-					maxY = py;
-				} else if (py < minY) {
-					minY = py;
-				}
-				double pz = p.dot(z);
-				if (pz > maxZ) {
-					maxZ = pz;
-				} else if (pz < minZ) {
-					minZ = pz;
+				for(int i = 0; i < 3; ++i) {
+					double dot = p.dot(eigenVectors[i]);
+					if (dot > max[i]) {
+						max[i] = dot;
+					} else if (dot < min[i]) {
+						min[i] = dot;
+					}
 				}
 			}
 			// now visualize bounding box via new element set
@@ -450,15 +439,18 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			// bottom left far: 5
 			// top left near: 6
 			// bottom left near: 7
+			PdVector x = eigenVectors[0];
+			PdVector y = eigenVectors[1];
+			PdVector z = eigenVectors[2];
 			for (int xSign = -1; xSign <= 1; xSign += 2) {
 				for (int ySign = -1; ySign <= 1; ySign += 2) {
 					for (int zSign = -1; zSign <= 1; zSign += 2) {
 						PdVector sum = new PdVector(0, 0, 0);
 						// x * xSign + y * ySign + z * zSign - stupid api!
 						for(int i = 0; i < 3; ++i) {
-							sum.setEntry(i, x.getEntry(i) * (xSign < 0 ? minX : maxX)
-											+ y.getEntry(i) * (ySign < 0 ? minY : maxY)
-											+ z.getEntry(i) * (zSign < 0 ? minZ : maxZ));
+							sum.setEntry(i, x.getEntry(i) * (xSign < 0 ? min[0] : max[0])
+											+ y.getEntry(i) * (ySign < 0 ? min[1] : max[1])
+											+ z.getEntry(i) * (zSign < 0 ? min[2] : max[2]));
 						}
 						m_boundingBox.addVertex(sum);
 					}
