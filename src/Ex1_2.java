@@ -361,7 +361,6 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			}
 		}
 		view.showVertices(true);
-		System.out.println(view.getNumVertices());
 		return view;
 	}
 	private PgElementSet getViewPointsPlatonic(PgElementSet geometry, int minViewPoints) {
@@ -472,8 +471,8 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		//render
 		m_disp.update(m_disp.getCanvas().getGraphics());
 		Graphics2D gfx = image.createGraphics();
-		m_disp.render();
 		gfx.drawImage(m_disp.getImage(), 0, 0, Color.white, null);
+		m_disp.render();
 	}
 	private double[] getSurfaceVisibility(PgElementSet geometry, PgElementSet viewPoints, boolean weighted) {
 		// set colors based on polygon id
@@ -508,8 +507,8 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		m_disp.setExternalRenderSize(m_disp.getSize().width, m_disp.getSize().height);
 
 		PvCameraIf cam = m_disp.getCamera();
-		PdVector oldCamPos = cam.getPosition();
-		PdVector oldCamPOI = cam.getInterest();
+		PdVector oldCamPos = (PdVector) cam.getPosition().clone();
+		PdVector oldCamPOI = (PdVector) cam.getInterest().clone();
 
 		double[] usv = new double[geometry.getNumElements()];
 		for(int i = 0; i < usv.length; ++i) {
@@ -546,6 +545,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 						continue;
 					}
 					if (!knownIds.add(rgb)) {
+						// already handled
 						continue;
 					}
 					Color color = new Color(rgb);
