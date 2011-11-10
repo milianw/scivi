@@ -296,7 +296,8 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			);
 			geometry.setVertexColor(i, c);
 		}
-//		geometry.showElementFromVertexColors(true);
+		geometry.showElementFromVertexColors(true);
+		geometry.showVertices(false);
 	}
 	private void setPolygonIdColors(PgElementSet geometry) {
 		System.out.println("updating geometry: polygon ID");
