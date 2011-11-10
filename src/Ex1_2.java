@@ -628,7 +628,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			return;
 		}
 		m_boundingBoxStatus++;
-		if (m_boundingBoxStatus > 2) {
+		if (m_boundingBoxStatus > 3) {
 			m_boundingBoxStatus = 0;
 		}
 		PdMatrix m = null;
@@ -646,7 +646,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			// nothing to do
 		} else if (m_boundingBoxStatus == 1) {
 			// create bounding box based on first and second moment
-			System.out.println("Showing Normal Based Bounding Box");
+			System.out.println("Showing Default Bounding Box");
 			// center of mass
 			PdVector c = m_geometry.getCenterOfGravity();
 			// fill covariance matrix
@@ -661,10 +661,10 @@ public class Ex1_2 implements ActionListener, ItemListener {
 					}
 				}
 			}
-		} else {
+		} else if (m_boundingBoxStatus == 2){
 			// create bounding box based on first + second moment while taking total area into account
 			// we do that by weighting each vertex by the sum of the third of all adjacent triangles
-			System.out.println("Showing Normal Based Bounding Box + Areas");
+			System.out.println("Showing Area Including Bounding Box");
 			// center of mass
 			PdVector c = m_geometry.getCenterOfGravity();
 			// fill covariance matrix
@@ -686,12 +686,35 @@ public class Ex1_2 implements ActionListener, ItemListener {
 					}
 				}
 			}
+		} else {
+			System.out.println("Showing Normal Based Bounding Box");
+			// create bounding box based on element normals + area of the element
+			// center of mass
+			PdVector c = m_geometry.getCenterOfGravity();
+			// fill covariance matrix
+			m = new PdMatrix(3,3);
+			m_geometry.assureElementNormals();
+			for(int p = 0; p < m_geometry.getNumElements(); ++p) {
+				PdVector[] vertices = m_geometry.getElementVertices(p);
+				// calculate area
+				// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
+				double area = 0.5 * PdVector.crossNew(vertices[0], vertices[1]).length();
+				// sum normal weighted by area
+				PdVector normal = m_geometry.getElementNormal(p);
+				for(int i = 0; i < 3; ++i) {
+					for(int j = 0; j < 3; ++j) {
+						double val = (normal.getEntry(i) - c.getEntry(i))
+								   * (normal.getEntry(j) - c.getEntry(j))
+								   * area;
+						m.setEntry(i, j, m.getEntry(i, j) + val);
+					}
+				}
+			}
 		}
 		if (m != null) {
 			m_boundingBox = getBoundingBox(m);
 			m_disp.addGeometry(m_boundingBox);
 			m_disp.update(m_boundingBox);
-			m_disp.fit();
 		}
 	}
 	private PgElementSet getBoundingBox(PdMatrix m) {
@@ -721,7 +744,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 		// now visualize bounding box via new element set
 		PgElementSet box = new PgElementSet(3);
-		// first add the vertices, basically possible additions/subtractions of x,y,z
+		// first add the vertices, basically possible additions/subtractions of x,y,z 
 		// top right far: 0
 		// bottom right far: 1
 		// top right near: 2
