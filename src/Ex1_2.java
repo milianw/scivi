@@ -346,6 +346,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			m_disp.getCamera().setPosition(m_sv_view_geometry.getVertex(v));
 			// update, just to make sure we get the updated view
 			m_disp.update(geometry);
+
 			// get image buffer
 			BufferedImage image = (BufferedImage) m_disp.getImage();
 			Set<Integer> knownIds = new HashSet<Integer>();
@@ -439,8 +440,16 @@ public class Ex1_2 implements ActionListener, ItemListener {
 				}
 			}
 			// now visualize bounding box via new element set
-			m_boundingBox = new PgElementSet();
+			m_boundingBox = new PgElementSet(3);
 			// first add the vertices, basically possible additions/subtractions of x,y,z 
+			// top right far: 0
+			// bottom right far: 1
+			// top right near: 2
+			// bottom right near: 3
+			// top left far: 4
+			// bottom left far: 5
+			// top left near: 6
+			// bottom left near: 7
 			for (int xSign = -1; xSign <= 1; xSign += 2) {
 				for (int ySign = -1; ySign <= 1; ySign += 2) {
 					for (int zSign = -1; zSign <= 1; zSign += 2) {
@@ -455,32 +464,24 @@ public class Ex1_2 implements ActionListener, ItemListener {
 					}
 				}
 			}
-			// now also show some edges by connecting all
-			// vertices that share two coordinates
-			int edgeNum = 0;
-			m_boundingBox.setNumEdges(12);
-			for(int i = 0; i < m_boundingBox.getNumVertices(); ++i) {
-				PdVector pi = m_boundingBox.getVertex(i);
-				for(int j = i; j < m_boundingBox.getNumVertices(); ++j) {
-					PdVector pj = m_boundingBox.getVertex(j);
-					int sameCoordinates = 0;
-					for(int k = 0; k < 3; ++k) {
-						if (pi.getEntry(k) == pj.getEntry(k)) {
-							sameCoordinates++;
-						}
-					}
-					if (sameCoordinates == 2) {
-						// connect vertices
-						PiVector edge = new PiVector(i, j);
-						m_boundingBox.setEdge(edgeNum, edge);
-						//FIXME: HOW DO I SET THE EDGE COLOR?
-						++edgeNum;
-					}
-				}
-			}
+			// now add elements to show the edges
+			m_boundingBox.setNumElements(6);
+			//NOTE: we must keep the ordering intact
+			// top
+			m_boundingBox.setElement(1, new PiVector(0, 2, 6, 4));
+			// bottom
+			m_boundingBox.setElement(2, new PiVector(1, 3, 7, 5));
+			// left
+			m_boundingBox.setElement(3, new PiVector(4, 5, 7, 6));
+			// right
+			m_boundingBox.setElement(4, new PiVector(0, 1, 3, 2));
+			// enough for a bounding box, as we just need the edges
+			// and the edges of near + far will all overlap
+			// with those of top, bottom, left, right
+			m_boundingBox.assureEdgeColors();
 			m_boundingBox.showVertices(true);
-			//FIXME: HOW DO I MAKE THE EDGES VISIBLE?
 			m_boundingBox.showEdges(true);
+			m_boundingBox.showElements(false);
 			m_boundingBox.showEdgeColors(true);
 			m_disp.addGeometry(m_boundingBox);
 			m_disp.update(m_boundingBox);
