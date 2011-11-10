@@ -379,7 +379,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		double platonicSize = view.getBounds()[0].maxAbs();
 		// scale platonic to enclose geometry
 		// TODO: *2 is a bit arbitrary, no?
-		view.scale(maxGeomSize / platonicSize * 2);
+		view.scale(maxGeomSize / platonicSize * 4);
 
 		/* DEBUG:
 		view.showVertices(true);
