@@ -29,6 +29,7 @@ import jv.vecmath.PiVector;
 import jv.viewer.PvDisplay;
 import jv.viewer.PvViewer;
 import jv.object.PsConfig;
+import jv.geom.PgEdgeStar;
 import jv.geom.PgElementSet;
 import jv.loader.PgFileDialog;
 import jv.loader.PjImportModel;
@@ -790,6 +791,33 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		box.showEdges(true);
 		box.showElements(false);
 		box.showEdgeColors(true);
+		box.showEdgeColorFromVertices(true);
+		box.setEnabledEdges(true);
+		box.makeEdgeStars();
+
+		System.out.println(box.getNumEdgeStars());
+		Color[] colors = new Color[box.getNumEdgeStars()];
+		// top right far: 0
+		// bottom right far: 1
+		// top right near: 2
+		// bottom right near: 3
+		// top left far: 4
+		// bottom left far: 5
+		// top left near: 6
+		// bottom left near: 7
+		for(int i = 0; i < box.getNumEdgeStars(); ++i) {
+			PgEdgeStar star = box.getEdgeStar(i);
+			int v1 = star.getVertexInd(0);
+			int v2 = star.getVertexInd(1);
+			if (v2 - v1 == 1) {
+				colors[i] = Color.red;
+			} else if (v2 - v1 == 2) {
+				colors[i] = Color.green;
+			} else {
+				colors[i] = Color.blue;
+			}
+		}
+		box.setEdgeColors(colors);
 		// top right far:
 		PdVector vol = (PdVector) box.getVertex(0).clone();
 		// subtract bottom left near:
