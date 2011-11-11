@@ -79,42 +79,15 @@ procedure.
 The sphere has no handles, as can be seen in fig. \ref{fig:sphere}. As such its
 euler characteristic is of course $2$.
 
-\begin{figure}
-  \centering
-
-  \includegraphics[scale=0.5]{sphere.eps}
-
-  \caption{Sphere}
-  \label{fig:sphere}
-\end{figure}
-
 \section{Torus}
 
 The torus has a single handle and hence an euler characteristic of $0$. See
 also fig. \ref{fig:torus}.
 
-\begin{figure}
-  \centering
-
-  \includegraphics[scale=0.5]{torus.eps}
-
-  \caption{Torus}
-  \label{fig:torus}
-\end{figure}
-
 \section{Bunny}
 
 The bunny as seen in fig \ref{fig:bunny} has no handles and is thus
 topologically equivalent to the sphere with an euler characteristic of $2$.
-
-\begin{figure}
-  \centering
-
-  \includegraphics[scale=0.5]{bunny.eps}
-
-  \caption{Bunny}
-  \label{fig:bunny}
-\end{figure}
 
 \section{Hand}
 
@@ -123,43 +96,16 @@ characteristic of $0$, which made me look for a handle. And indeed, there is a
 small hole between index and middle finger, which can be seen in fig.
 \ref{fig:hand}.
 
-\begin{figure}
-  \centering
-
-  \includegraphics[scale=0.5]{hand.eps}
-
-  \caption{Hand}
-  \label{fig:hand}
-\end{figure}
-
 \section{Feline}
 
 The feline has two handles at its tail, which is equivalent to an euler
 characteristic of $-2$. See also fig. \ref{fig:feline}.
-
-\begin{figure}
-  \centering
-
-  \includegraphics[scale=0.5]{feline.eps}
-
-  \caption{Feline}
-  \label{fig:feline}
-\end{figure}
 
 \section{Dragon}
 
 The dragon's tail creates a handle near its end. As such it has an euler
 characteristic of $0$ and is topologically equivalent to a torus. See also fig.
 \ref{fig:dragon}.
-
-\begin{figure}
-  \centering
-
-  \includegraphics[scale=0.5]{dragon.eps}
-
-  \caption{Dragon}
-  \label{fig:dragon}
-\end{figure}
 
 \section{Buddha}
 
@@ -168,13 +114,37 @@ characteristic is $-10$, and as such we should find six handles in total. Five
 of them are easily visible in fig. \ref{fig:buddha1} while the last one should
 be seen from the rotated view in fig. \ref{fig:buddha2}.
 
+
 \begin{figure}
   \centering
 
-  \subfloat{\label{fig:buddha1}\includegraphics[scale=0.4]{budda.eps}}
-  \subfloat{\label{fig:buddha2}\includegraphics[scale=0.4]{budda2.eps}}
+  \subfloat[Sphere]{ \label{fig:sphere}
+    \includegraphics[scale=0.4]{sphere.eps} }
+  \subfloat[Torus]{ \label{fig:torus}
+    \includegraphics[scale=0.4]{torus.eps} }
+  \\
+  \subfloat[Bunny]{ \label{fig:bunny}
+    \includegraphics[scale=0.4]{bunny.eps} }
+  \subfloat[Hand]{ \label{fig:hand}
+    \includegraphics[scale=0.4]{hand.eps} }
+  \label{fig:handles}
+  \caption{Handles in Sphere, Torus, Bunny and Hand objects}
+\end{figure}
+\begin{figure}
+  \ContinuedFloat
+  \centering
+  \subfloat[Dragon]{ \label{fig:dragon}
+    \includegraphics[scale=0.4]{dragon.eps} }
+  \subfloat[Feline]{ \label{fig:feline}
+    \includegraphics[scale=0.4]{feline.eps} }
+  \\
+  \subfloat[Buddha]{\label{fig:buddha1}
+    \includegraphics[scale=0.4]{budda.eps}}
+  \subfloat[Buddha]{\label{fig:buddha2}
+    \includegraphics[scale=0.4]{budda2.eps}}
 
-  \caption{Buddha}
+  \label{fig:handles}
+  \caption{Handles in Dragon, Feline and Buddha objects}
 \end{figure}
 
 \chapter{Mesh Coloring}
@@ -289,6 +259,8 @@ algorithm should work better again.
 
   \caption{Icosahedron}
 \end{figure}
+
+\pagebreak
 
 \section{Polygon ID}
 
