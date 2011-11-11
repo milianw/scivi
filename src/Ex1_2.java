@@ -65,6 +65,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 
 		// Get default display from viewer
 		m_disp = (PvDisplay) viewer.getDisplay();
+		m_disp.setEnabledZBuffer(true);
 
 		// Add display to m_frame
 		m_frame.add((Component)m_disp, BorderLayout.CENTER);
