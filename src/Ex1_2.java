@@ -4,22 +4,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.awt.image.ImageObserver;
-import java.awt.image.PixelGrabber;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
-import javax.swing.ImageIcon;
-
 import jv.object.PsMainFrame;
-import jv.project.PgGeometryIf;
 import jv.project.PvCameraIf;
 import jv.project.PvDisplayIf;
 import jv.project.PvLightIf;
@@ -379,7 +370,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		bounds = view.getBounds();
 		double platonicSize = view.getBounds()[0].maxAbs();
 		// scale platonic to enclose geometry
-		// TODO: *2 is a bit arbitrary, no?
+		// TODO: scale factor is a bit arbitrary, no?
 		view.scale(maxGeomSize / platonicSize * 4);
 
 		/* DEBUG:
