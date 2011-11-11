@@ -195,7 +195,9 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 	}
 	public void openIcosahedron() {
-		openGeometry(PwPlatonic.getSolid(PwPlatonic.ICOSAHEDRON));
+		PgElementSet geom = PwPlatonic.getSolid(PwPlatonic.ICOSAHEDRON);
+		geom.setName("Icosahedron");
+		openGeometry(geom);
 	}
 	public void openGeometry(PgElementSet geometry) {
 		// remove existing geometry
@@ -353,6 +355,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 				}
 			}
 		}
+		view.setName("XSophe Grid " + view.getNumVertices());
 		view.showVertices(true);
 		return view;
 	}
@@ -457,6 +460,8 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			break;
 */
 		}
+
+		view.setName("Subdivided Platonic Solid " + view.getNumVertices());
 
 		return view;
 	}
@@ -737,6 +742,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 		// now visualize bounding box via new element set
 		PgElementSet box = new PgElementSet(3);
+		box.setName("Bounding Box");
 		// first add the vertices, basically possible additions/subtractions of x,y,z 
 		// top right far: 0
 		// bottom right far: 1
