@@ -311,6 +311,116 @@ The source code for this solution is located in
   \caption{Polygon ID colorization}
 \end{figure}
 
+\pagebreak
+
+\section{Surface Visibility}
+
+This exercise was frustrating to say the least\dots Especially that we got the
+hints on how to use the crude JavaView API just in the last week, made me waste
+lots of time trying - and failing - to get something done for this exercise. I
+deeply hope that this experience won't be repeated in future exercises.
+
+The algorithm is simple to write down in textual form:
+
+\begin{enumerate}
+ \item apply Polygon ID colorization to geometry
+ \item enclose geometry in sphere S
+ \item iterate over vertices V of S
+ \item rotate camera to point from V to center of geometry C
+ \item render scene
+ \item find unique set of colors in rendered scene
+ \item map colors to polygon ID and increase counter for found IDs
+ \item optionally weight by dot product of polygon normal and normalized view
+vector
+ \item continue for all vertices V of S
+ \item normalize result
+\end{enumerate}
+
+But as often when implementing a numerical algorithm, the problems lay in the
+dirty details, like hitting the wall that is the JavaView-API\dots
+
+\subsection{Enclosing Sphere}
+
+Just one detail of the algorithm, yet one which took me quite some time to get
+done. We are looking for a discretized sphere with at least 200 nodes.
+Furthermore it should be as unbiased as possible, meaning the vertices should
+be placed evenly on the sphere surface without favoring some areas, like the
+poles.
+
+The obvious first choice was to use \texttt{PgElementSet::computeSphere(15,
+15, r)} which wraps a plane to a sphere. This mesh is biased towards the poles,
+where the node density is much larger compared to the equator.
+
+TODO: figure to show bias
+
+The exercise sheet suggests to take a platonic solid, e.g. an octahedron
+(\texttt{PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON)}), and apply a loop
+subdivision scheme. Sadly, the exercise does not give any details on how to do
+that exactly, leaving my no choice but to try different alternatives.
+
+As a first solution, I picked the aparrently simple route, by iteratively adding
+vertices in the center $D$ of each polygon $ABC$. Then we subdivide the polygon
+into three polygons $ABD$, $BCD$ and $ACD$. Since we are looking for a
+discretized sphere, we have to scale $D$ such that its distance to the center of
+the sphere equals the radius of our sphere.
+
+While kind of straight forward to implement, once I figured out how to make
+JavaView do what I want, it turned out that this approach was not good: Since
+I only add points in the middle of polygons in each step of the iteration, the
+long edges from the initial octahedron will persist. This lead to an uneven
+distribution of the points on the sphere surface, and as such to a biased
+sphere.
+
+TODO: figure to show bias
+
+In my second approach I refined the previous algorithm by additionally adding
+vertices in the middle of the edges of each polygon. Even though this sounds
+rather simple, JavaView once again managed to make my life hard by preventing
+me from iterating over the edges of an geometry\dots Anyhow, after some time I
+got it working, as can be seen in \texttt{Ex1\_2::getViewPointsPlatonic()}..
+Sadly, the result is also not optimal, resulting again in biased areas with
+higher vertex density than others, as can be seen in fig.
+\ref{fig:grid-platonic}. Another disadvantage is that the number of vertices
+increases exponentially with each iteration step. As such it is no wonder that
+we end up with a sphere of over 800 vertices, even though 200 are supposed to be
+enough.
+
+\begin{figure}
+ \centering
+ \includegraphics[scale=0.5]{platonic-grid.eps}
+ \caption{Discretized Sphere by iteratively subdeviding an Octohedron, adding
+vertices in the center of each polygon and edge in each step}
+ \label{fig:grid-platonic}
+\end{figure}
+
+Thus I resorted to applying another subdivision scheme I encountered during my
+bachelors thesis: The XSophe Grid. The implementation is easy, as can be seen
+in \texttt{Ex1\_2::getViewPoints()}. The number of nodes in the mesh as created
+by this algorithm can be calculated via
+
+TODO: source for xsophe
+
+\begin{equation}
+ |V| = 2 + 8 \sum_1^N - 4 N .
+\end{equation}
+
+This equation is easy to understand: We have two points that represent the
+south and north pole. The we sum the points per quarter hemisphere and multiply
+it by 8. This way we count the points on the equator twice though, which is why
+we substract them again.
+
+Besides being easy to implement and understant, the XSophe Grid also creates an
+unbiased discretization of the sphere, as can be seen in fig.
+\ref{fig:grid-sophe}. Because of these advantages, I decided to use this for
+the calculation of the surface visibility.
+
+\begin{figure}
+ \centering
+ \includegraphics[scale=0.5]{sophe-grid.eps}
+ \caption{Discretized Sphere following the Sophe Grid algorithm}
+ \label{fig:grid-sophe}
+\end{figure}
+
 \end{document}
 
 % kate: replace-tabs on;
