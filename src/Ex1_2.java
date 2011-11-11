@@ -253,9 +253,9 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		for (int i = 0; i < geometry.getNumElements(); ++i) {
 			PdVector normal = geometry.getElementNormal(i);
 			Color c = new Color(
-				(int) (255 * Math.abs(normal.getEntry(0))),
-				(int) (255 * Math.abs(normal.getEntry(1))),
-				(int) (255 * Math.abs(normal.getEntry(2)))
+				(float) Math.abs(normal.getEntry(0)),
+				(float) Math.abs(normal.getEntry(1)),
+				(float) Math.abs(normal.getEntry(2))
 			);
 			geometry.setElementColor(i, c);
 		}
