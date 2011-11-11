@@ -55,7 +55,7 @@ lot of time.
 
 \chapter{Euler Characteristics}
 
-The relationship between the euler characteristic $V-E+F$ and the number of
+The relationship between the Euler characteristic $V-E+F$ and the number of
 handles turns out to be
 
 \begin{equation}
@@ -63,13 +63,13 @@ handles turns out to be
  \label{eq:handle-euler}
 \end{equation}
 
-This is in so far intuitive as $2$ is the euler characteristic of a sphere, and
-$0$ that of a torus. Now everytime we add another handle, we can say we add a
-torus - and hence decrease the euler characteristic by two.
+This is in so far intuitive as $2$ is the Euler characteristic of a sphere, and
+$0$ that of a torus. Now every time we add another handle, we can say we add a
+torus - and hence decrease the Euler characteristic by two.
 
 The code for these results can be found in the class \texttt{Ex1\_1}. When
 executed, the user can select an \texttt{*.obj} file and the program will
-show it's euler characteristic as computed by JavaView's
+show it's Euler characteristic as computed by JavaView's
 \texttt{PgPointSet::getEulerCharacteristic()} method. It then continues to
 iterate over all sibling files with the \texttt{*.obj} extension and repeats the
 procedure.
@@ -77,39 +77,39 @@ procedure.
 \section{Sphere}
 
 The sphere has no handles, as can be seen in fig. \ref{fig:sphere}. As such its
-euler characteristic is of course $2$.
+Euler characteristic is of course $2$.
 
 \section{Torus}
 
-The torus has a single handle and hence an euler characteristic of $0$. See
+The torus has a single handle and hence an Euler characteristic of $0$. See
 also fig. \ref{fig:torus}.
 
 \section{Bunny}
 
 The bunny as seen in fig \ref{fig:bunny} has no handles and is thus
-topologically equivalent to the sphere with an euler characteristic of $2$.
+topologically equivalent to the sphere with an Euler characteristic of $2$.
 
 \section{Hand}
 
-The hand I first suspected to be handle-free. But JavaView calculated an euler
+The hand I first suspected to be handle-free. But JavaView calculated an Euler
 characteristic of $0$, which made me look for a handle. And indeed, there is a
 small hole between index and middle finger, which can be seen in fig.
 \ref{fig:hand}.
 
 \section{Feline}
 
-The feline has two handles at its tail, which is equivalent to an euler
+The feline has two handles at its tail, which is equivalent to an Euler
 characteristic of $-2$. See also fig. \ref{fig:feline}.
 
 \section{Dragon}
 
-The dragon's tail creates a handle near its end. As such it has an euler
+The dragon's tail creates a handle near its end. As such it has an Euler
 characteristic of $0$ and is topologically equivalent to a torus. See also fig.
 \ref{fig:dragon}.
 
 \section{Buddha}
 
-The buddha has the most handles of the objects provided. Its euler
+The Buddha has the most handles of the objects provided. Its Euler
 characteristic is $-10$, and as such we should find six handles in total. Five
 of them are easily visible in fig. \ref{fig:buddha1} while the last one should
 be seen from the rotated view in fig. \ref{fig:buddha2}.
@@ -143,7 +143,7 @@ be seen from the rotated view in fig. \ref{fig:buddha2}.
   \subfloat[Buddha]{\label{fig:buddha2}
     \includegraphics[scale=0.4]{budda2.eps}}
 
-  \label{fig:handles}
+%   \label{fig:handles}
   \caption{Handles in Dragon, Feline and Buddha objects}
 \end{figure}
 
@@ -181,7 +181,7 @@ The results can be seen in fig. \ref{fig:bunny-checker},
 \ref{fig:dragon-checker},
 and the source code is located in \texttt{Ex1\_2::set3DCheckerboardColors()}
 and \texttt{Ex1\_2::f()}, while the latter combines two steps from the exercise
-sheet, namely the devision by $L$ followed by flooring the result and the
+sheet, namely the division by $L$ followed by flooring the result and the
 computation denoted by $f(n)$ on the exercise sheet.
 
 Problems with this algorithm are the jagged edges of the single checkerboard
@@ -278,14 +278,14 @@ with the RGB color components as coefficients:
 
 This of course will only work for meshes with less than
 $255+255^2+255^3=16646655$ polygons. Thankfully, this is the case for the
-objects relevant to this exercise. As an additional restriction we reserver the
+objects relevant to this exercise. As an additional restriction we reserve the
 last color, i.e. white, to be used as the background color in the following two
 exercises.
 
 The results can be seen in fig. \ref{fig:bunny-polygonid},
 \ref{fig:feline-polygonid}, \ref{fig:buddha-polygonid} and
 \ref{fig:dragon-polygonid}. I was
-suprised to see that the polygon IDs are apparently random and do not follow
+surprised to see that the polygon IDs are apparently random and do not follow
 any geometric route. As such, the colorization looks random as well, which can
 be seen as an interesting side effect for this algorithm. If one tries to
 create non-randomly sorted polygon IDs, he could verify whether he succeeded
