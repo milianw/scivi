@@ -69,8 +69,10 @@ torus - and hence decrease the euler characteristic by two.
 
 The code for these results can be found in the class \texttt{Ex1\_1}. When
 executed, the user can select an \texttt{*.obj} file and the program will
-show it's euler characteristic and then iterates over all sibling files and
-repeats the procedure.
+show it's euler characteristic as computed by JavaView's
+\texttt{PgPointSet::getEulerCharacteristic()} method. It then continues to
+iterate over all sibling files with the \texttt{*.obj} extension and repeats the
+procedure.
 
 \section{Sphere}
 
@@ -173,6 +175,119 @@ be seen from the rotated view in fig. \ref{fig:buddha2}.
   \subfloat{\label{fig:buddha2}\includegraphics[scale=0.4]{budda2.eps}}
 
   \caption{Buddha}
+\end{figure}
+
+\chapter{Mesh Coloring}
+
+\section{Normal Mapping}
+
+This exercise was straight forward to solve. One just iterates over the
+polygons, or ``elements'' in JavaViews terminology, and assigns a color
+following the equation as given on the exercise sheet:
+
+\begin{equation}
+  R = |N_x|, G = |N_y|, B = |N_z|
+ \label{eq:normal-mapping}
+\end{equation}
+
+\texttt{Java.awt.Color} comes with a constructor taking three \texttt{float}
+arguments. Alternatively we would multiply the absolute value with $255$ and
+round off, to get an integer RGB color component value.
+
+The results can be seen in fig. \ref{fig:bunny-normal},
+\ref{fig:feline-normal}, \ref{fig:buddha-normal} and \ref{fig:dragon-normal},
+and the source code is located in \texttt{Ex1\_2::setNormalMappingColors()}.
+
+\section{3D Checkerboard}
+
+Again, the solution to this exercise was not difficult to program. Again we map
+the RGB values to $8$-bit integer values, just set the vertex colors this time.
+The elements are then colored by
+calling $PgElementSet::showElementFromVertexColors(true)$ on the selected
+geometry.
+
+The results can be seen in fig. \ref{fig:bunny-checker},
+\ref{fig:feline-checker}, \ref{fig:buddha-checker} and
+\ref{fig:dragon-checker},
+and the source code is located in \texttt{Ex1\_2::set3DCheckerboardColors()}
+and \texttt{Ex1\_2::f()}, while the latter combines two steps from the exercise
+sheet, namely the devision by $L$ followed by flooring the result and the
+computation denoted by $f(n)$ on the exercise sheet.
+
+Problems with this algorithm are the jagged edges of the single checkerboard
+tiles. Especially for lower $L$ this gets worse, as can be seen in e.q. fig.
+\ref{fig:dragon-checker}. This problem gets even more prominent when applying
+the colorization algorithm to an Icosahedron, as seen in fig.
+\ref{fig:icosahedron-checker1} and \ref{fig:icosahedron-checker2}. The reason
+for both is the relatively low number of vertices compared to the size of the
+polygons. If we would remesh the objects and add more points, the checkerboard
+algorithm should work better again.
+
+
+
+\begin{figure}
+  \centering
+
+  \subfloat[normal mapping]{
+    \label{fig:bunny-normal}
+    \includegraphics[scale=0.4]{bunny-normal.eps}}
+  \subfloat[checker board, $L = 1.0$]{
+    \label{fig:bunny-checker}
+    \includegraphics[scale=0.4]{bunny-checker-l1.eps}}
+
+  \caption{Bunny}
+\end{figure}
+
+\begin{figure}
+  \centering
+
+  \subfloat[normal mapping]{
+    \label{fig:feline-normal}
+    \includegraphics[scale=0.4]{feline-normal.eps}}
+  \subfloat[checker board, $L = 0.5$]{
+    \label{fig:feline-checker}
+    \includegraphics[scale=0.4]{feline-checker-l05.eps}}
+
+  \caption{Feline}
+\end{figure}
+
+\begin{figure}
+  \centering
+
+  \subfloat[normal mapping]{
+    \label{fig:buddha-normal}
+    \includegraphics[scale=0.4]{buddha-normal.eps}}
+  \subfloat[checker board, $L = 0.25$]{
+    \label{fig:buddha-checker}
+    \includegraphics[scale=0.4]{buddha-checker-l025.eps}}
+
+  \caption{Buddha}
+\end{figure}
+
+\begin{figure}
+  \centering
+
+  \subfloat[normal mapping]{
+    \label{fig:dragon-normal}
+    \includegraphics[scale=0.4]{dragon-normal.eps}}
+  \subfloat[checker board, $L = 0.125$]{
+    \label{fig:dragon-checker}
+    \includegraphics[scale=0.4]{dragon-checker-l0125.eps}}
+
+  \caption{Dragon}
+\end{figure}
+
+\begin{figure}
+  \centering
+
+  \subfloat[checker board, $L = 0.5$]{
+    \label{fig:icosahedron-checker1}
+    \includegraphics[scale=0.4]{icosahedron-checker-l05.eps}}
+  \subfloat[checker board, $L = 1.0$]{
+    \label{fig:icosahedron-checker2}
+    \includegraphics[scale=0.4]{icosahedron-checker-l1.eps}}
+
+  \caption{Icosahedron}
 \end{figure}
 
 \end{document}          
