@@ -290,4 +290,55 @@ algorithm should work better again.
   \caption{Icosahedron}
 \end{figure}
 
-\end{document}          
+\section{Polygon ID}
+
+In this task we are asked to come up with a bijective mapping of an integer
+polygon ID to some color. The task is a preparation for the following two and
+is not required to give visually pleasing results, but should rather be simple.
+
+For my solution I simply interpret the polygon ID $P$ as a base-$255$ number
+with the RGB color components as coefficients:
+
+\begin{equation}
+ P = R \cdot 255^0 + G \cdot 255^1 + B \cdot 255^2 \qquad 0 \leq R,G,B \leq
+255
+\end{equation}
+
+This of course will only work for meshes with less than
+$255+255^2+255^3=16646655$ polygons. Thankfully, this is the case for the
+objects relevant to this exercise. As an additional restriction we reserver the
+last color, i.e. white, to be used as the background color in the following two
+exercises.
+
+The results can be seen in fig. \ref{fig:bunny-polygonid},
+\ref{fig:feline-polygonid}, \ref{fig:buddha-polygonid} and
+\ref{fig:dragon-polygonid}. I was
+suprised to see that the polygon IDs are apparently random and do not follow
+any geometric route. As such, the colorization looks random as well, which can
+be seen as an interesting side effect for this algorithm. If one tries to
+create non-randomly sorted polygon IDs, he could verify whether he succeeded
+easily by applying this colorization scheme.
+
+The source code for this solution is located in
+\texttt{Ex1\_2::setPolygonIdColors()}.
+
+\begin{figure}
+  \centering
+
+
+  \subfloat[Bunny]{\label{fig:bunny-polygonid}
+            \includegraphics[scale=0.4]{bunny-polygonid.eps} }
+  \subfloat[Feline]{\label{fig:feline-polygonid}
+            \includegraphics[scale=0.4]{feline-polygonid.eps} }
+  \\
+  \subfloat[Buddha]{\label{fig:buddha-polygonid}
+            \includegraphics[scale=0.4]{buddha-polygonid.eps} }
+  \subfloat[Dragon]{\label{fig:dragon-polygonid}
+            \includegraphics[scale=0.4]{dragon-polygonid.eps} }
+
+  \caption{Polygon ID colorization}
+\end{figure}
+
+\end{document}
+
+% kate: replace-tabs on;
