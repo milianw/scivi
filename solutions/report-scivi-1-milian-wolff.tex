@@ -29,6 +29,8 @@
 \newcolumntype{n}{>{$}c<{$}}
 \newcolumntype{o}{>{$}r<{$}}
 
+\bibliographystyle{plain}
+
 % Title Page
 \title{Scientific Visualization\\Project I}
 \author{Milian Wolff}
@@ -131,7 +133,7 @@ be seen from the rotated view in fig. \ref{fig:buddha2}.
   \caption{Handles in Sphere, Torus, Bunny and Hand objects}
 \end{figure}
 \begin{figure}
-  \ContinuedFloat
+  \ContinuedFloat 
   \centering
   \subfloat[Dragon]{ \label{fig:dragon}
     \includegraphics[scale=0.4]{dragon.eps} }
@@ -274,6 +276,7 @@ with the RGB color components as coefficients:
 \begin{equation}
  P = R \cdot 255^0 + G \cdot 255^1 + B \cdot 255^2 \qquad 0 \leq R,G,B \leq
 255
+ \label{eq:polygonid}
 \end{equation}
 
 This of course will only work for meshes with less than
@@ -297,7 +300,7 @@ The source code for this solution is located in
 \begin{figure}
   \centering
 
-
+ 
   \subfloat[Bunny]{\label{fig:bunny-polygonid}
             \includegraphics[scale=0.4]{bunny-polygonid.eps} }
   \subfloat[Feline]{\label{fig:feline-polygonid}
@@ -332,7 +335,7 @@ The algorithm is simple to write down in textual form:
  \item map colors to polygon ID and increase counter for found IDs
  \item optionally weight by dot product of polygon normal and normalized view
 vector
- \item continue for all vertices V of S
+ \item continue for all vertices V of S 
  \item normalize result
 \end{enumerate}
 
@@ -347,16 +350,25 @@ Furthermore it should be as unbiased as possible, meaning the vertices should
 be placed evenly on the sphere surface without favoring some areas, like the
 poles.
 
+\subsubsection{JavaView Sphere}
+
 The obvious first choice was to use \texttt{PgElementSet::computeSphere(15,
-15, r)} which wraps a plane to a sphere. This mesh is biased towards the poles,
-where the node density is much larger compared to the equator.
+15, r)} which wraps a plane of 225 vertices to a sphere. This mesh is biased
+towards the poles though, where the node density is much larger compared to the
+equator, as can be seen in fig. \ref{fig:grid-sphere}.
 
-TODO: figure to show bias
+\begin{figure}
+ \centering
+ \includegraphics[scale=0.5]{sphere-grid.eps}
+ \caption{Discretized sphere by wrapping a plane of 225 vertices}
+ \label{fig:grid-sphere}
+\end{figure}
 
-The exercise sheet suggests to take a platonic solid, e.g. an octahedron
-(\texttt{PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON)}), and apply a loop
-subdivision scheme. Sadly, the exercise does not give any details on how to do
-that exactly, leaving my no choice but to try different alternatives.
+\subsubsection{Subdivided Platonic Solid Take 1}
+
+The exercise sheet suggests to take a platonic solid, e.g. an octahedron, and
+apply a loop subdivision scheme. Sadly, the are no details given on how to do
+this exactly, leaving me no choice but to try different alternatives.
 
 As a first solution, I picked the aparrently simple route, by iteratively adding
 vertices in the center $D$ of each polygon $ABC$. Then we subdivide the polygon
@@ -364,20 +376,28 @@ into three polygons $ABD$, $BCD$ and $ACD$. Since we are looking for a
 discretized sphere, we have to scale $D$ such that its distance to the center of
 the sphere equals the radius of our sphere.
 
-While kind of straight forward to implement, once I figured out how to make
-JavaView do what I want, it turned out that this approach was not good: Since
-I only add points in the middle of polygons in each step of the iteration, the
-long edges from the initial octahedron will persist. This lead to an uneven
-distribution of the points on the sphere surface, and as such to a biased
-sphere.
+While kind of straight forward to implement, it turned out that this approach
+was not good: Since it only adds points in the middle of the polygons in each
+step, the long edges from the initial octahedron will persist. This leads to an
+uneven and hence biased distribution of the points on the sphere surface, which
+can be seen in fig. \ref{fig:grid-platonic2}.
 
-TODO: figure to show bias
+\begin{figure}
+ \centering
+ \includegraphics[scale=0.5]{platonic-1-grid.eps}
+ \caption{Discretized sphere by iteratively subdeviding an Octohedron, adding
+vertices in the center of each polygon in each step}
+ \label{fig:grid-platonic2}
+\end{figure}
+
+\subsubsection{Subdivided Platonic Solid Take 2}
 
 In my second approach I refined the previous algorithm by additionally adding
 vertices in the middle of the edges of each polygon. Even though this sounds
 rather simple, JavaView once again managed to make my life hard by preventing
 me from iterating over the edges of an geometry\dots Anyhow, after some time I
-got it working, as can be seen in \texttt{Ex1\_2::getViewPointsPlatonic()}..
+got it working, as can be seen in \texttt{Ex1\_2::getViewPointsPlatonic()}.
+
 Sadly, the result is also not optimal, resulting again in biased areas with
 higher vertex density than others, as can be seen in fig.
 \ref{fig:grid-platonic}. Another disadvantage is that the number of vertices
@@ -388,20 +408,20 @@ enough.
 \begin{figure}
  \centering
  \includegraphics[scale=0.5]{platonic-grid.eps}
- \caption{Discretized Sphere by iteratively subdeviding an Octohedron, adding
+ \caption{Discretized sphere by iteratively subdeviding an Octohedron, adding
 vertices in the center of each polygon and edge in each step}
  \label{fig:grid-platonic}
 \end{figure}
 
-Thus I resorted to applying another subdivision scheme I encountered during my
-bachelors thesis: The XSophe Grid. The implementation is easy, as can be seen
-in \texttt{Ex1\_2::getViewPoints()}. The number of nodes in the mesh as created
-by this algorithm can be calculated via
+\subsubsection{Sophe Grid}
 
-TODO: source for xsophe
+Thus I resorted to another subdivision scheme I encountered during my
+bachelors thesis: The XSophe Grid \cite{Hanson2004903}.
+\texttt{Ex1\_2::getViewPoints()} shows how easy the implementation is. The
+number of nodes in a thusly created mesh can be calculated via
 
 \begin{equation}
- |V| = 2 + 8 \sum_1^N - 4 N .
+ |V| = 2 + 8 \sum_{n=1}^N n - 4 N = 2 + 8 \cdot N/2 \cdot (N+1) - 4N = 2 + 4N^2.
 \end{equation}
 
 This equation is easy to understand: We have two points that represent the
@@ -409,10 +429,16 @@ south and north pole. The we sum the points per quarter hemisphere and multiply
 it by 8. This way we count the points on the equator twice though, which is why
 we substract them again.
 
+In our case though we want to know $N$ for a given $|V| = 200$:
+
+\begin{equation}
+ N = \frac{\sqrt{|V| - 2}}{2}
+\end{equation}
+
 Besides being easy to implement and understant, the XSophe Grid also creates an
 unbiased discretization of the sphere, as can be seen in fig.
-\ref{fig:grid-sophe}. Because of these advantages, I decided to use this for
-the calculation of the surface visibility.
+\ref{fig:grid-sophe}. Due to these advantages, I decided to use this algorithm
+for the calculation of the surface visibility.
 
 \begin{figure}
  \centering
@@ -420,6 +446,48 @@ the calculation of the surface visibility.
  \caption{Discretized Sphere following the Sophe Grid algorithm}
  \label{fig:grid-sophe}
 \end{figure}
+
+\subsubsection{Finding Visible Polygons}
+
+Now we iterate over the vertices of the sphere and rotate our camera
+accordingly. Then we let JavaView render the image into an offscreen buffer.
+This part was again a huge waste of time due to the unintuitive API of JavaView
+and was nearly impossible until we finally got the neccessary hints in the
+recitation.
+
+Once we have the image buffer though we simply have to iterate over all pixels
+and read the image RGB color at this point. Using eq. \ref{eq:polygonid} we
+directly get the associated polygon ID. We then find the unique list of colors
+in the buffer and increase our counter for each of these.
+
+For this all to work as expected though one must setup JavaView. Otherwise
+unexpected colors might show up in the image, confusing the surface visibility
+algorithm. For example one must register JavaView to prevent the ``missing
+license'' warning text. Furthermore we must only paint elements with the special
+\texttt{PvLightIf.MODEL\_SURFACE} lightning model set. Additionally antialiasing
+must be disabled.
+
+\subsubsection{Weighting and Normalization}
+
+For the unweighted surface visibility we increase our counter by one for each
+encountered color in each view point step. For normalization we then devide
+these by the number of view points. As such the maximum surface visibility will
+be 1, which can only occur though in the rare case of a single always
+visible polygon.
+
+If we are calculating the weighted surface visibility though, we increase the
+counter not by one in each step, but by the projection of the polygon's normal
+on the normalized view vector. The question then is how to normalize the final
+counter values. The exercise only requests that the final maximum value will be
+the same as in the unweighted surface visibility, i.e. 1. I decided to achieve
+this by remembering the maximum projection value for each view point, then
+deviding the counter values by the summed maximum projection values.
+
+\subsubsection{Results}
+
+
+
+\bibliography{sources}
 
 \end{document}
 
