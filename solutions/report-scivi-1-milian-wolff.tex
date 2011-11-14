@@ -506,6 +506,29 @@ could make JavaView paint to an image with an indexed colorspace of variable
 size, with a direct getter for the used colors, the performance should be much
 better. Sadly, I did not find any way to achieve this in Java.
 
+The source code for this exercise can be found in the following methods:
+
+\begin{itemize}
+ \item \texttt{Ex1\_2::setUSVColors()}: set unweighted surface visibility
+colors on given geometry
+ \item \texttt{Ex1\_2::setWSVColors()}: set unweighted surface visibility
+colors on given geometry
+ \item \texttt{Ex1\_2::getSurfaceVisibility()}: get map of polygon id to
+surface visibility using either the weighted or unweighted algorithm
+ \item \texttt{Ex1\_2::renderOffscreen()}: render scene to offscreen buffer
+ \item \texttt{Ex1\_2::getViewPoints()}: get view points resembled as vertices
+in the returned geometry
+ \item \texttt{Ex1\_2::getViewPointsSphere()}: get view points using
+\texttt{PgElementSet.computeSphere()}.
+ \item \texttt{Ex1\_2::getViewPointsPlatonic()}: get view points using
+subdivision of octahedron
+ \item \texttt{Ex1\_2::getViewPointsSophe()}: get view points using Sophe Grid
+algorithm.
+\end{itemize}
+
+Finally I can only repeat that this exercise was very frustrating to work on,
+especially due to the bad JavaView API and the unsatisfying results in the end.
+
 \begin{figure}
  \subfloat[Unweighted]{
     \label{fig:usv-icosahedron}
@@ -538,6 +561,9 @@ better. Sadly, I did not find any way to achieve this in Java.
  \caption{Surface Visibility Calculation for the Dragon}
  \label{fig:sv-dragon}
 \end{figure}
+
+\chapter{Bounding Boxes}
+
 
 \bibliography{sources}
 
