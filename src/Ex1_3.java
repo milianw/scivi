@@ -29,8 +29,11 @@ public class Ex1_3 implements ActionListener {
 	// main geometry
 	private PgElementSet m_geometry;
 	private Button m_icosahedronButton;
-	private Button m_boundingBoxButton;
-	private int m_boundingBoxStatus;
+	private Button m_showBoundingBoxV1;
+	private Button m_showBoundingBoxV2;
+	private Button m_showBoundingBoxV3;
+	private Button m_showBoundingBoxJV;
+	private Button m_hideBoundingBox;
 	private PgElementSet m_boundingBox;
 
 	public Ex1_3(String args[]) {
@@ -43,6 +46,8 @@ public class Ex1_3 implements ActionListener {
 		// Get default display from viewer
 		m_disp = (PvDisplay) viewer.getDisplay();
 		m_disp.setEnabledZBuffer(true);
+		m_disp.setEnabledAntiAlias(true);
+		m_disp.showFrame(true);
 
 		// Add display to m_frame
 		m_frame.add((Component)m_disp, BorderLayout.CENTER);
@@ -69,13 +74,36 @@ public class Ex1_3 implements ActionListener {
         c.gridy++;
         buttons.add(m_icosahedronButton, c);
 
-        // show bounding box
-        m_boundingBoxButton = new Button("Bounding Box");
-        m_boundingBoxButton.addActionListener(this);
-        m_boundingBoxStatus = 0;
+        // show bounding box - variant 1
+        m_showBoundingBoxV1 = new Button("Bounding Box V1");
+        m_showBoundingBoxV1.addActionListener(this);
         c.gridy++;
-        buttons.add(m_boundingBoxButton, c);
-        
+        buttons.add(m_showBoundingBoxV1, c);
+
+        // show bounding box - variant 2
+        m_showBoundingBoxV2 = new Button("Bounding Box V2");
+        m_showBoundingBoxV2.addActionListener(this);
+        c.gridy++;
+        buttons.add(m_showBoundingBoxV2, c);
+
+        // show bounding box - variant 3
+        m_showBoundingBoxV3 = new Button("Bounding Box V3");
+        m_showBoundingBoxV3.addActionListener(this);
+        c.gridy++;
+        buttons.add(m_showBoundingBoxV3, c);
+
+        // show bounding box - java view variant
+        m_showBoundingBoxJV = new Button("Bounding Box JV");
+        m_showBoundingBoxJV.addActionListener(this);
+        c.gridy++;
+        buttons.add(m_showBoundingBoxJV, c);
+		m_frame.pack();
+
+		// hide bounding box
+		m_hideBoundingBox = new Button("Hide Bounding Box");
+        m_hideBoundingBox.addActionListener(this);
+        c.gridy++;
+        buttons.add(m_hideBoundingBox, c);
 		m_frame.pack();
 
 		// Position of left upper corner and size of m_frame when run as application.
@@ -93,8 +121,16 @@ public class Ex1_3 implements ActionListener {
 			openFile();
 		} else if (source == m_icosahedronButton) {
 			openIcosahedron();
-		} else if (source == m_boundingBoxButton) {
-			toggleBoundingBox();
+		} else if (source == m_showBoundingBoxJV) {
+			showBoundingBoxJavaView();
+		} else if (source == m_showBoundingBoxV1) {
+			showBoundingBoxV1();
+		} else if (source == m_showBoundingBoxV2) {
+			showBoundingBoxV2();
+		} else if (source == m_showBoundingBoxV3) {
+			showBoundingBoxV3();
+		} else if (source == m_hideBoundingBox) {
+			hideBoundingBox();
 		}
 	}
 	public void openFile() {
@@ -126,7 +162,6 @@ public class Ex1_3 implements ActionListener {
 		// remove existing geometry
 		m_disp.removeGeometries();
 		m_boundingBox = null;
-		m_boundingBoxStatus = 0;
 		m_geometry = geometry;
 		// add to display
 		m_disp.addGeometry(geometry);
@@ -134,99 +169,119 @@ public class Ex1_3 implements ActionListener {
 		m_disp.fit();
 		m_disp.update(m_geometry);
 	}
-	private void toggleBoundingBox() {
+	private void showBoundingBoxJavaView() {
 		if (m_geometry == null) {
 			return;
 		}
-		m_boundingBoxStatus++;
-		if (m_boundingBoxStatus > 3) {
-			m_boundingBoxStatus = 0;
+		hideBoundingBox();
+		// show java-view bounding box
+		System.out.println("Showing JavaView Bounding Box");
+		m_geometry.showBndBox(true);
+		m_disp.showBndBox(true);
+		m_disp.update(m_geometry);
+	}
+	private void showBoundingBoxV1() {
+		if (m_geometry == null) {
+			return;
 		}
-		PdMatrix m = null;
-
-		if (m_boundingBox != null) {
-			// always hide old variant
-			m_disp.removeGeometry(m_boundingBox);
-			m_disp.update(m_boundingBox);
-			m_boundingBox = null;
-		}
-
-		if (m_boundingBoxStatus == 0) {
-			// remove bounding box
-			System.out.println("Hiding Bounding Box");
-			// nothing to do
-		} else if (m_boundingBoxStatus == 1) {
-			// create bounding box based on first and second moment
-			System.out.println("Showing Default Bounding Box");
-			// center of mass
-			PdVector c = m_geometry.getCenterOfGravity();
-			// fill covariance matrix
-			m = new PdMatrix(3,3);
-			for(int v = 0; v < m_geometry.getNumVertices(); ++v) {
-				PdVector p = m_geometry.getVertex(v);
-				for(int i = 0; i < 3; ++i) {
-					for(int j = 0; j < 3; ++j) {
-						double val = (p.getEntry(i) - c.getEntry(i))
-								   * (p.getEntry(j) - c.getEntry(j));
-						m.setEntry(i, j, m.getEntry(i, j) + val);
-					}
+		hideBoundingBox();
+		// create bounding box based on first and second moment
+		System.out.println("Showing Bounding Box Variant 1");
+		// center of mass
+		PdVector c = m_geometry.getCenterOfGravity();
+		// fill covariance matrix
+		PdMatrix m = new PdMatrix(3,3);
+		for(int v = 0; v < m_geometry.getNumVertices(); ++v) {
+			PdVector p = m_geometry.getVertex(v);
+			for(int i = 0; i < 3; ++i) {
+				for(int j = 0; j < 3; ++j) {
+					double val = (p.getEntry(i) - c.getEntry(i))
+							   * (p.getEntry(j) - c.getEntry(j));
+					m.setEntry(i, j, m.getEntry(i, j) + val);
 				}
 			}
-		} else if (m_boundingBoxStatus == 2){
-			// create bounding box based on first + second moment while taking total area into account
-			// we do that by weighting each vertex by the sum of the third of all adjacent triangles
-			System.out.println("Showing Area Including Bounding Box");
-			// center of mass
-			PdVector c = m_geometry.getCenterOfGravity();
-			// fill covariance matrix
-			m = new PdMatrix(3,3);
-			for(int p = 0; p < m_geometry.getNumElements(); ++p) {
-				PdVector[] vertices = m_geometry.getElementVertices(p);
-				// calculate area
-				// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
-				double area = 0.5 * PdVector.crossNew(vertices[0], vertices[1]).length();
-				for(int v = 0; v < vertices.length; ++v) {
-					PdVector vertex = vertices[v];
-					for(int i = 0; i < 3; ++i) {
-						for(int j = 0; j < 3; ++j) {
-							double val = (vertex.getEntry(i) - c.getEntry(i))
-									   * (vertex.getEntry(j) - c.getEntry(j))
-									   * area / 3;
-							m.setEntry(i, j, m.getEntry(i, j) + val);
-						}
-					}
-				}
-			}
-		} else {
-			System.out.println("Showing Normal Based Bounding Box");
-			// create bounding box based on element normals + area of the element
-			// center of mass
-			PdVector c = m_geometry.getCenterOfGravity();
-			// fill covariance matrix
-			m = new PdMatrix(3,3);
-			m_geometry.assureElementNormals();
-			for(int p = 0; p < m_geometry.getNumElements(); ++p) {
-				PdVector[] vertices = m_geometry.getElementVertices(p);
-				// calculate area
-				// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
-				double area = 0.5 * PdVector.crossNew(vertices[0], vertices[1]).length();
-				// sum normal weighted by area
-				PdVector normal = m_geometry.getElementNormal(p);
+		}
+
+		m_boundingBox = getBoundingBox(m);
+		m_disp.addGeometry(m_boundingBox);
+		m_disp.update(m_boundingBox);
+	}
+	private void showBoundingBoxV2() {
+		if (m_geometry == null) {
+			return;
+		}
+		hideBoundingBox();
+		// create bounding box based on first + second moment while taking total area into account
+		// we do that by weighting each vertex by the sum of the third of all adjacent triangles
+		System.out.println("Showing Area Including Bounding Box");
+		// center of mass
+		PdVector c = m_geometry.getCenterOfGravity();
+		// fill covariance matrix
+		PdMatrix m = new PdMatrix(3,3);
+		for(int p = 0; p < m_geometry.getNumElements(); ++p) {
+			PdVector[] vertices = m_geometry.getElementVertices(p);
+			// calculate area
+			// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
+			double area = 0.5 * PdVector.crossNew(vertices[0], vertices[1]).length();
+			for(int v = 0; v < vertices.length; ++v) {
+				PdVector vertex = vertices[v];
 				for(int i = 0; i < 3; ++i) {
 					for(int j = 0; j < 3; ++j) {
-						double val = (normal.getEntry(i) - c.getEntry(i))
-								   * (normal.getEntry(j) - c.getEntry(j))
-								   * area;
+						double val = (vertex.getEntry(i) - c.getEntry(i))
+								   * (vertex.getEntry(j) - c.getEntry(j))
+								   * area / 3;
 						m.setEntry(i, j, m.getEntry(i, j) + val);
 					}
 				}
 			}
 		}
-		if (m != null) {
-			m_boundingBox = getBoundingBox(m);
-			m_disp.addGeometry(m_boundingBox);
-			m_disp.update(m_boundingBox);
+		m_boundingBox = getBoundingBox(m);
+		m_disp.addGeometry(m_boundingBox);
+		m_disp.update(m_boundingBox);
+	}
+	private void showBoundingBoxV3() {
+		if (m_geometry == null) {
+			return;
 		}
+		hideBoundingBox();
+		System.out.println("Showing Normal Based Bounding Box");
+		// create bounding box based on element normals + area of the element
+		// center of mass
+		PdVector c = m_geometry.getCenterOfGravity();
+		// fill covariance matrix
+		PdMatrix m = new PdMatrix(3,3);
+		m_geometry.assureElementNormals();
+		for(int p = 0; p < m_geometry.getNumElements(); ++p) {
+			PdVector[] vertices = m_geometry.getElementVertices(p);
+			// calculate area
+			// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
+			double area = 0.5 * PdVector.crossNew(vertices[0], vertices[1]).length();
+			// sum normal weighted by area
+			PdVector normal = m_geometry.getElementNormal(p);
+			for(int i = 0; i < 3; ++i) {
+				for(int j = 0; j < 3; ++j) {
+					double val = (normal.getEntry(i) - c.getEntry(i))
+							   * (normal.getEntry(j) - c.getEntry(j))
+							   * area;
+					m.setEntry(i, j, m.getEntry(i, j) + val);
+				}
+			}
+		}
+		m_boundingBox = getBoundingBox(m);
+		m_boundingBox.setName("Bounding Box Variant 3");
+		m_disp.addGeometry(m_boundingBox);
+		m_disp.update(m_boundingBox);
+	}
+	private void hideBoundingBox() {
+		if (m_geometry == null) {
+			return;
+		}
+		System.out.println("Hiding Bounding Box");
+		m_disp.showBndBox(false);
+		m_geometry.showBndBox(false);
+		m_disp.removeGeometry(m_boundingBox);
+		m_disp.update(m_boundingBox);
+		m_boundingBox = null;
 	}
 	private PgElementSet getBoundingBox(PdMatrix m) {
 		// get eigen values: note, we first have to init the output vars O_o stupid api...
