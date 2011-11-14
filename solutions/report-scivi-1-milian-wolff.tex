@@ -564,6 +564,68 @@ especially due to the bad JavaView API and the unsatisfying results in the end.
 
 \chapter{Bounding Boxes}
 
+This exercise was a nice change after the frustrating work on the surface
+visibility of exercise two. Our task was to construct bounding boxes for the
+given geometries using different algorithms.
+
+\section{General Algorithm}
+
+To construct a bounding box one generally follows the same steps. First, one
+finds the orientation of the bounding box, which is basically the only part
+that differs by the different approaches.
+
+JavaView provides a bounding box that is axis aligned, meaning the edges
+of the bounding box will always be parallel to the views $x$-, $y$- and
+$z$-axes. The algorithms we should implement on the other hand all align the
+bounding box along the eigenvectors of a covariance matrix, with elements
+
+\begin{equation}
+ M_{i,j} = \sum_{n=1}^N (i_n - \bar{i})(j_n - \bar{j}) \qquad i,j = x,y,z.
+ \label{eq:covarince-matrix-elements}
+\end{equation}
+
+Once the alignment of the bounding box is found, one iterates over the vertices
+of the target geometry and finds the pair of largest and lowest projection on
+each of the three alignment axis. Using these, one can then construct the
+bounding box as can be seen in \texttt{Ex1\_3::getBoundingBox}.
+
+\section{Covariance of Vertex Location}
+
+The first algorithm constructs the covariance matrix from the vertex locations.
+The matrix elements can be calculated using eq.
+\ref{eq:covarince-matrix-elements}, with $N = |V|$ being the number of
+available vertices and $i_n$ being the $i$-th coordinate of the vertex $n$.
+
+This approach has an advantage over the axis aligned algorithm for objects
+which are not already aligned with the view axes, yielding boxes with smaller
+volumes. This is apparent when e.g. comparing fig. \ref{fig:bbox-feline-v1} and
+\ref{fig:bbox-feline-jv}. For most other objects though, the difference is not
+so obvious.
+
+\section{Weighted Covariance of Vertex Location}
+
+The second approach goes a different way and takes the surface of the polygons
+into account. We still iterate over the vertices, but now $i_n$ is the sum of a
+third of the area of all adjacent polygons. The area of a triangular polygon
+can be calculated using any two of the three edges $\vec{e}_{1,2,3}$
+
+\begin{equation}
+ a = \frac{1}{2} \cdot |\vec{e}_1 \times \vec{e}_2|.
+\end{equation}
+
+As suggested by the exercise, this algorithm results in smaller bounding boxes
+for objects with unevenly distributed surface vertices. This seems to be the
+case for the bunny if one compares \ref{fig:bbox-bunny-v1} and
+\ref{fig:bbox-bunny-v2}.
+
+Unexpectedly though, for most other objects this algorithm results in slightly
+bigger bounding boxes, which is especially bad for the feline as visible in
+\ref{fig:bbox-feline-v1} and \ref{fig:bbox-felinx-v2}.
+
+\section{Covariance of Polygon Normals}
+
+\section{Conclusion}
+
 \begin{figure}
   \subfloat[Variant 1, $V \approx 4.92$]{
     \label{fig:bbox-icosahedron-v1}
@@ -622,7 +684,7 @@ especially due to the bad JavaView API and the unsatisfying results in the end.
   \subfloat[Variant 1, $V \approx 1.27$]{
     \label{fig:bbox-dragon-v1}
     \includegraphics[scale=0.4]{bbox-v1-dragon.eps}}
-  \subfloat[Variant 2, $V \approx 1.51$]{
+  \subfloat[Variant 2, $V \approx 1.39$]{
     \label{fig:bbox-dragon-v2}
     \includegraphics[scale=0.4]{bbox-v2-dragon.eps}}
   \\
@@ -640,7 +702,7 @@ especially due to the bad JavaView API and the unsatisfying results in the end.
   \subfloat[Variant 1, $V \approx 0.124$]{
     \label{fig:bbox-bunny-v1}
     \includegraphics[scale=0.4]{bbox-v1-bunny.eps}}
-  \subfloat[Variant 2, $V \approx 0.056$]{
+  \subfloat[Variant 2, $V \approx 0.008$]{
     \label{fig:bbox-bunny-v2}
     \includegraphics[scale=0.4]{bbox-v2-bunny.eps}}
   \\
@@ -658,7 +720,7 @@ especially due to the bad JavaView API and the unsatisfying results in the end.
   \subfloat[Variant 1, $V \approx 1.70$]{
     \label{fig:bbox-buddha-v1}
     \includegraphics[scale=0.4]{bbox-v1-buddha.eps}}
-  \subfloat[Variant 2, $V \approx 1.69$]{
+  \subfloat[Variant 2, $V \approx 1.71$]{
     \label{fig:bbox-buddha-v2}
     \includegraphics[scale=0.4]{bbox-v2-buddha.eps}}
   \\
@@ -676,7 +738,7 @@ especially due to the bad JavaView API and the unsatisfying results in the end.
   \subfloat[Variant 1, $V \approx 0.16$]{
     \label{fig:bbox-feline-v1}
     \includegraphics[scale=0.4]{bbox-v1-feline.eps}}
-  \subfloat[Variant 2, $V \approx 0.34$]{
+  \subfloat[Variant 2, $V \approx 0.26$]{
     \label{fig:bbox-feline-v2}
     \includegraphics[scale=0.4]{bbox-v2-feline.eps}}
   \\
@@ -694,7 +756,7 @@ especially due to the bad JavaView API and the unsatisfying results in the end.
   \subfloat[Variant 1, $V \approx 148E6$]{
     \label{fig:bbox-hand-v1}
     \includegraphics[scale=0.4]{bbox-v1-hand.eps}}
-  \subfloat[Variant 2, $V \approx 144E6$]{
+  \subfloat[Variant 2, $V \approx 148E6$]{
     \label{fig:bbox-hand-v2}
     \includegraphics[scale=0.4]{bbox-v2-hand.eps}}
   \\
