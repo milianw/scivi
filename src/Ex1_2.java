@@ -502,6 +502,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		final BufferedImage image = new BufferedImage(m_disp.getCanvas().getWidth(),
 													  m_disp.getCanvas().getHeight(),
 													  BufferedImage.TYPE_INT_RGB);
+//		System.out.println("w: " + m_disp.getCanvas().getWidth() + ", h: "+ m_disp.getCanvas().getHeight());
 
 		// disable lighting / unwanted settings that might temper with colors
 		boolean wasShowingVertices = geometry.isShowingVertices();
@@ -532,6 +533,9 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 
 		double[] viewWeights = new double[viewPoints.getNumVertices()];
+		for(int i = 0; i < viewWeights.length; ++i) {
+			viewWeights[i] = 0;
+		}
 
 		System.out.println("calculating surface visibility from " + viewPoints.getNumVertices() + " view points...");
 		for(int v = 0; v < viewPoints.getNumVertices(); ++v) {
@@ -568,6 +572,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 					int polygonId = color.getRed() + color.getGreen() * 255 + color.getBlue() * 255 * 255;
 					if (polygonId < 0 || polygonId >= geometry.getNumElements()) {
 						System.err.println("unknown polygonid: " + polygonId + ", c: " + color + ", w:" + w + ", h: " + h);
+//						return usv;
 						continue;
 					}
 					if (weighted) {
@@ -581,6 +586,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 					}
 				}
 			}
+			System.out.println("Found " + knownIds.size() + " colors in view " + v);
 		}
 		System.out.println("done");
 		// Restore stuff with border, do it after image has been used
@@ -598,20 +604,14 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		cam.setInterest(oldCamPOI);
 
 		// normalize
-		if (weighted) {
-			// weight by sum of weighted views
-			double normalization = 0;
-			for(int i = 0; i < viewWeights.length; ++i) {
-				normalization += viewWeights[i];
-			}
+		// weight by sum of weighted views
+		double normalization = 0;
+		for(int i = 0; i < viewWeights.length; ++i) {
+			normalization += viewWeights[i];
+		}
 
-			for(int i = 0; i < usv.length; ++i) {
-				usv[i] /= normalization;
-			}
-		} else {
-			for(int i = 0; i < usv.length; ++i) {
-				usv[i] /= viewPoints.getNumVertices();
-			}
+		for(int i = 0; i < usv.length; ++i) {
+			usv[i] /= normalization;
 		}
 
 		return usv;
@@ -628,7 +628,7 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		}
 		
 		// DEBUG: add view-geometry to see what's going on
-		m_disp.addGeometry(m_sv_view_geometry);
+//		m_disp.addGeometry(m_sv_view_geometry);
 		m_disp.fit();
 	}
 	private void setUSVColors(PgElementSet geometry) {
