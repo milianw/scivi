@@ -420,6 +420,17 @@ public class Ex1_2 implements ActionListener, ItemListener {
 				elementCenter.multScalar(view.getVertex(0).length());
 				int pC = newView.addVertex(elementCenter);
 
+				/* platonic take 1: */
+				/*
+				newView.addElement(new PiVector(vertices.getEntry(0), vertices.getEntry(1), pC));
+				newView.addElement(new PiVector(vertices.getEntry(1), vertices.getEntry(2), pC));
+				newView.addElement(new PiVector(vertices.getEntry(2), vertices.getEntry(0), pC));
+				if (true) {
+					continue;
+				}
+				*/
+				// */
+				/* platonic take 2: */
 				// now also get points between vertices of the element
 				for(int i = 0; i < vertices.getSize(); ++i) {
 					int a = vertices.getEntry(i);
