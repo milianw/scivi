@@ -123,6 +123,7 @@ public class Ex1_3 implements ActionListener {
 			openIcosahedron();
 		} else if (source == m_showBoundingBoxJV) {
 			showBoundingBoxJavaView();
+//			showBoundingBoxAxisAligned();
 		} else if (source == m_showBoundingBoxV1) {
 			showBoundingBoxV1();
 		} else if (source == m_showBoundingBoxV2) {
@@ -180,6 +181,27 @@ public class Ex1_3 implements ActionListener {
 		m_disp.showBndBox(true);
 		m_disp.update(m_geometry);
 	}
+	private void showBoundingBoxAxisAligned() {
+		if (m_geometry == null) {
+			return;
+		}
+		hideBoundingBox();
+		// create bounding box based on first and second moment
+		System.out.println("Showing Bounding Box Variant 1");
+		// center of mass
+		PdVector c = m_geometry.getCenterOfGravity();
+		// fill covariance matrix
+		PdMatrix m = new PdMatrix(3,3);
+		for(int i = 0; i < 3; ++i) {
+			for(int j = 0; j < 3; ++j) {
+				m.setEntry(i, j, (i == j) ? 1 : 0);
+			}
+		}
+
+		m_boundingBox = getBoundingBox(m);
+		m_disp.addGeometry(m_boundingBox);
+		m_disp.update(m_boundingBox);
+	}
 	private void showBoundingBoxV1() {
 		if (m_geometry == null) {
 			return;
@@ -221,8 +243,14 @@ public class Ex1_3 implements ActionListener {
 		for(int p = 0; p < m_geometry.getNumElements(); ++p) {
 			PdVector[] vertices = m_geometry.getElementVertices(p);
 			// calculate area
+			PdVector v1 = new PdVector(0, 0, 0);
+			v1.add(vertices[0]);
+			v1.sub(vertices[1]);
+			PdVector v2 = new PdVector(0, 0, 0);
+			v2.add(vertices[0]);
+			v2.sub(vertices[2]);
 			// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
-			double area = 0.5 * PdVector.crossNew(vertices[0], vertices[1]).length();
+			double area = 0.5 * PdVector.crossNew(v1, v2).length();
 			for(int v = 0; v < vertices.length; ++v) {
 				PdVector vertex = vertices[v];
 				for(int i = 0; i < 3; ++i) {
