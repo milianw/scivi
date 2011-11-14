@@ -47,6 +47,10 @@ to play with parameters, models and algorithms, the latter two I could have
 done without. Especially the severe lack of up-to-date documentation for the
 required beta release of JavaView along with its horrible API made me waste a
 lot of time.
+
+The source code of my exercise solutions can be found online under
+
+\begin{center}\url{https://github.com/milianw/scivi}\end{center}
 \end{abstract}
 
 \begingroup
@@ -447,7 +451,7 @@ for the calculation of the surface visibility.
  \label{fig:grid-sophe}
 \end{figure}
 
-\subsubsection{Finding Visible Polygons}
+\subsection{Finding Visible Polygons}
 
 Now we iterate over the vertices of the sphere and rotate our camera
 accordingly. Then we let JavaView render the image into an offscreen buffer.
@@ -467,7 +471,7 @@ license'' warning text. Furthermore we must only paint elements with the special
 \texttt{PvLightIf.MODEL\_SURFACE} lightning model set. Additionally antialiasing
 must be disabled.
 
-\subsubsection{Weighting and Normalization}
+\subsection{Weighting and Normalization}
 
 For the unweighted surface visibility we increase our counter by one for each
 encountered color in each view point step. For normalization we then devide
@@ -483,7 +487,7 @@ the same as in the unweighted surface visibility, i.e. 1. I decided to achieve
 this by remembering the maximum projection value for each view point, then
 deviding the counter values by the summed maximum projection values.
 
-\subsubsection{Results}
+\subsection{Results}
 
 The final results of my hours of work on the surface visibility are rather
 unsatisfying. Especially for the icosahedron or sphere one expects equal
@@ -492,7 +496,7 @@ seen in figures \ref{fig:sv-icosahedron} and \ref{fig:sv-sphere}.
 
 For the larger models, like e.g. the dragon in fig. \ref{fig:sv-dragon}, the
 results look rather random. Adjacent polygons get highly different surface
-visibilities, which is rather bogus.
+visibilities, which is rather bogus. 
 
 Comparing the weighted and unweighted surface visibility algorithms it is
 obvious that my choice of normalization in the weighted case should be
@@ -615,26 +619,33 @@ can be calculated using any two of the three edges $\vec{e}_{1,2,3}$
 
 As suggested by the exercise, this algorithm results in smaller bounding boxes
 for objects with unevenly distributed surface vertices. This seems to be the
-case for the bunny if one compares \ref{fig:bbox-bunny-v1} and
-\ref{fig:bbox-bunny-v2}.
-
-Unexpectedly though, for most other objects this algorithm results in slightly
-bigger bounding boxes, which is especially bad for the feline as visible in
-\ref{fig:bbox-feline-v1} and \ref{fig:bbox-felinx-v2}.
+case for the feline if one compares \ref{fig:bbox-feline-v1} and
+\ref{fig:bbox-feline-v2}. In most of the other cases though the difference is
+negleglible.
 
 \section{Covariance of Polygon Normals}
 
+For our last approach we now build the covariance matrix using the polygon
+normals weighted by their area. This approach results in unexpectedly large
+bounding boxes, esp. when comparing e.g. \ref{fig:bbox-buddha-v2} and
+\ref{fig:bbox-buddha-v3}. Either there is an error in my implementation or this
+algorithm does not yield good results.
+
 \section{Conclusion}
+
+In general we see that calculating bounding boxes is inherently a simple task,
+yet finding the perfect bounding box looks like an extremely hard task. None of
+the investigated algorithms is optimal for all objects.
 
 \begin{figure}
   \subfloat[Variant 1, $V \approx 4.92$]{
     \label{fig:bbox-icosahedron-v1}
     \includegraphics[scale=0.4]{bbox-v1-icosahedron.eps}}
-  \subfloat[Variant 2, $V \approx 3.63$]{
+  \subfloat[Variant 2, $V \approx 4.92$]{
     \label{fig:bbox-icosahedron-v2}
     \includegraphics[scale=0.4]{bbox-v2-icosahedron.eps}}
   \\
-  \subfloat[Variant 3, $V \approx 3.63$]{
+  \subfloat[Variant 3, $V \approx 4.92$]{
     \label{fig:bbox-icosahedron-v3}
     \includegraphics[scale=0.4]{bbox-v3-icosahedron.eps}}
   \subfloat[JavaView]{
@@ -681,14 +692,14 @@ bigger bounding boxes, which is especially bad for the feline as visible in
 \end{figure}
 
 \begin{figure}
-  \subfloat[Variant 1, $V \approx 1.27$]{
+  \subfloat[Variant 1, $V \approx 2.78$]{
     \label{fig:bbox-dragon-v1}
     \includegraphics[scale=0.4]{bbox-v1-dragon.eps}}
-  \subfloat[Variant 2, $V \approx 1.39$]{
+  \subfloat[Variant 2, $V \approx 2.78$]{
     \label{fig:bbox-dragon-v2}
     \includegraphics[scale=0.4]{bbox-v2-dragon.eps}}
   \\
-  \subfloat[Variant 3, $V \approx 1.56$]{
+  \subfloat[Variant 3, $V \approx 3.19$]{
     \label{fig:bbox-dragon-v3}
     \includegraphics[scale=0.4]{bbox-v3-dragon.eps}}
   \subfloat[JavaView]{
@@ -699,14 +710,14 @@ bigger bounding boxes, which is especially bad for the feline as visible in
 \end{figure}
 
 \begin{figure}
-  \subfloat[Variant 1, $V \approx 0.124$]{
+  \subfloat[Variant 1, $V \approx 6.09$]{
     \label{fig:bbox-bunny-v1}
     \includegraphics[scale=0.4]{bbox-v1-bunny.eps}}
-  \subfloat[Variant 2, $V \approx 0.008$]{
+  \subfloat[Variant 2, $V \approx 6.09$]{
     \label{fig:bbox-bunny-v2}
     \includegraphics[scale=0.4]{bbox-v2-bunny.eps}}
   \\
-  \subfloat[Variant 3, $V \approx 0.997$]{
+  \subfloat[Variant 3, $V \approx 7.37$]{
     \label{fig:bbox-bunny-v3}
     \includegraphics[scale=0.4]{bbox-v3-bunny.eps}}
   \subfloat[JavaView]{
@@ -717,14 +728,14 @@ bigger bounding boxes, which is especially bad for the feline as visible in
 \end{figure}
 
 \begin{figure}
-  \subfloat[Variant 1, $V \approx 1.70$]{
+  \subfloat[Variant 1, $V \approx 1.37$]{
     \label{fig:bbox-buddha-v1}
     \includegraphics[scale=0.4]{bbox-v1-buddha.eps}}
-  \subfloat[Variant 2, $V \approx 1.71$]{
+  \subfloat[Variant 2, $V \approx 1.37$]{
     \label{fig:bbox-buddha-v2}
     \includegraphics[scale=0.4]{bbox-v2-buddha.eps}}
   \\
-  \subfloat[Variant 3, $V \approx 0.73$]{
+  \subfloat[Variant 3, $V \approx 3.76$]{
     \label{fig:bbox-buddha-v3}
     \includegraphics[scale=0.4]{bbox-v3-buddha.eps}}
   \subfloat[JavaView]{
@@ -735,14 +746,14 @@ bigger bounding boxes, which is especially bad for the feline as visible in
 \end{figure}
 
 \begin{figure}
-  \subfloat[Variant 1, $V \approx 0.16$]{
+  \subfloat[Variant 1, $V \approx 3.26$]{
     \label{fig:bbox-feline-v1}
     \includegraphics[scale=0.4]{bbox-v1-feline.eps}}
-  \subfloat[Variant 2, $V \approx 0.26$]{
+  \subfloat[Variant 2, $V \approx 3.24$]{
     \label{fig:bbox-feline-v2}
     \includegraphics[scale=0.4]{bbox-v2-feline.eps}}
   \\
-  \subfloat[Variant 3, $V \approx 2.31$]{
+  \subfloat[Variant 3, $V \approx 3.27$]{
     \label{fig:bbox-feline-v3}
     \includegraphics[scale=0.4]{bbox-v3-feline.eps}}
   \subfloat[JavaView]{
@@ -753,14 +764,14 @@ bigger bounding boxes, which is especially bad for the feline as visible in
 \end{figure}
 
 \begin{figure}
-  \subfloat[Variant 1, $V \approx 148E6$]{
+  \subfloat[Variant 1, $V \approx 118E6$]{
     \label{fig:bbox-hand-v1}
     \includegraphics[scale=0.4]{bbox-v1-hand.eps}}
-  \subfloat[Variant 2, $V \approx 148E6$]{
+  \subfloat[Variant 2, $V \approx 118E6$]{
     \label{fig:bbox-hand-v2}
     \includegraphics[scale=0.4]{bbox-v2-hand.eps}}
   \\
-  \subfloat[Variant 3, $V \approx 150E6$]{
+  \subfloat[Variant 3, $V \approx 136E6$]{
     \label{fig:bbox-hand-v3}
     \includegraphics[scale=0.4]{bbox-v3-hand.eps}}
   \subfloat[JavaView]{

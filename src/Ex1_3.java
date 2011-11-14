@@ -105,7 +105,7 @@ public class Ex1_3 implements ActionListener {
         c.gridy++;
         buttons.add(m_hideBoundingBox, c);
 		m_frame.pack();
-
+		
 		// Position of left upper corner and size of m_frame when run as application.
 		m_frame.setBounds(new Rectangle(420, 5, 640, 550));
 		m_frame.setVisible(true);
@@ -228,6 +228,17 @@ public class Ex1_3 implements ActionListener {
 		m_disp.addGeometry(m_boundingBox);
 		m_disp.update(m_boundingBox);
 	}
+	private double getTriangleArea(PdVector[] vertices) {
+		// calculate area of triangle
+		// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
+		PdVector v1 = new PdVector(0, 0, 0);
+		v1.add(vertices[0]);
+		v1.sub(vertices[1]);
+		PdVector v2 = new PdVector(0, 0, 0);
+		v2.add(vertices[0]);
+		v2.sub(vertices[2]);
+		return 0.5 * PdVector.crossNew(v1, v2).length();
+	}
 	private void showBoundingBoxV2() {
 		if (m_geometry == null) {
 			return;
@@ -242,15 +253,7 @@ public class Ex1_3 implements ActionListener {
 		PdMatrix m = new PdMatrix(3,3);
 		for(int p = 0; p < m_geometry.getNumElements(); ++p) {
 			PdVector[] vertices = m_geometry.getElementVertices(p);
-			// calculate area
-			PdVector v1 = new PdVector(0, 0, 0);
-			v1.add(vertices[0]);
-			v1.sub(vertices[1]);
-			PdVector v2 = new PdVector(0, 0, 0);
-			v2.add(vertices[0]);
-			v2.sub(vertices[2]);
-			// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
-			double area = 0.5 * PdVector.crossNew(v1, v2).length();
+			double area = getTriangleArea(vertices);
 			for(int v = 0; v < vertices.length; ++v) {
 				PdVector vertex = vertices[v];
 				for(int i = 0; i < 3; ++i) {
@@ -281,15 +284,13 @@ public class Ex1_3 implements ActionListener {
 		m_geometry.assureElementNormals();
 		for(int p = 0; p < m_geometry.getNumElements(); ++p) {
 			PdVector[] vertices = m_geometry.getElementVertices(p);
-			// calculate area
-			// see also: http://en.wikipedia.org/wiki/Triangle#Computing_the_area_of_a_triangle
-			double area = 0.5 * PdVector.crossNew(vertices[0], vertices[1]).length();
+			double area = getTriangleArea(vertices);
 			// sum normal weighted by area
 			PdVector normal = m_geometry.getElementNormal(p);
 			for(int i = 0; i < 3; ++i) {
 				for(int j = 0; j < 3; ++j) {
-					double val = (normal.getEntry(i) - c.getEntry(i))
-							   * (normal.getEntry(j) - c.getEntry(j))
+					double val = normal.getEntry(i)
+							   * normal.getEntry(j)
 							   * area;
 					m.setEntry(i, j, m.getEntry(i, j) + val);
 				}
@@ -411,11 +412,8 @@ public class Ex1_3 implements ActionListener {
 			}
 		}
 		box.setEdgeColors(colors);
-		// top right far:
-		PdVector vol = (PdVector) box.getVertex(0).clone();
-		// subtract bottom left near:
-		vol.sub(box.getVertex(7));
-		double volume = Math.abs(vol.getEntry(0) * vol.getEntry(1) * vol.getEntry(2));
+		// calculate volume
+		double volume = Math.abs((max[0] - min[0]) * (max[1] - min[1]) * (max[2] - min[2]));
 		System.out.println("Bounding box volumen: " + volume);
 		return box;
 	}
