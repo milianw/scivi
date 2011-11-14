@@ -319,17 +319,39 @@ public class Ex1_2 implements ActionListener, ItemListener {
 			}
 		}
 	}
+	private PgElementSet getViewPointsSphere(int minViewPoints, double radius) {
+		PgElementSet ret = new PgElementSet(3);
+		int points = (int) Math.ceil(Math.sqrt(minViewPoints));
+		ret.computeSphere(points, points, radius);
+		ret.setName("Sphere " + ret.getNumVertices());
+		return ret;
+	}
 	private PgElementSet getViewPoints(PgElementSet geometry, int minViewPoints) {
-		if (false) {
-			// platonic solid solution, which sucks
-			return getViewPointsPlatonic(geometry, minViewPoints);
-		}
-		// better: xsophe grid, see e.g. http://books.google.com/books?id=pQe3y-lHMw0C&lpg=PA150&ots=sg7wrAQDwz&dq=sophe%20grid&pg=PA150#v=onepage&q=sophe%20grid&f=false
 		PdVector[] bounds = geometry.getBounds();
 		double maxGeomSize = Math.max(bounds[0].maxAbs(), bounds[1].maxAbs());
 		double radius = maxGeomSize * 4;
+
+		PgElementSet ret = null;
+		if (false) {
+			// sphere
+			ret = getViewPointsSphere(minViewPoints, radius);
+		} else if (false) {
+			// platonic solid solution, which sucks
+			ret = getViewPointsPlatonic(minViewPoints, radius);
+		} else {
+			// xsophe grid
+			ret = getViewPointsSophe(minViewPoints, radius);
+		}
+
+		PdVector center = geometry.getCenter();
+		ret.setCenter(center);
+		ret.showVertices(true);
+		return ret;
+	}
+	private PgElementSet getViewPointsSophe(int minViewPoints, double radius) {
+		// better: xsophe grid, see e.g. http://books.google.com/books?id=pQe3y-lHMw0C&lpg=PA150&ots=sg7wrAQDwz&dq=sophe%20grid&pg=PA150#v=onepage&q=sophe%20grid&f=false
 		PgElementSet view = new PgElementSet(3);
-		int N = (int) Math.ceil(-1.5 + 0.5 * Math.sqrt(5 + 2 * minViewPoints));
+		int N = (int) Math.ceil(0.5 * Math.sqrt(-2.0 + minViewPoints));
 		// add zenith
 		view.addVertex(new PdVector(0, 0, radius));
 		view.addVertex(new PdVector(0, 0, -radius));
@@ -348,34 +370,25 @@ public class Ex1_2 implements ActionListener, ItemListener {
 						// also add for -z but don't duplicate äquator
 						PdVector mVertex = (PdVector) vertex.clone();
 						mVertex.setEntry(2, -mVertex.getEntry(2));
-						mVertex.add(geometry.getCenter());
 						view.addVertex(mVertex);
 					}
-					vertex.add(geometry.getCenter());
 					view.addVertex(vertex);
 				}
 			}
 		}
 		view.setName("XSophe Grid " + view.getNumVertices());
-		view.showVertices(true);
 		return view;
 	}
-	private PgElementSet getViewPointsPlatonic(PgElementSet geometry, int minViewPoints) {
+	private PgElementSet getViewPointsPlatonic(int minViewPoints, double radius) {
 		// create octahedron 
 		PgElementSet view = PwPlatonic.getSolid(PwPlatonic.OCTAHEDRON);
 
-		PdVector center = geometry.getCenter();
-		view.setCenter(center);
-		// rescale platonic to encaps the geometry
-		// get maximum size of geometry
-		PdVector[] bounds = geometry.getBounds();
-		double maxGeomSize = Math.max(bounds[0].maxAbs(), bounds[1].maxAbs());
+		PdVector center = view.getCenter();
 		// get size of platonic
-		bounds = view.getBounds();
 		double platonicSize = view.getBounds()[0].maxAbs();
 		// scale platonic to enclose geometry
 		// TODO: scale factor is a bit arbitrary, no?
-		view.scale(maxGeomSize / platonicSize * 4);
+		view.scale(radius / platonicSize);
 
 		/* DEBUG:
 		view.showVertices(true);
@@ -383,13 +396,6 @@ public class Ex1_2 implements ActionListener, ItemListener {
 		view.showTransparency(true);
 		view.showVertexLabels(true);
 		*/
-
-		// calculate radius of our platonic solid
-		// just get length of vector from any vertex to the center
-		PdVector rV = new PdVector(0, 0, 0);
-		rV.add(view.getVertex(0));
-		rV.sub(center);
-		double radius = rV.length();
 
 		// loop and refine structure until we have enough points
 		while(view.getNumVertices() < minViewPoints) {
