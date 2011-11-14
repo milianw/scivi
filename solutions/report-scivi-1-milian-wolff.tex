@@ -485,7 +485,59 @@ deviding the counter values by the summed maximum projection values.
 
 \subsubsection{Results}
 
+The final results of my hours of work on the surface visibility are rather
+unsatisfying. Especially for the icosahedron or sphere one expects equal
+surface visibility for each polygon, which clearly is not the case as can be
+seen in figures \ref{fig:sv-icosahedron} and \ref{fig:sv-sphere}.
 
+For the larger models, like e.g. the dragon in fig. \ref{fig:sv-dragon}, the
+results look rather random. Adjacent polygons get highly different surface
+visibilities, which is rather bogus.
+
+Comparing the weighted and unweighted surface visibility algorithms it is
+obvious that my choice of normalization in the weighted case should be
+improved. It turns out that it yields much lower absolute surface visibility
+numbers which makes comparisons harder.
+
+Additionally I find it noteworthy that the performance of both algorithms is
+very bad. Especially the $O(n^2)$ algorithm for finding the colors in the
+image buffer must be improved, as it is repeated for every view point. If one
+could make JavaView paint to an image with an indexed colorspace of variable
+size, with a direct getter for the used colors, the performance should be much
+better. Sadly, I did not find any way to achieve this in Java.
+
+\begin{figure}
+ \subfloat[Unweighted]{
+    \label{fig:usv-icosahedron}
+    \includegraphics[scale=0.4]{usv-icosahedron.eps}}
+ \subfloat[Weighted]{
+    \label{fig:wsv-icosahedron}
+    \includegraphics[scale=0.4]{wsv-icosahedron.eps}}
+ \caption{Surface Visibility Calculation for the Icosahedron}
+ \label{fig:sv-icosahedron}
+\end{figure}
+
+\begin{figure}
+ \subfloat[Unweighted]{
+    \label{fig:usv-sphere}
+    \includegraphics[scale=0.4]{usv-sphere.eps}}
+ \subfloat[Weighted]{
+    \label{fig:wsv-sphere}
+    \includegraphics[scale=0.4]{wsv-sphere.eps}}
+ \caption{Surface Visibility Calculation for the Sphere}
+ \label{fig:sv-sphere}
+\end{figure}
+
+\begin{figure}
+ \subfloat[Unweighted]{
+    \label{fig:usv-dragon}
+    \includegraphics[scale=0.4]{usv-dragon.eps}}
+ \subfloat[Weighted]{
+    \label{fig:wsv-dragon}
+    \includegraphics[scale=0.4]{wsv-dragon.eps}}
+ \caption{Surface Visibility Calculation for the Dragon}
+ \label{fig:sv-dragon}
+\end{figure}
 
 \bibliography{sources}
 
