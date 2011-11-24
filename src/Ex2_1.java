@@ -1,14 +1,10 @@
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 
 import jv.geom.PgElementSet;
-import jv.geom.PgPointSet;
 import jv.loader.PgFileDialog;
 import jv.loader.PjImportModel;
-import jv.object.PsConfig;
 import jv.object.PsMainFrame;
-import jv.vecmath.PdVector;
 import jv.vecmath.PiVector;
 
 class Corner {
@@ -21,10 +17,6 @@ class Corner {
 	public Corner opposite;
 	public int vertex;
 	public int triangle;
-	///FIXME: implement
-	public int edge;
-	///TODO: probably not required
-	public int index;
 }
 
 /**
@@ -37,6 +29,9 @@ class CTRow implements Comparable<CTRow> {
 		min = Math.min(c.prev.vertex, c.next.vertex);
 		max = Math.max(c.prev.vertex, c.next.vertex);
 	}
+	/**
+	 * Sort first by min, then by max in ascending order
+	 */
 	@Override
 	public int compareTo(CTRow o) {
 		if (min < o.min) {
@@ -65,21 +60,17 @@ class CornerTable {
 		m_corners = new ArrayList<Corner>(geometry.getNumElements() * 3);
 		// temporary table to find c.opposite
 		ArrayList<CTRow> table = new ArrayList<CTRow>(geometry.getNumElements() * 3);
-		int j = 0;
 		for(int i = 0; i < geometry.getNumElements(); ++i) {
 			PiVector vertices = geometry.getElement(i);
 			Corner a = new Corner();
 			a.vertex = vertices.getEntry(0);
 			a.triangle = i;
-			a.index = j++;
 			Corner b = new Corner();
 			b.vertex = vertices.getEntry(1);
 			b.triangle = i;
-			b.index = j++;
 			Corner c = new Corner();
 			c.vertex = vertices.getEntry(2);
 			c.triangle = i;
-			c.index = j++;
 			
 			a.prev = c;
 			a.next = b;
@@ -87,8 +78,6 @@ class CornerTable {
 			b.next = c;
 			c.prev = b;
 			c.next = a;
-			
-			///FIXME: set edge
 
 			m_corners.add(a);
 			m_corners.add(b);
@@ -99,9 +88,11 @@ class CornerTable {
 			table.add(new CTRow(c));
 		}
 		
-		// sort table by min index
+		// sort table by min index, see CTRow::compareTo
 		Collections.sort(table);
 		// find pairs and associate c.opposite
+		// thanks to sorting, every two consecutive rows
+		// are opposite to each other
 		for(int i = 0; i < table.size(); i += 2) {
 			CTRow a = table.get(i);
 			CTRow b = table.get(i+1);
@@ -155,11 +146,6 @@ public class Ex2_1 {
 		CornerTable table = new CornerTable(geometry);
 		System.out.println("constructed corner table, running tests");
 		for(Corner c : table.corners()) {
-			/*
-			System.out.println(
-				c.index + " | " + c.triangle + " | " + c.vertex + " | " +
-				c.prev.index + " | " + c.next.index + " | " + c.opposite.index);
-			 */
 			// properly initialized prev/next
 			assert c.next != null;
 			assert c.prev != null;
@@ -172,7 +158,6 @@ public class Ex2_1 {
 				// different triangle
 				assert c.triangle != o.triangle;
 				// same edge though
-				assert c.edge == o.edge;
 				// and hence same next + prev vertices
 				assert c.next.vertex == o.prev.vertex;
 				assert c.prev.vertex == o.next.vertex;
