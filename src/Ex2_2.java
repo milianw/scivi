@@ -170,9 +170,6 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 			return;
 		}
 
-		geometry.assureElementNormals();
-		assert geometry.hasElementNormals();
-
 		// clear last silhouette if needed
 		clearSilhouette();
 
@@ -223,6 +220,8 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 		// find visible faces
 		PdVector ray = m_disp.getCamera().getViewDir();
 		Set<Integer> visibleFaces = new HashSet<Integer>();
+		geometry.assureElementNormals();
+		assert geometry.hasElementNormals();
 		for(int i = 0; i < geometry.getNumElements(); ++i) {
 			double dot = ray.dot(geometry.getElementNormal(i));
 			// if the dot product is zero, the face is either visible or hidden :-/
@@ -252,9 +251,64 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 		}
 		return silhouette;
 	}
+	/**
+	 * interpolate linearly between p1 with visibility a and p2 with visibility b
+	 *
+	 * @returns zero level
+	 */
+	private PdVector findZeroLevel(PdVector p1, double a, PdVector p2, double b)
+	{
+		if (b == 0) {
+			return (PdVector) p2.clone();
+		} else if (a == 0) {
+			return (PdVector) p1.clone();
+		}
+		// edge points from p1 to p2
+		// hence our "x" axis starts at p1
+		PdVector edge = PdVector.subNew(p2, p1);
+		double x0 = a / (a - b);
+
+		assert x0 >= -1 && x0 <= 1;
+		assert (b-a) * x0 + a <= 1E-10;
+		edge.multScalar(x0);
+		return PdVector.addNew(p1, edge);
+	}
 	private PgPolygonSet createVertexBasedSilhouette(PgElementSet geometry)
 	{
-		return null;
+		PgPolygonSet silhouette = new PgPolygonSet();
+		silhouette.setName("FaceBased Silhouette of " + geometry.getName());
+
+		// find visible faces by linear interpolation of dot product of vertices
+		// we iterate over all edges, if the dot product flips sign between
+		// corner base vertex and next and prev vertex, we draw the zero level set
+		// to find it we interpolate the dot products (cmp. barycentric coordinates)
+		PdVector ray = m_disp.getCamera().getViewDir();
+		CornerTable table = new CornerTable(geometry);
+		for(Corner corner : table.corners()) {
+			// TODO: optimize: only compute visibility (i.e. dot product) once for each vertex
+			// but see whether this is actually noticeably faster
+			PdVector p1 = geometry.getVertex(corner.vertex);
+			double a = ray.dot(p1);
+			PdVector p2 = geometry.getVertex(corner.next.vertex);
+			double b = ray.dot(p2);
+			PdVector p3 = geometry.getVertex(corner.prev.vertex);
+			double c = ray.dot(p3);
+			// we look for faces with one visible and two hidden vertices
+			// or vice versa, i.e. two invisible and one visible vertex
+			// via the corner table we look for the corner that is the
+			// single visible or hidden vertex
+			if ((a <= 0 && b >= 0 && c >= 0) || (a >= 0 && b <= 0 && c <= 0)) {
+				// a is our single vertex, find the zero level set via interpolation
+				int v1 = silhouette.addVertex(findZeroLevel(p1, a, p2, b));
+//				System.out.println("a: " + a + ", b: " + b + ", zero: " + silhouette.getVertex(v1).dot(ray));
+				assert silhouette.getVertex(v1).dot(ray) <= 1E-10;
+				int v2 = silhouette.addVertex(findZeroLevel(p1, a, p3, c));
+				assert silhouette.getVertex(v2).dot(ray) <= 1E-10;
+				silhouette.addPolygon(new PiVector(v1, v2));
+				continue;
+			}
+		}
+		return silhouette;
 	}
 	private void clearSilhouette()
 	{
