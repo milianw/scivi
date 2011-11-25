@@ -57,17 +57,20 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 	@Override
 	public void addGeometry(PgGeometryIf geometry)
 	{
+		// do nothing
+	}
+	@Override
+	public void removeGeometry(PgGeometryIf geometry)
+	{
+		// do nothing
+	}
+	@Override
+	public void selectGeometry(PgGeometryIf geometry)
+	{
+		assert m_disp.getSelectedGeometry() == geometry;
+		geometry.setVisible(false);
 		m_disp.update(geometry);
-	}
-	@Override
-	public void removeGeometry(PgGeometryIf arg0)
-	{
-		// TODO Auto-generated method stub
-	}
-	@Override
-	public void selectGeometry(PgGeometryIf arg0)
-	{
-		// TODO Auto-generated method stub
+		viewUpdated();
 	}
 	@Override
 	public String getName()
@@ -89,21 +92,28 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 	//END PvCameraListenerIf
 	private void viewUpdated()
 	{
-		PdVector ray = m_disp.getCamera().getViewDir();
-		drawFaceNormalSilhouette(ray, (PgElementSet) m_disp.getSelectedGeometry());
+		drawSilhouette(m_disp.getSelectedGeometry());
 	}
-	private void drawFaceNormalSilhouette(PdVector ray, PgElementSet geometry)
+	private void drawSilhouette(PgGeometryIf g)
 	{
-		if (m_silhouette != null) {
-			m_disp.removeGeometry(m_silhouette);
-			m_disp.update(m_silhouette);
+		PgElementSet geometry = (PgElementSet) g;
+		if (geometry == null) {
+			return;
 		}
+		drawFaceNormalSilhouette(geometry);
+	}
+	private void drawFaceNormalSilhouette(PgElementSet geometry)
+	{
+		clearSilhouette();
+		assert m_silhouette == null;
+
 		m_silhouette = new PgElementSet();
 
 		geometry.assureElementNormals();
 		assert geometry.hasElementNormals();
 		
 		// find visible faces
+		PdVector ray = m_disp.getCamera().getViewDir();
 		Set<Integer> visibleFaces = new HashSet<Integer>();
 		for(int i = 0; i < geometry.getNumElements(); ++i) {
 			double dot = ray.dot(geometry.getElementNormal(i));
@@ -147,9 +157,16 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 		m_silhouette.setEnabledEdges(true);
 		m_silhouette.makeEdgeStars();
 		m_silhouette.showEdges(true);
+
 		m_disp.addGeometry(m_silhouette);
-		geometry.setVisible(false);
-		m_disp.update(geometry);
 		m_disp.update(m_silhouette);
+	}
+	void clearSilhouette()
+	{
+		if (m_silhouette != null) {
+			m_disp.removeGeometry(m_silhouette);
+			m_disp.update(m_silhouette);
+			m_silhouette = null;
+		}
 	}
 }
