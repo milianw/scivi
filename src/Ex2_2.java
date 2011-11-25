@@ -1,15 +1,18 @@
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Rectangle;
 import java.util.HashSet;
 import java.util.Set;
 
 import jv.geom.PgElementSet;
+import jv.geom.PgPolygonSet;
 import jv.object.PsMainFrame;
 import jv.project.PgGeometryIf;
 import jv.project.PvCameraEvent;
 import jv.project.PvCameraListenerIf;
 import jv.project.PvGeometryListenerIf;
+import jv.project.PvLightIf;
 import jv.vecmath.PdVector;
 import jv.vecmath.PiVector;
 import jv.viewer.PvDisplay;
@@ -29,7 +32,7 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 
 	private PsMainFrame m_frame;
 	private PvDisplay m_disp;
-	private PgElementSet m_silhouette;
+	private PgPolygonSet m_silhouette;
 	public Ex2_2(String args[])
 	{
 		// Create toplevel window of application containing the applet
@@ -44,6 +47,13 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 		m_disp.setEnabledAntiAlias(true);
 		m_disp.addGeometryListener(this);
 		m_disp.addCameraListener(this);
+
+		// disable lightning
+		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
+		// 3D look is nicer imo
+		m_disp.setEnabled3DLook(true);
+		// white background (not neccessary)
+//		m_disp.setBackgroundColor(Color.white);
 
 		// Add display to m_frame
 		m_frame.add((Component)m_disp, BorderLayout.CENTER);
@@ -68,8 +78,6 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 	public void selectGeometry(PgGeometryIf geometry)
 	{
 		assert m_disp.getSelectedGeometry() == geometry;
-		geometry.setVisible(false);
-		m_disp.update(geometry);
 		viewUpdated();
 	}
 	@Override
@@ -101,13 +109,17 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 			return;
 		}
 		drawFaceNormalSilhouette(geometry);
+
+		// make geometry completely white
+		geometry.setGlobalElementColor(Color.white);
+		m_disp.update(geometry);
 	}
 	private void drawFaceNormalSilhouette(PgElementSet geometry)
 	{
 		clearSilhouette();
 		assert m_silhouette == null;
 
-		m_silhouette = new PgElementSet();
+		m_silhouette = new PgPolygonSet();
 
 		geometry.assureElementNormals();
 		assert geometry.hasElementNormals();
@@ -137,26 +149,16 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 			if (visibleFaces.contains(corner.triangle)
 				&& (corner.opposite == null || !visibleFaces.contains(corner.opposite.triangle)))
 			{
-				///TODO: could we just use something like this:
-//				m_disp.getGraphics().drawLine() ?
-				// maybe via the transmatrix T?
-//				PdMatrix T = m_disp.getCamera().getTransMatrix(PvDisplayIf.MATRIX_TRANS);
 				int a = m_silhouette.addVertex(geometry.getVertex(corner.next.vertex));
 				int b = m_silhouette.addVertex(geometry.getVertex(corner.prev.vertex));
-				int c = m_silhouette.addVertex(geometry.getVertex(corner.vertex));
-				m_silhouette.addElement(new PiVector(a, b, c));
+				m_silhouette.addPolygon(new PiVector(a, b));
 			}
 		}
 		
 		System.out.println("adding silhouette");
 		m_silhouette.showVertices(false);
-		m_silhouette.showElements(false);
-		m_silhouette.assureEdgeColors();
-		m_silhouette.showEdgeColors(true);
 		m_silhouette.showEdgeColorFromVertices(true);
-		m_silhouette.setEnabledEdges(true);
-		m_silhouette.makeEdgeStars();
-		m_silhouette.showEdges(true);
+		m_silhouette.setGlobalPolygonColor(Color.black);
 
 		m_disp.addGeometry(m_silhouette);
 		m_disp.update(m_silhouette);
