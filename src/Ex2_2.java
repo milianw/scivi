@@ -218,7 +218,7 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 	private PgPolygonSet createFaceBasedSilhouette(PgElementSet geometry)
 	{
 		PgPolygonSet silhouette = new PgPolygonSet();
-		silhouette.setName("FaceBased Silhouette of " + geometry.getName());
+		silhouette.setName("Face Based Silhouette of " + geometry.getName());
 
 		// find visible faces
 		PdVector ray = m_disp.getCamera().getViewDir();
@@ -279,7 +279,7 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 	private PgPolygonSet createVertexBasedSilhouette(PgElementSet geometry)
 	{
 		PgPolygonSet silhouette = new PgPolygonSet();
-		silhouette.setName("FaceBased Silhouette of " + geometry.getName());
+		silhouette.setName("Vertex Based Silhouette of " + geometry.getName());
 
 		// find visible faces by linear interpolation of dot product of vertices
 		// we iterate over all edges, if the dot product flips sign between
