@@ -8,10 +8,6 @@ import jv.object.PsMainFrame;
 import jv.vecmath.PiVector;
 
 class Corner {
-	public Corner()
-	{
-		
-	}
 	public Corner prev;
 	public Corner next;
 	public Corner opposite;
@@ -24,7 +20,8 @@ class Corner {
  * initial corner-table creation routine
  */
 class CTRow implements Comparable<CTRow> {
-	public CTRow(Corner corner) {
+	public CTRow(Corner corner)
+	{
 		c = corner;
 		min = Math.min(c.prev.vertex, c.next.vertex);
 		max = Math.max(c.prev.vertex, c.next.vertex);
@@ -33,7 +30,8 @@ class CTRow implements Comparable<CTRow> {
 	 * Sort first by min, then by max in ascending order
 	 */
 	@Override
-	public int compareTo(CTRow o) {
+	public int compareTo(CTRow o)
+	{
 		if (min < o.min) {
 			return -1;
 		} else if (min == o.min) {
@@ -102,8 +100,17 @@ class CornerTable {
 			b.c.opposite = a.c;
 		}
 	}
-	ArrayList<Corner> corners() {
+	public ArrayList<Corner> corners()
+	{
 		return m_corners;
+	}
+	public int size()
+	{
+		return m_corners.size();
+	}
+	public Corner corner(int i)
+	{
+		return m_corners.get(i);
 	}
 	private ArrayList<Corner> m_corners; 
 }
