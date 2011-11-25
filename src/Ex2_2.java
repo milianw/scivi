@@ -1,7 +1,15 @@
 import java.awt.BorderLayout;
+import java.awt.Checkbox;
+import java.awt.CheckboxGroup;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Label;
+import java.awt.Panel;
 import java.awt.Rectangle;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,7 +32,7 @@ import jv.viewer.PvViewer;
  * @author		Milian Wolff
  * @version		24.11.2011, 1.00 created
  */
-public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
+public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemListener {
 	public static void main(String[] args)
 	{
 		new Ex2_2(args);
@@ -33,6 +41,15 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 	private PsMainFrame m_frame;
 	private PvDisplay m_disp;
 	private PgPolygonSet m_silhouette;
+	private Checkbox m_vertexSilhouette;
+	private Checkbox m_faceSilhouette;
+	private Checkbox m_disableSilhouette;
+	private enum SilhouetteType {
+		Disabled,
+		FaceBased,
+		VertexBased
+	}
+	private SilhouetteType m_silhouetteType;
 	public Ex2_2(String args[])
 	{
 		// Create toplevel window of application containing the applet
@@ -45,18 +62,50 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 		m_disp = (PvDisplay) viewer.getDisplay();
 		m_disp.setEnabledZBuffer(true);
 		m_disp.setEnabledAntiAlias(true);
+		// listener
 		m_disp.addGeometryListener(this);
 		m_disp.addCameraListener(this);
 
-		// disable lightning
-		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
-		// 3D look is nicer imo
-		m_disp.setEnabled3DLook(true);
-		// white background (not neccessary)
-//		m_disp.setBackgroundColor(Color.white);
-
 		// Add display to m_frame
 		m_frame.add((Component)m_disp, BorderLayout.CENTER);
+
+		// buttons
+		Panel buttons = new Panel();
+		buttons.setLayout(new GridBagLayout());
+		m_frame.add(buttons, BorderLayout.EAST);
+
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridwidth = 1;
+		c.gridx = 0;
+		c.gridy = 0;
+
+		c.gridy++;
+		c.fill = GridBagConstraints.CENTER;
+		buttons.add(new Label("Silhouette"), c);
+		// silhouette method choice
+		CheckboxGroup group = new CheckboxGroup();
+
+		c.fill = GridBagConstraints.HORIZONTAL;
+		// disable silhouette
+		m_disableSilhouette = new Checkbox("Disabled", group, false);
+		m_disableSilhouette.addItemListener(this);
+		c.gridy++;
+		buttons.add(m_disableSilhouette, c);
+
+		// face based silhouette (2.a)
+		m_faceSilhouette = new Checkbox("Face Based", group, false);
+		m_faceSilhouette.addItemListener(this);
+		c.gridy++;
+		buttons.add(m_faceSilhouette, c);
+
+		// default colors
+		m_vertexSilhouette = new Checkbox("Vertex Based", group, true);
+		m_vertexSilhouette.addItemListener(this);
+		c.gridy++;
+		buttons.add(m_vertexSilhouette, c);
+
+		m_silhouetteType = SilhouetteType.FaceBased;
+		group.setSelectedCheckbox(m_faceSilhouette);
 
 		m_frame.pack();
 		// Position of left upper corner and size of m_frame when run as application.
@@ -98,32 +147,79 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 		viewUpdated();
 	}
 	//END PvCameraListenerIf
+	//BEGIN ItemListener
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		Object source = e.getSource();
+		if (source == m_disableSilhouette) {
+			m_silhouetteType = SilhouetteType.Disabled;
+		} else if (source == m_faceSilhouette) {
+			m_silhouetteType = SilhouetteType.FaceBased;
+		} else if (source == m_vertexSilhouette) {
+			m_silhouetteType = SilhouetteType.VertexBased;
+		} else {
+			assert false;
+		}
+		viewUpdated();
+	}
+	//END ItemListener
 	private void viewUpdated()
 	{
-		drawSilhouette(m_disp.getSelectedGeometry());
-	}
-	private void drawSilhouette(PgGeometryIf g)
-	{
-		PgElementSet geometry = (PgElementSet) g;
+		PgElementSet geometry = (PgElementSet) m_disp.getSelectedGeometry();
 		if (geometry == null) {
 			return;
 		}
-		drawFaceNormalSilhouette(geometry);
-
-		// make geometry completely white
-		geometry.setGlobalElementColor(Color.white);
-		m_disp.update(geometry);
-	}
-	private void drawFaceNormalSilhouette(PgElementSet geometry)
-	{
-		clearSilhouette();
-		assert m_silhouette == null;
-
-		m_silhouette = new PgPolygonSet();
 
 		geometry.assureElementNormals();
 		assert geometry.hasElementNormals();
-		
+
+		// clear last silhouette if needed
+		clearSilhouette();
+
+		switch(m_silhouetteType) {
+		case Disabled:
+			// nothing to do, since we always clear
+			break;
+		case FaceBased:
+			m_silhouette = createFaceBasedSilhouette(geometry);
+			break;
+		case VertexBased:
+			m_silhouette = createVertexBasedSilhouette(geometry);
+			break;
+		}
+
+		if (m_silhouette != null) {
+			assert m_silhouetteType == SilhouetteType.FaceBased ||
+					m_silhouetteType == SilhouetteType.VertexBased;
+			System.out.println("adding: " + m_silhouette.getName());
+			m_silhouette.showVertices(false);
+			m_silhouette.showEdgeColorFromVertices(true);
+			m_silhouette.setGlobalPolygonColor(Color.black);
+
+			m_disp.addGeometry(m_silhouette);
+			m_disp.update(m_silhouette);
+
+			// disable lightning to get completely white surface
+			m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
+			// 3D look is nicer imo
+			m_disp.setEnabled3DLook(true);
+
+			geometry.setGlobalElementColor(Color.white);
+			m_disp.update(geometry);
+		} else {
+			assert m_silhouetteType == SilhouetteType.Disabled;
+			// restore settings
+			geometry.setGlobalElementColor(Color.cyan);
+			m_disp.update(geometry);
+			m_disp.setLightingModel(PvLightIf.MODEL_LIGHT);
+			m_disp.setEnabled3DLook(false);
+		}
+	}
+	private PgPolygonSet createFaceBasedSilhouette(PgElementSet geometry)
+	{
+		PgPolygonSet silhouette = new PgPolygonSet();
+		silhouette.setName("FaceBased Silhouette of " + geometry.getName());
+
 		// find visible faces
 		PdVector ray = m_disp.getCamera().getViewDir();
 		Set<Integer> visibleFaces = new HashSet<Integer>();
@@ -149,21 +245,18 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf {
 			if (visibleFaces.contains(corner.triangle)
 				&& (corner.opposite == null || !visibleFaces.contains(corner.opposite.triangle)))
 			{
-				int a = m_silhouette.addVertex(geometry.getVertex(corner.next.vertex));
-				int b = m_silhouette.addVertex(geometry.getVertex(corner.prev.vertex));
-				m_silhouette.addPolygon(new PiVector(a, b));
+				int a = silhouette.addVertex(geometry.getVertex(corner.next.vertex));
+				int b = silhouette.addVertex(geometry.getVertex(corner.prev.vertex));
+				silhouette.addPolygon(new PiVector(a, b));
 			}
 		}
-		
-		System.out.println("adding silhouette");
-		m_silhouette.showVertices(false);
-		m_silhouette.showEdgeColorFromVertices(true);
-		m_silhouette.setGlobalPolygonColor(Color.black);
-
-		m_disp.addGeometry(m_silhouette);
-		m_disp.update(m_silhouette);
+		return silhouette;
 	}
-	void clearSilhouette()
+	private PgPolygonSet createVertexBasedSilhouette(PgElementSet geometry)
+	{
+		return null;
+	}
+	private void clearSilhouette()
 	{
 		if (m_silhouette != null) {
 			m_disp.removeGeometry(m_silhouette);
