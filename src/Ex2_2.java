@@ -290,23 +290,23 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 		for(Corner corner : table.corners()) {
 			// TODO: optimize: only compute visibility (i.e. dot product) once for each vertex
 			// but see whether this is actually noticeably faster
-			PdVector p1 = geometry.getVertex(corner.vertex);
-			double a = ray.dot(p1);
-			PdVector p2 = geometry.getVertex(corner.next.vertex);
-			double b = ray.dot(p2);
-			PdVector p3 = geometry.getVertex(corner.prev.vertex);
-			double c = ray.dot(p3);
+			double a = ray.dot(geometry.getVertexNormal(corner.vertex));
+			double b = ray.dot(geometry.getVertexNormal(corner.next.vertex));
+			double c = ray.dot(geometry.getVertexNormal(corner.prev.vertex));
 			// we look for faces with one visible and two hidden vertices
 			// or vice versa, i.e. two invisible and one visible vertex
 			// via the corner table we look for the corner that is the
 			// single visible or hidden vertex
 			if ((a <= 0 && b >= 0 && c >= 0) || (a >= 0 && b <= 0 && c <= 0)) {
 				// a is our single vertex, find the zero level set via interpolation
-				int v1 = silhouette.addVertex(findZeroLevel(p1, a, p2, b));
-//				System.out.println("a: " + a + ", b: " + b + ", zero: " + silhouette.getVertex(v1).dot(ray));
-				assert silhouette.getVertex(v1).dot(ray) <= 1E-10;
-				int v2 = silhouette.addVertex(findZeroLevel(p1, a, p3, c));
-				assert silhouette.getVertex(v2).dot(ray) <= 1E-10;
+				int v1 = silhouette.addVertex(
+						findZeroLevel(geometry.getVertex(corner.vertex), a,
+									  geometry.getVertex(corner.next.vertex), b)
+				);
+				int v2 = silhouette.addVertex(
+						findZeroLevel(geometry.getVertex(corner.vertex), a,
+									  geometry.getVertex(corner.prev.vertex), c)
+				);
 				silhouette.addPolygon(new PiVector(v1, v2));
 				continue;
 			}
