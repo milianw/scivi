@@ -165,6 +165,9 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 	//END ItemListener
 	private void viewUpdated()
 	{
+		if (m_disp.getSelectedGeometry() == m_silhouette) {
+			return;
+		}
 		PgElementSet geometry = (PgElementSet) m_disp.getSelectedGeometry();
 		if (geometry == null) {
 			return;
