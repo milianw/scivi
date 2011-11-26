@@ -93,13 +93,16 @@ class CornerTable {
 		// find pairs and associate c.opposite
 		// thanks to sorting, every two consecutive rows
 		// are opposite to each other
-		for(int i = 0; i < table.size(); i += 2) {
+		for(int i = 0; i < table.size() - 1; i++) {
 			CTRow a = table.get(i);
 			CTRow b = table.get(i+1);
-			assert a.min == b.min;
+			if (a.min != b.min || a.max != b.max) {
+				continue;
+			}
 			assert a.max == b.max;
 			a.c.opposite = b.c;
 			b.c.opposite = a.c;
+			++i;
 		}
 	}
 	public ArrayList<Corner> corners()
