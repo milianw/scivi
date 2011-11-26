@@ -276,9 +276,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert cache != null;
 			meanCurvature[i] = 1.0d / (4.0 * cache.area) * cache.meanOp.length();
 			assert meanCurvature[i] >= 0;
-			if (meanCurvature[i] > maxMean) {
-				System.out.println("new max: " + i);
-			}
 			maxMean = Math.max(meanCurvature[i], maxMean);
 		}
 		vertexMap = null;
