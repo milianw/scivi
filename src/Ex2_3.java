@@ -310,54 +310,49 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 		return max;
 	}
-	private void setMeanCurvature(PgElementSet geometry) {
-		double[] meanCurvature = getCurvature(geometry, CurvatureType.Mean);
+	private void setColorsFromMaxAbs(PgElementSet geometry, double[] curvature, boolean hasNegative)
+	{
+		assert curvature.length == geometry.getNumVertices();
 		// find maximum
-		double maxMean = absMax(meanCurvature);
+		double max = absMax(curvature);
+		assert max > 0;
 		// assign colors
-		for(int i = 0; i < meanCurvature.length; ++i) {
-			double mean = meanCurvature[i];
-			assert mean >= 0;
-			assert mean <= maxMean;
+		for(int i = 0; i < curvature.length; ++i) {
+			double mean = curvature[i];
+			assert mean <= max;
 			assert mean < Double.POSITIVE_INFINITY;
-			float normalized = (float) (mean / maxMean);
+			float normalized = (float) (mean / max);
+			if (hasNegative) {
+				assert normalized >= -1;
+				assert normalized <= 1;
+				normalized = (normalized + 1.0f) / 2.0f;
+			} else {
+				assert mean >= 0;
+			}
 			assert normalized >= 0;
 			assert normalized <= 1;
 			geometry.setVertexColor(i,
 					Color.getHSBColor(normalized, 1.0f, 1.0f)
 					);
 		}
-		System.out.println("max mean: " + maxMean);
+		System.out.println("max curvature: " + max);
 		geometry.showElementColors(true);
 		geometry.showElementFromVertexColors(true);
 		m_disp.update(geometry);
 	}
+	private void setMeanCurvature(PgElementSet geometry) {
+		System.out.println("calculating mean curvature of geometry " + geometry.getName());
+		double[] curvature = getCurvature(geometry, CurvatureType.Mean);
+		System.out.println("done, setting colors");
+		setColorsFromMaxAbs(geometry, curvature, false);
+		System.out.println("done");
+	}
 	private void setGaussianCurvature(PgElementSet geometry) {
-		double[] gaussianCurvature = getCurvature(geometry, CurvatureType.Gaussian);
-		// find max
-		double maxGaussian = absMax(gaussianCurvature);
-		double sum = 0;
-		// assign colors
-		for(int i = 0; i < gaussianCurvature.length; ++i) {
-			double mean = gaussianCurvature[i];
-			assert mean <= maxGaussian;
-			assert mean >= -maxGaussian;
-			assert mean < Double.POSITIVE_INFINITY;
-			float normalized = (float) (mean / maxGaussian);
-			assert normalized >= -1;
-			assert normalized <= 1;
-			normalized = (normalized + 1.0f) / 2.0f;
-			System.out.println(normalized);
-			geometry.setVertexColor(i,
-					Color.getHSBColor(normalized, 1.0f, 1.0f)
-					);
-			sum += mean;
-		}
-		System.out.println("max gauss: " + maxGaussian + ", sum:" + sum + ", /4pi:" + (sum / (4.0*Math.PI)));
-		System.out.println("avg: " + (sum / gaussianCurvature.length));
-		geometry.showElementColors(true);
-		geometry.showElementFromVertexColors(true);
-		m_disp.update(geometry);
+		System.out.println("calculating gaussian curvature of geometry " + geometry.getName());
+		double[] curvature = getCurvature(geometry, CurvatureType.Gaussian);
+		System.out.println("done, setting colors");
+		setColorsFromMaxAbs(geometry, curvature, true);
+		System.out.println("done");
 	}
 	private void clearCurvature(PgElementSet geometry)
 	{
