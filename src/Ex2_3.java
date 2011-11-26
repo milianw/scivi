@@ -287,7 +287,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert normalized >= 0.0f;
 			assert normalized <= 1.0f;
 			geometry.setVertexColor(i,
-					Color.getHSBColor(normalized, 1.0f, 0.8f)
+					Color.getHSBColor(normalized, 1.0f, 1.0f)
 					);
 		}
 		System.out.println("max mean: " + maxMean);
