@@ -303,5 +303,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	{
 		geometry.removeElementColors();
 		geometry.removeVertexColors();
+		geometry.showElementFromVertexColors(false);
+		m_disp.update(geometry);
 	}
 }
