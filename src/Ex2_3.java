@@ -33,9 +33,16 @@ class CotanCache {
 	}
 	double cotan(double degree)
 	{
+		assert degree > 0 : degree;
+		if (degree == 90) {
+			return 0;
+		}
 		Double val = map.get(degree);
 		if (val == null) {
+			assert Math.tan(Math.toRadians(degree)) != 0 : degree;
 			val = 1.0d / Math.tan(Math.toRadians(degree));
+			assert !val.isNaN() : degree;
+			assert !val.isInfinite() : degree;
 			map.put(degree, val);
 		}
 		return val;
@@ -198,19 +205,29 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// beta: angle at prev corner, between AB and BC
 			// compare to angle(Q)
 			double beta = geometry.getVertexAngle(corner.triangle, corner.prev.localVertexIndex);
+			if (beta == 0) {
+				System.err.println("Zero-Angle encountered in triangle " + corner.triangle + ", vertex: " + corner.prev.localVertexIndex);
+				continue;
+			}
 			// gamma: angle at next corner, between AC and BC
 			// compare to angle(R)
 			double gamma = geometry.getVertexAngle(corner.triangle, corner.next.localVertexIndex);
+			if (gamma == 0) {
+				System.err.println("Zero-Angle encountered in triangle " + corner.triangle + ", vertex: " + corner.next.localVertexIndex);
+				continue;
+			}
 			double cotGamma = cotanCache.cotan(gamma);
 
+			// edge between A and B, angle is beta
 			// compare to PQ
 			PdVector AB = PdVector.subNew(geometry.getVertex(corner.vertex),
 											geometry.getVertex(corner.prev.vertex));
 
 			double area = -1;
 			// check for obtuse angle
-			if (alpha > 90 || beta > 90 || gamma > 90) {
+			if (alpha >= 90 || beta >= 90 || gamma >= 90) {
 				area = geometry.getAreaOfElement(corner.triangle);
+				assert area > 0;
 				// check if angle of T at x is obtuse
 				if (alpha > 90) {
 					area /= 2.0d;
@@ -219,17 +236,14 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				}
 			} else {
 				// voronoi region of x in t:
-				assert cotGamma >= 0;
-
+				// edge between A and C, angle is gamma
 				// compare to PR
 				PdVector AC = PdVector.subNew(geometry.getVertex(corner.vertex),
 												geometry.getVertex(corner.next.vertex));
 				double cotBeta = cotanCache.cotan(beta);
-				assert cotBeta >= 0;
 				area = 1.0d/8.0d * (AB.sqrLength() * cotGamma + AC.sqrLength() * cotBeta);
+				assert area > 0;
 			}
-			assert area > 0;
-			assert area < Double.POSITIVE_INFINITY;
 
 			CurvatureCalculationCache cache = vertexMap[corner.vertex];
 			if (cache == null) {
@@ -238,6 +252,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 			// now e.q. 8, with alpha = our gamma from above, and beta = cnoAngle
 			double cnoAngle = geometry.getVertexAngle(cno.triangle, cno.localVertexIndex);
+			if (cnoAngle == 0) {
+				System.err.println("Zero-Angle encountered in triangle " + cno.triangle + ", vertex: " + cno.localVertexIndex);
+				continue;
+			}
 			double cotCnoAngle = cotanCache.cotan(cnoAngle);
 			cache.meanOp.add(cotGamma + cotCnoAngle, AB);
 			cache.area += area;
@@ -259,7 +277,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			float normalized = (float) (mean / maxMean);
 			assert normalized >= 0.0f;
 			assert normalized <= 1.0f;
-			System.out.println(normalized);
 			geometry.setVertexColor(i,
 					Color.getHSBColor(normalized, 1.0f, 0.8f)
 					);
