@@ -82,6 +82,17 @@ public class Ex2_2 extends ProjectBase implements PvCameraListenerIf, ItemListen
 	}
 	//BEGIN: PvGeometryListenerIf
 	@Override
+	public void addGeometry(PgGeometryIf geometry) {
+		// hide other geometries
+		for(PgGeometryIf other : m_disp.getGeometries()) {
+			if (other == geometry || other == m_silhouette) {
+				continue;
+			} else {
+				m_disp.removeGeometry(other);
+			}
+		}
+	}
+	@Override
 	public void selectGeometry(PgGeometryIf geometry)
 	{
 		assert m_disp.getSelectedGeometry() == geometry;
