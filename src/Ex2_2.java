@@ -1,13 +1,8 @@
-import java.awt.BorderLayout;
 import java.awt.Checkbox;
 import java.awt.CheckboxGroup;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Label;
-import java.awt.Panel;
-import java.awt.Rectangle;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.HashSet;
@@ -15,7 +10,6 @@ import java.util.Set;
 
 import jv.geom.PgElementSet;
 import jv.geom.PgPolygonSet;
-import jv.object.PsMainFrame;
 import jv.project.PgGeometryIf;
 import jv.project.PvCameraEvent;
 import jv.project.PvCameraListenerIf;
@@ -23,8 +17,6 @@ import jv.project.PvGeometryListenerIf;
 import jv.project.PvLightIf;
 import jv.vecmath.PdVector;
 import jv.vecmath.PiVector;
-import jv.viewer.PvDisplay;
-import jv.viewer.PvViewer;
 
 /**
  * Solution to second exercise of second project
@@ -32,14 +24,11 @@ import jv.viewer.PvViewer;
  * @author		Milian Wolff
  * @version		24.11.2011, 1.00 created
  */
-public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemListener {
+public class Ex2_2 extends ProjectBase implements PvGeometryListenerIf, PvCameraListenerIf, ItemListener {
 	public static void main(String[] args)
 	{
 		new Ex2_2(args);
 	}
-
-	private PsMainFrame m_frame;
-	private PvDisplay m_disp;
 	private PgPolygonSet m_silhouette;
 	private Checkbox m_vertexSilhouette;
 	private Checkbox m_faceSilhouette;
@@ -52,27 +41,10 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 	private SilhouetteType m_silhouetteType;
 	public Ex2_2(String args[])
 	{
-		// Create toplevel window of application containing the applet
-		m_frame	= new PsMainFrame("SciVis - Project 2 - Exercise 1 - Milian Wolff", args);
-
-		// Create viewer for viewing 3d geometries, and register m_frame.
-		PvViewer viewer = new PvViewer(null, m_frame);
-
-		// Get default display from viewer
-		m_disp = (PvDisplay) viewer.getDisplay();
-		m_disp.setEnabledZBuffer(true);
-		m_disp.setEnabledAntiAlias(true);
+		super(args, "SciVis - Project 2 - Exercise 2 - Milian Wolff");
 		// listener
 		m_disp.addGeometryListener(this);
 		m_disp.addCameraListener(this);
-
-		// Add display to m_frame
-		m_frame.add((Component)m_disp, BorderLayout.CENTER);
-
-		// buttons
-		Panel buttons = new Panel();
-		buttons.setLayout(new GridBagLayout());
-		m_frame.add(buttons, BorderLayout.EAST);
 
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridwidth = 1;
@@ -81,7 +53,7 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		buttons.add(new Label("Silhouette"), c);
+		m_panel.add(new Label("Silhouette"), c);
 		// silhouette method choice
 		CheckboxGroup group = new CheckboxGroup();
 
@@ -90,27 +62,24 @@ public class Ex2_2 implements PvGeometryListenerIf, PvCameraListenerIf, ItemList
 		m_disableSilhouette = new Checkbox("Disabled", group, false);
 		m_disableSilhouette.addItemListener(this);
 		c.gridy++;
-		buttons.add(m_disableSilhouette, c);
+		m_panel.add(m_disableSilhouette, c);
 
 		// face based silhouette (2.a)
 		m_faceSilhouette = new Checkbox("Face Based", group, false);
 		m_faceSilhouette.addItemListener(this);
 		c.gridy++;
-		buttons.add(m_faceSilhouette, c);
+		m_panel.add(m_faceSilhouette, c);
 
 		// default colors
 		m_vertexSilhouette = new Checkbox("Vertex Based", group, true);
 		m_vertexSilhouette.addItemListener(this);
 		c.gridy++;
-		buttons.add(m_vertexSilhouette, c);
+		m_panel.add(m_vertexSilhouette, c);
 
 		m_silhouetteType = SilhouetteType.FaceBased;
 		group.setSelectedCheckbox(m_faceSilhouette);
 
-		m_frame.pack();
-		// Position of left upper corner and size of m_frame when run as application.
-		m_frame.setBounds(new Rectangle(420, 5, 640, 550));
-		m_frame.setVisible(true);
+		show();
 	}
 	//BEGIN: PvGeometryListenerIf
 	@Override
