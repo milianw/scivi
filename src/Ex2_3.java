@@ -353,7 +353,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 					);
 			sum += mean;
 		}
-		System.out.println("max mean: " + maxGaussian + ", sum:" + sum + ", /4pi:" + (sum / (4.0*Math.PI)));
+		System.out.println("max gauss: " + maxGaussian + ", sum:" + sum + ", /4pi:" + (sum / (4.0*Math.PI)));
 		System.out.println("avg: " + (sum / gaussianCurvature.length));
 		geometry.showElementColors(true);
 		geometry.showElementFromVertexColors(true);
