@@ -5,10 +5,12 @@ import java.awt.Panel;
 import java.awt.Rectangle;
 
 import jv.object.PsMainFrame;
+import jv.project.PgGeometryIf;
+import jv.project.PvGeometryListenerIf;
 import jv.viewer.PvDisplay;
 import jv.viewer.PvViewer;
 
-public class ProjectBase {
+public class ProjectBase implements PvGeometryListenerIf {
 	protected PsMainFrame m_frame;
 	protected PvDisplay m_disp;
 	protected Panel m_panel;
@@ -43,4 +45,27 @@ public class ProjectBase {
 		m_frame.setBounds(new Rectangle(420, 5, 640, 550));
 		m_frame.setVisible(true);
 	}
+
+	//BEGIN: PvGeometryListenerIf
+	@Override
+	public void addGeometry(PgGeometryIf geometry)
+	{
+		// do nothing
+	}
+	@Override
+	public void removeGeometry(PgGeometryIf geometry)
+	{
+		// do nothing
+	}
+	@Override
+	public void selectGeometry(PgGeometryIf geometry)
+	{
+		// do nothing
+	}
+	@Override
+	public String getName()
+	{
+		return getClass().getName();
+	}
+	//END PvGeometryListenerIf
 }

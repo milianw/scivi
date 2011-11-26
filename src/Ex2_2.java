@@ -13,7 +13,6 @@ import jv.geom.PgPolygonSet;
 import jv.project.PgGeometryIf;
 import jv.project.PvCameraEvent;
 import jv.project.PvCameraListenerIf;
-import jv.project.PvGeometryListenerIf;
 import jv.project.PvLightIf;
 import jv.vecmath.PdVector;
 import jv.vecmath.PiVector;
@@ -24,7 +23,7 @@ import jv.vecmath.PiVector;
  * @author		Milian Wolff
  * @version		24.11.2011, 1.00 created
  */
-public class Ex2_2 extends ProjectBase implements PvGeometryListenerIf, PvCameraListenerIf, ItemListener {
+public class Ex2_2 extends ProjectBase implements PvCameraListenerIf, ItemListener {
 	public static void main(String[] args)
 	{
 		new Ex2_2(args);
@@ -83,25 +82,10 @@ public class Ex2_2 extends ProjectBase implements PvGeometryListenerIf, PvCamera
 	}
 	//BEGIN: PvGeometryListenerIf
 	@Override
-	public void addGeometry(PgGeometryIf geometry)
-	{
-		// do nothing
-	}
-	@Override
-	public void removeGeometry(PgGeometryIf geometry)
-	{
-		// do nothing
-	}
-	@Override
 	public void selectGeometry(PgGeometryIf geometry)
 	{
 		assert m_disp.getSelectedGeometry() == geometry;
 		viewUpdated();
-	}
-	@Override
-	public String getName()
-	{
-		return "Ex2_2";
 	}
 	//END PvGeometryListenerIf
 	//BEGIN PvCameraListenerIf
