@@ -13,15 +13,15 @@ import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
 import jv.vecmath.PdVector;
 
-class CurvatureCalculationCache {
-	public CurvatureCalculationCache() {
-		meanOp = new PdVector(0, 0, 0);
-		area = 0;
-	}
+class Curvature {
 	// mean curvature normal operator
 	// note: not normalized! i.e. misses 1/(2*area)
 	// see eq. 8.
 	public PdVector meanOp;
+	// gaussian curvature Operator
+	// note: not normalized! i.e. is just the sum of angles, misses (2pi - ...)/area
+	// note: in degree!
+	public double gaussian;
 	// mixed area
 	// see fig. 4
 	public double area;
@@ -65,9 +65,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private Checkbox m_disableCurvature;
 	private Checkbox m_gaussianCurvature;
 	private Checkbox m_meanCurvature;
-	private Curvature m_curvatureType;
+	private CurvatureType m_curvatureType;
 	private Checkbox m_curvatureTensor;
-	private enum Curvature {
+	private enum CurvatureType {
 		Disable,
 		Mean,
 		Gaussian,
@@ -114,7 +114,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_curvatureTensor, c);
 
-		m_curvatureType = Curvature.Mean;
+		m_curvatureType = CurvatureType.Mean;
 		group.setSelectedCheckbox(m_meanCurvature);
 
 		show();
@@ -124,13 +124,13 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	{
 		Object source = e.getSource();
 		if (source == m_meanCurvature) {
-			m_curvatureType = Curvature.Mean;
+			m_curvatureType = CurvatureType.Mean;
 		} else if (source == m_gaussianCurvature) {
-			m_curvatureType = Curvature.Gaussian;
+			m_curvatureType = CurvatureType.Gaussian;
 		} else if (source == m_curvatureTensor) {
-			m_curvatureType = Curvature.Tensor;
+			m_curvatureType = CurvatureType.Tensor;
 		} else if (source == m_disableCurvature) {
-			m_curvatureType = Curvature.Disable;
+			m_curvatureType = CurvatureType.Disable;
 		} else {
 			assert false;
 		}
@@ -175,7 +175,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// TODO Auto-generated method stub
 		
 	}
-	private void setMeanCurvature(PgElementSet geometry) {
+	private double[] getCurvature(PgElementSet geometry, CurvatureType type)
+	{
+		assert type == CurvatureType.Mean || type == CurvatureType.Gaussian;
 		CornerTable table = new CornerTable(geometry);
 		CotanCache cotanCache = new CotanCache(table.size());
 		// iterate over all corners, each time adding the partial 
@@ -189,7 +191,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// note: we must take obtuse triangles into account and
 		// can only sum parts of the voronoi cell up at each time
 		// the e.q. for that is given in sec. 3.3 on page 8
-		CurvatureCalculationCache[] vertexMap = new CurvatureCalculationCache[geometry.getNumVertices()];
+		Curvature[] vertexMap = new Curvature[geometry.getNumVertices()];
 		// for bad geometries, like the hand
 		HashSet<Integer> blackList = new HashSet<Integer>();
 		for(Corner corner : table.corners()) {
@@ -249,43 +251,71 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				assert area > 0;
 			}
 
-			CurvatureCalculationCache cache = vertexMap[corner.vertex];
+			Curvature cache = vertexMap[corner.vertex];
 			if (cache == null) {
-				cache = new CurvatureCalculationCache();
+				cache = new Curvature();
+				cache.area = 0;
+				if (type == CurvatureType.Mean) {
+					cache.meanOp = new PdVector(0, 0, 0);
+				} else {
+					cache.gaussian = 0;
+				}
 				vertexMap[corner.vertex] = cache;
 			}
-			// now e.q. 8, with alpha = our gamma from above, and beta = cnoAngle
-			double cnoAngle = geometry.getVertexAngle(cno.triangle, cno.localVertexIndex);
-			if (cnoAngle == 0) {
-				System.err.println("Zero-Angle encountered in triangle " + cno.triangle + ", vertex: " + corner.vertex);
-				blackList.add(corner.vertex);
-				continue;
+			if (type == CurvatureType.Mean) {
+				// now e.q. 8, with alpha = our gamma from above, and beta = cnoAngle
+				double cnoAngle = geometry.getVertexAngle(cno.triangle, cno.localVertexIndex);
+				if (cnoAngle == 0) {
+					System.err.println("Zero-Angle encountered in triangle " + cno.triangle + ", vertex: " + corner.vertex);
+					blackList.add(corner.vertex);
+					continue;
+				}
+				double cotCnoAngle = cotanCache.cotan(cnoAngle);
+				cache.meanOp.add(cotGamma + cotCnoAngle, AB);
+			} else {
+				cache.gaussian += alpha;
 			}
-			double cotCnoAngle = cotanCache.cotan(cnoAngle);
-			cache.meanOp.add(cotGamma + cotCnoAngle, AB);
 			cache.area += area;
 		}
-		// find maximum for normalization
-		double meanCurvature[] = new double[vertexMap.length];
-		double maxMean = 0;
+		// calculate actual values
+		double ret[] = new double[vertexMap.length];
 		for(int i = 0; i < vertexMap.length; ++i) {
 			if (blackList.contains(i)) {
 				continue;
 			}
-			CurvatureCalculationCache cache = vertexMap[i];
-			assert cache != null;
-			meanCurvature[i] = 1.0d / (4.0 * cache.area) * cache.meanOp.length();
-			assert meanCurvature[i] >= 0;
-			maxMean = Math.max(meanCurvature[i], maxMean);
+			Curvature curvature = vertexMap[i];
+			assert curvature != null;
+			assert curvature.area > 0;
+			if (type == CurvatureType.Mean) {
+				ret[i] = 1.0d / (4.0 * curvature.area) * curvature.meanOp.length();
+				assert ret[i] >= 0;
+			} else {
+				ret[i] = (2.0d * Math.PI - Math.toRadians(curvature.gaussian)) / curvature.area;
+			}
 		}
-		vertexMap = null;
+		return ret;
+	}
+	private double absMax(double[] l) {
+		assert l.length > 0;
+		double max = l[0];
+		for(int i = 1; i < l.length; ++i) {
+			max = Math.max(max, Math.abs(l[i]));
+		}
+		return max;
+	}
+	private void setMeanCurvature(PgElementSet geometry) {
+		double[] meanCurvature = getCurvature(geometry, CurvatureType.Mean);
+		// find maximum
+		double maxMean = absMax(meanCurvature);
+		// assign colors
 		for(int i = 0; i < meanCurvature.length; ++i) {
 			double mean = meanCurvature[i];
+			assert mean >= 0;
 			assert mean <= maxMean;
 			assert mean < Double.POSITIVE_INFINITY;
 			float normalized = (float) (mean / maxMean);
-			assert normalized >= 0.0f;
-			assert normalized <= 1.0f;
+			assert normalized >= 0;
+			assert normalized <= 1;
 			geometry.setVertexColor(i,
 					Color.getHSBColor(normalized, 1.0f, 1.0f)
 					);
@@ -296,8 +326,31 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_disp.update(geometry);
 	}
 	private void setGaussianCurvature(PgElementSet geometry) {
-		// TODO Auto-generated method stub
-		
+		double[] gaussianCurvature = getCurvature(geometry, CurvatureType.Gaussian);
+		// find max
+		double maxGaussian = absMax(gaussianCurvature);
+		double sum = 0;
+		// assign colors
+		for(int i = 0; i < gaussianCurvature.length; ++i) {
+			double mean = gaussianCurvature[i];
+			assert mean <= maxGaussian;
+			assert mean >= -maxGaussian;
+			assert mean < Double.POSITIVE_INFINITY;
+			float normalized = (float) (mean / maxGaussian);
+			assert normalized >= -1;
+			assert normalized <= 1;
+			normalized = (normalized + 1.0f) / 2.0f;
+			System.out.println(normalized);
+			geometry.setVertexColor(i,
+					Color.getHSBColor(normalized, 1.0f, 1.0f)
+					);
+			sum += mean;
+		}
+		System.out.println("max mean: " + maxGaussian + ", sum:" + sum + ", /4pi:" + (sum / (4.0*Math.PI)));
+		System.out.println("avg: " + (sum / gaussianCurvature.length));
+		geometry.showElementColors(true);
+		geometry.showElementFromVertexColors(true);
+		m_disp.update(geometry);
 	}
 	private void clearCurvature(PgElementSet geometry)
 	{
