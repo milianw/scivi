@@ -11,6 +11,7 @@ class Corner {
 	public Corner opposite;
 	public int vertex;
 	public int triangle;
+	public int localVertexIndex;
 }
 
 /**
@@ -60,12 +61,15 @@ class CornerTable {
 			PiVector vertices = geometry.getElement(i);
 			Corner a = new Corner();
 			a.vertex = vertices.getEntry(0);
+			a.localVertexIndex = 0;
 			a.triangle = i;
 			Corner b = new Corner();
 			b.vertex = vertices.getEntry(1);
+			b.localVertexIndex = 1;
 			b.triangle = i;
 			Corner c = new Corner();
 			c.vertex = vertices.getEntry(2);
+			c.localVertexIndex = 2;
 			c.triangle = i;
 			
 			a.prev = c;
