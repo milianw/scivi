@@ -154,7 +154,13 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	private void updateView()
 	{
-		PgElementSet geometry = (PgElementSet) m_disp.getSelectedGeometry();
+		PgElementSet geometry;
+		try {
+			geometry = (PgElementSet) m_disp.getSelectedGeometry();
+		} catch (Exception e) {
+			return;
+		}
+
 		clearCurvature(geometry);
 		switch(m_curvatureType) {
 		case Disable:
@@ -196,7 +202,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		HashSet<Integer> blackList = new HashSet<Integer>();
 		for(Corner corner : table.corners()) {
 			Corner cno = corner.next.opposite;
-			assert cno != null;
 			if (cno == null) {
 				///TODO: what to do in such cases?
 				continue;
@@ -284,7 +289,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				continue;
 			}
 			Curvature curvature = vertexMap[i];
-			assert curvature != null;
+			if (curvature == null) {
+				continue;
+			}
 			assert curvature.area > 0;
 			if (type == CurvatureType.Mean) {
 				ret[i] = 1.0d / (4.0 * curvature.area) * curvature.meanOp.length();
