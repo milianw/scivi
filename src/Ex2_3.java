@@ -6,6 +6,7 @@ import java.awt.Label;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import jv.geom.PgElementSet;
 import jv.project.PgGeometryIf;
@@ -189,6 +190,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// can only sum parts of the voronoi cell up at each time
 		// the e.q. for that is given in sec. 3.3 on page 8
 		CurvatureCalculationCache[] vertexMap = new CurvatureCalculationCache[geometry.getNumVertices()];
+		// for bad geometries, like the hand
+		HashSet<Integer> blackList = new HashSet<Integer>();
 		for(Corner corner : table.corners()) {
 			Corner cno = corner.next.opposite;
 			assert cno != null;
@@ -205,17 +208,18 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// beta: angle at prev corner, between AB and BC
 			// compare to angle(Q)
 			double beta = geometry.getVertexAngle(corner.triangle, corner.prev.localVertexIndex);
-			if (beta == 0) {
-				System.err.println("Zero-Angle encountered in triangle " + corner.triangle + ", vertex: " + corner.prev.localVertexIndex);
-				continue;
-			}
 			// gamma: angle at next corner, between AC and BC
 			// compare to angle(R)
 			double gamma = geometry.getVertexAngle(corner.triangle, corner.next.localVertexIndex);
-			if (gamma == 0) {
-				System.err.println("Zero-Angle encountered in triangle " + corner.triangle + ", vertex: " + corner.next.localVertexIndex);
+
+			if (alpha == 0 || beta == 0 || gamma == 0) {
+				System.err.println("Zero-angle encountered in triangle, skipping: " + corner.triangle);
+				blackList.add(corner.vertex);
+				blackList.add(corner.prev.vertex);
+				blackList.add(corner.next.vertex);
 				continue;
 			}
+			
 			double cotGamma = cotanCache.cotan(gamma);
 
 			// edge between A and B, angle is beta
@@ -253,7 +257,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// now e.q. 8, with alpha = our gamma from above, and beta = cnoAngle
 			double cnoAngle = geometry.getVertexAngle(cno.triangle, cno.localVertexIndex);
 			if (cnoAngle == 0) {
-				System.err.println("Zero-Angle encountered in triangle " + cno.triangle + ", vertex: " + cno.localVertexIndex);
+				System.err.println("Zero-Angle encountered in triangle " + cno.triangle + ", vertex: " + corner.vertex);
+				blackList.add(corner.vertex);
 				continue;
 			}
 			double cotCnoAngle = cotanCache.cotan(cnoAngle);
@@ -264,9 +269,16 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		double meanCurvature[] = new double[vertexMap.length];
 		double maxMean = 0;
 		for(int i = 0; i < vertexMap.length; ++i) {
+			if (blackList.contains(i)) {
+				continue;
+			}
 			CurvatureCalculationCache cache = vertexMap[i];
+			assert cache != null;
 			meanCurvature[i] = 1.0d / (4.0 * cache.area) * cache.meanOp.length();
 			assert meanCurvature[i] >= 0;
+			if (meanCurvature[i] > maxMean) {
+				System.out.println("new max: " + i);
+			}
 			maxMean = Math.max(meanCurvature[i], maxMean);
 		}
 		vertexMap = null;
