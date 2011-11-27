@@ -334,7 +334,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				assert ret[i] >= 0;
 			} else {
 				ret[i] = (2.0d * Math.PI - Math.toRadians(curvature.gaussian)) / curvature.area;
-				total += ret[i];
+				total += Math.toRadians(curvature.gaussian);
 			}
 		}
 		if (type == CurvatureType.Gaussian) {
