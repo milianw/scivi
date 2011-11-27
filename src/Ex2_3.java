@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import jv.geom.PgElementSet;
+import jv.geom.PgVectorField;
 import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
 import jv.vecmath.PdVector;
@@ -263,8 +264,41 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	private void setCurvatureTensor(PgElementSet geometry)
 	{
-		// TODO Auto-generated method stub
-		
+		geometry.makeVertexNormals();
+
+		PgVectorField max = new PgVectorField(3);
+		max.setName("+max");
+		max.setBasedOn(PgVectorField.VERTEX_BASED);
+		max.setNumVectors(geometry.getNumVertices());
+		geometry.addVectorField(max);
+
+		PgVectorField min = new PgVectorField(3);
+		min.setName("Y");
+		min.setBasedOn(PgVectorField.VERTEX_BASED);
+		min.setNumVectors(geometry.getNumVertices());
+		geometry.addVectorField(min);
+
+		for (int i = 0; i < geometry.getNumVertices(); i++) {
+			PdVector vec = new PdVector(1d, 0d, 0d);
+			vec.orthogonalize(geometry.getVertexNormal(i));
+			vec.normalize();
+
+			max.setVector(i, vec);
+			min.setVector(i,
+					PdVector.crossNew(vec, geometry.getVertexNormal(i)));
+		}
+
+		PgVectorField maxNeg = (PgVectorField) max.clone();
+		maxNeg.multScalar(-1);
+		maxNeg.setName("-max");
+		geometry.addVectorField(maxNeg);
+		PgVectorField minNeg = (PgVectorField) min.clone();
+		minNeg.multScalar(-1);
+		minNeg.setName("-min");
+		geometry.setGlobalVectorLength(0.01);
+		geometry.addVectorField(minNeg);
+
+		m_disp.update(geometry);
 	}
 	private Curvature[] getCurvature(PgElementSet geometry)
 	{
