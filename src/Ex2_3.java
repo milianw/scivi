@@ -65,13 +65,20 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private Checkbox m_disableCurvature;
 	private Checkbox m_gaussianCurvature;
 	private Checkbox m_meanCurvature;
-	private CurvatureType m_curvatureType;
 	private Checkbox m_curvatureTensor;
+	private CurvatureType m_curvatureType;
 	private enum CurvatureType {
 		Disable,
 		Mean,
 		Gaussian,
 		Tensor
+	}
+	private Checkbox m_colorByMax;
+	private Checkbox m_colorByDeviation;
+	private ColorType m_colorType;
+	private enum ColorType {
+		Maximum,
+		Deviation
 	}
 	public Ex2_3(String[] args)
 	{
@@ -86,7 +93,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
 		m_panel.add(new Label("Curvature"), c);
-		// silhouette method choice
+		// curvature method choice
 		CheckboxGroup group = new CheckboxGroup();
 
 		c.fill = GridBagConstraints.HORIZONTAL;
@@ -117,6 +124,29 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_curvatureType = CurvatureType.Mean;
 		group.setSelectedCheckbox(m_meanCurvature);
 
+		c.gridy++;
+		c.fill = GridBagConstraints.CENTER;
+		m_panel.add(new Label("Colorization"), c);
+		// color method choice
+		CheckboxGroup group2 = new CheckboxGroup();
+
+		// color by maximum
+		m_colorByMax = new Checkbox("Maximum", group2, false);
+		m_colorByMax.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_colorByMax, c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+
+		// color by deviation
+		m_colorByDeviation = new Checkbox("Deviation", group2, false);
+		m_colorByDeviation.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_colorByDeviation, c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+
+		m_colorType = ColorType.Maximum;
+		group2.setSelectedCheckbox(m_colorByMax);
+
 		show();
 	}
 	@Override
@@ -131,6 +161,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			m_curvatureType = CurvatureType.Tensor;
 		} else if (source == m_disableCurvature) {
 			m_curvatureType = CurvatureType.Disable;
+		} else if (source == m_colorByDeviation) {
+			m_colorType = ColorType.Deviation;
+		} else if (source == m_colorByMax) {
+			m_colorType = ColorType.Maximum;
 		} else {
 			assert false;
 		}
@@ -302,7 +336,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 		return ret;
 	}
-	private double absMax(double[] l) {
+	private double absMax(double[] l)
+	{
 		assert l.length > 0;
 		double max = l[0];
 		for(int i = 1; i < l.length; ++i) {
@@ -336,22 +371,67 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 					);
 		}
 		System.out.println("max curvature: " + max);
+	}
+	private void setColorsFromDeviation(PgElementSet geometry, double[] curvature, boolean hasNegative)
+	{
+		assert curvature.length == geometry.getNumVertices();
+		assert curvature.length > 1;
+		double mean = 0;
+		for(double c : curvature) {
+			mean += c;
+		}
+		mean /= curvature.length;
+		// now calculate variance
+		double variance = 0;
+		for(double c : curvature) {
+			variance += Math.pow(c - mean, 2);
+		}
+		variance /= curvature.length - 1;
+		double standardDeviation = Math.sqrt(variance);
+		// now set colors based on deviation:
+		// zero deviation is hue of 0.5
+		// deviation is normalized to +- 0.5 in the trippled standard deviation interval
+		// anything higher just gets the maximum hue of 1 or 0 (both are red)
+		for(int i = 0; i < curvature.length; ++i) {
+			double c = curvature[i];
+			double deviation = c - mean;
+			float hue = ((float) deviation / (3.0f * (float) standardDeviation) + 1.0f) / 2.0f;
+			if (hue > 1) {
+				hue = 1;
+			} else if (hue < 0) {
+				hue = 0;
+			}
+			geometry.setVertexColor(i, Color.getHSBColor(hue, 1.0f, 1.0f));
+		}
+	}
+	private void setCurvatureColors(PgElementSet geometry, double[] curvature, boolean hasNegative)
+	{
+		switch(m_colorType) {
+		case Deviation:
+			setColorsFromDeviation(geometry, curvature, hasNegative);
+			break;
+		case Maximum:
+			setColorsFromMaxAbs(geometry, curvature, hasNegative);
+			break;
+		}
 		geometry.showElementColors(true);
 		geometry.showElementFromVertexColors(true);
 		m_disp.update(geometry);
 	}
-	private void setMeanCurvature(PgElementSet geometry) {
+	private void setMeanCurvature(PgElementSet geometry)
+	{
 		System.out.println("calculating mean curvature of geometry " + geometry.getName());
 		double[] curvature = getCurvature(geometry, CurvatureType.Mean);
 		System.out.println("done, setting colors");
-		setColorsFromMaxAbs(geometry, curvature, false);
+		setCurvatureColors(geometry, curvature, false);
 		System.out.println("done");
 	}
-	private void setGaussianCurvature(PgElementSet geometry) {
+	private void setGaussianCurvature(PgElementSet geometry)
+	{
 		System.out.println("calculating gaussian curvature of geometry " + geometry.getName());
 		double[] curvature = getCurvature(geometry, CurvatureType.Gaussian);
 		System.out.println("done, setting colors");
-		setColorsFromMaxAbs(geometry, curvature, true);
+		setCurvatureColors(geometry, curvature, true);
 		System.out.println("done");
 	}
 	private void clearCurvature(PgElementSet geometry)
