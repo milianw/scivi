@@ -266,10 +266,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// TODO Auto-generated method stub
 		
 	}
-	private double[] getCurvature(PgElementSet geometry, CurvatureType type)
+	private Curvature[] getCurvature(PgElementSet geometry)
 	{
-		assert type == CurvatureType.Mean || type == CurvatureType.Gaussian
-				|| type == CurvatureType.Minimum || type == CurvatureType.Maximum;
 		CornerTable table = new CornerTable(geometry);
 		CotanCache cotanCache = new CotanCache(table.size());
 		// iterate over all corners, each time adding the partial 
@@ -359,35 +357,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			cache.gaussian += alpha;
 			cache.area += area;
 		}
-		// calculate actual values
-		double ret[] = new double[vertexMap.length];
-		double totalGaussian = 0;
-		for(int i = 0; i < vertexMap.length; ++i) {
-			if (blackList.contains(i)) {
-				continue;
-			}
-			Curvature curvature = vertexMap[i];
-			if (curvature == null) {
-				continue;
-			}
-			assert curvature.area > 0;
-			if (type == CurvatureType.Mean) {
-				ret[i] = curvature.meanCurvature();
-				assert ret[i] >= 0;
-			} else if (type == CurvatureType.Minimum) {
-				ret[i] = curvature.minimumCurvature();
-			} else if (type == CurvatureType.Maximum) {
-				ret[i] = curvature.maximumCurvature();
-				assert ret[i] >= 0;
-			} else {
-				assert type == CurvatureType.Gaussian;
-				ret[i] = curvature.gaussianCurvature();
-			}
-			totalGaussian += Math.toRadians(curvature.gaussian);
+		for(int i : blackList) {
+			vertexMap[i] = null;
 		}
-		System.out.println("total gaussian curvature: " + totalGaussian);
-		System.out.println("divided by 2pi: " + (totalGaussian / (2.0d * Math.PI)));
-		return ret;
+		return vertexMap;
 	}
 	private double absMax(double[] l)
 	{
@@ -464,17 +437,43 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				type == CurvatureType.Minimum ||
 				type == CurvatureType.Maximum;
 		System.out.println("calculating curvature of geometry " + geometry.getName() + ", type: " + type);
-		double[] curvature = getCurvature(geometry, type);
+		Curvature[] curvature = getCurvature(geometry);
 		System.out.println("done, setting colors via type: " + colorType);
+		double values[] = new double[curvature.length];
+		double totalGaussian = 0;
+		for (int i = 0; i < curvature.length; ++i) {
+			Curvature c = curvature[i];
+			if (c == null) {
+				values[i] = 0;
+				continue;
+			}
+			assert c.area > 0;
+			if (type == CurvatureType.Mean) {
+				values[i] = c.meanCurvature();
+				assert values[i] >= 0;
+			} else if (type == CurvatureType.Minimum) {
+				values[i] = c.minimumCurvature();
+			} else if (type == CurvatureType.Maximum) {
+				values[i] = c.maximumCurvature();
+				assert values[i] >= 0;
+			} else {
+				assert type == CurvatureType.Gaussian;
+				values[i] = c.gaussianCurvature();
+			}
+			totalGaussian += Math.toRadians(c.gaussian);
+		}
 		boolean hasNegative = type == CurvatureType.Gaussian || type == CurvatureType.Minimum;
 		switch(colorType) {
 		case Deviation:
-			setColorsFromDeviation(geometry, curvature, hasNegative);
+			setColorsFromDeviation(geometry, values, hasNegative);
 			break;
 		case Maximum:
-			setColorsFromMaxAbs(geometry, curvature, hasNegative);
+			setColorsFromMaxAbs(geometry, values, hasNegative);
 			break;
 		}
+		System.out.println("total gaussian curvature: " + totalGaussian);
+		System.out.println("divided by 2pi: " + (totalGaussian / (2.0d * Math.PI)));
+
 		System.out.println("done, updating display");
 		geometry.showElementColors(true);
 		geometry.showElementFromVertexColors(true);
