@@ -182,6 +182,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			if (other == geometry) {
 				continue;
 			} else {
+				System.out.println("removing geometry " + other.getName());
 				m_disp.removeGeometry(other);
 			}
 		}
@@ -318,6 +319,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 		// calculate actual values
 		double ret[] = new double[vertexMap.length];
+		double total = 0;
 		for(int i = 0; i < vertexMap.length; ++i) {
 			if (blackList.contains(i)) {
 				continue;
@@ -332,7 +334,12 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				assert ret[i] >= 0;
 			} else {
 				ret[i] = (2.0d * Math.PI - Math.toRadians(curvature.gaussian)) / curvature.area;
+				total += ret[i];
 			}
+		}
+		if (type == CurvatureType.Gaussian) {
+			System.out.println("total gaussian curvature: " + total);
+			System.out.println("divided by 2pi: " + (total / (2.0d * Math.PI)));
 		}
 		return ret;
 	}
