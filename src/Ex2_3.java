@@ -347,24 +347,21 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				cache = new Curvature();
 				vertexMap[corner.vertex] = cache;
 			}
-			if (type == CurvatureType.Mean) {
-				// now e.q. 8, with alpha = our gamma from above, and beta = cnoAngle
-				double cnoAngle = geometry.getVertexAngle(cno.triangle, cno.localVertexIndex);
-				if (cnoAngle == 0) {
-					System.err.println("Zero-Angle encountered in triangle " + cno.triangle + ", vertex: " + corner.vertex);
-					blackList.add(corner.vertex);
-					continue;
-				}
-				double cotCnoAngle = cotanCache.cotan(cnoAngle);
-				cache.meanOp.add(cotGamma + cotCnoAngle, AB);
-			} else {
-				cache.gaussian += alpha;
+			// now e.q. 8, with alpha = our gamma from above, and beta = cnoAngle
+			double cnoAngle = geometry.getVertexAngle(cno.triangle, cno.localVertexIndex);
+			if (cnoAngle == 0) {
+				System.err.println("Zero-Angle encountered in triangle " + cno.triangle + ", vertex: " + corner.vertex);
+				blackList.add(corner.vertex);
+				continue;
 			}
+			double cotCnoAngle = cotanCache.cotan(cnoAngle);
+			cache.meanOp.add(cotGamma + cotCnoAngle, AB);
+			cache.gaussian += alpha;
 			cache.area += area;
 		}
 		// calculate actual values
 		double ret[] = new double[vertexMap.length];
-		double total = 0;
+		double totalGaussian = 0;
 		for(int i = 0; i < vertexMap.length; ++i) {
 			if (blackList.contains(i)) {
 				continue;
@@ -385,13 +382,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			} else {
 				assert type == CurvatureType.Gaussian;
 				ret[i] = curvature.gaussianCurvature();
-				total += Math.toRadians(curvature.gaussian);
 			}
+			totalGaussian += Math.toRadians(curvature.gaussian);
 		}
-		if (type == CurvatureType.Gaussian) {
-			System.out.println("total gaussian curvature: " + total);
-			System.out.println("divided by 2pi: " + (total / (2.0d * Math.PI)));
-		}
+		System.out.println("total gaussian curvature: " + totalGaussian);
+		System.out.println("divided by 2pi: " + (totalGaussian / (2.0d * Math.PI)));
 		return ret;
 	}
 	private double absMax(double[] l)
@@ -448,7 +443,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		double standardDeviation = Math.sqrt(variance);
 		// now set colors based on deviation:
 		// zero deviation is hue of 0.5
-		// deviation is normalized to +- 0.5 in the trippled standard deviation interval
+		// deviation is normalized to +- 0.5 in the trippled standard deviation interval 
 		// anything higher just gets the maximum hue of 1 or 0 (both are red)
 		for(int i = 0; i < curvature.length; ++i) {
 			double c = curvature[i];
