@@ -320,6 +320,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			Corner j = corner.prev;
 			ArrayList<Double> kappas = new ArrayList<Double>(5);
 			ArrayList<PdVector> deltas = new ArrayList<PdVector>(5);
+			boolean usePrev = true;
 			while(true) {
 				PdVector x_j = geometry.getVertex(j.vertex);
 				// x_i - x_j
@@ -336,10 +337,18 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 					// we just handled the last neighbor, c.n - stop now
 					break;
 				} else {
-					j = j.prev.opposite;
-					//TODO: in such cases, also find neighbors starting
-					//from c.next and going around the different direction
-					assert j != null;
+					if (usePrev) {
+						j = j.prev.opposite;
+						if (j == null) {
+							j = corner.next;
+							usePrev = false;
+						}
+					} else {
+						j = j.next.opposite;
+						if (j == null) {
+							break;
+						}
+					}
 				}
 			}
 			assert kappas.size() == deltas.size();
