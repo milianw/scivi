@@ -14,17 +14,46 @@ import jv.project.PvGeometryListenerIf;
 import jv.vecmath.PdVector;
 
 class Curvature {
-	// mean curvature normal operator
-	// note: not normalized! i.e. misses 1/(2*area)
-	// see eq. 8.
+	public Curvature() {
+		area = 0;
+		meanOp = new PdVector(0, 0, 0);
+		gaussian = 0;
+	}
+	/**
+	 * mean curvature normal operator
+	 *
+	 * note: not normalized! i.e. misses 1/(2*area)
+	 * see eq. 8.
+	 **/
 	public PdVector meanOp;
-	// gaussian curvature Operator
-	// note: not normalized! i.e. is just the sum of angles, misses (2pi - ...)/area
-	// note: in degree!
+	/**
+	 * gaussian curvature Operator
+	 * note: not normalized! i.e. is just the sum of angles, misses (2pi - ...)/area
+	 * note: in degree!
+	 * @see gaussianCurvature()
+	 **/
 	public double gaussian;
-	// mixed area
-	// see fig. 4
+	/**
+	 * mixed area
+	 * see fig. 4
+	 */
 	public double area;
+	public double gaussianCurvature() {
+		return (2.0d * Math.PI - Math.toRadians(gaussian)) / area;
+	}
+	public double meanCurvature() {
+		// note: 1/2 from K as vector, another 1/2 for K_H
+		return 1.0d / (4.0 * area) * meanOp.length();
+	}
+	public double minimumCurvature() {
+		return meanCurvature() - Math.sqrt(delta());
+	}
+	public double maximumCurvature() {
+		return meanCurvature() + Math.sqrt(delta());
+	}
+	public double delta() {
+		return Math.max(0, Math.pow(meanCurvature(), 2) - gaussianCurvature());
+	}
 }
 
 class CotanCache {
@@ -65,12 +94,16 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private Checkbox m_disableCurvature;
 	private Checkbox m_gaussianCurvature;
 	private Checkbox m_meanCurvature;
+	private Checkbox m_minimumCurvature;
+	private Checkbox m_maximumCurvature;
 	private Checkbox m_curvatureTensor;
 	private CurvatureType m_curvatureType;
 	private enum CurvatureType {
 		Disable,
 		Mean,
 		Gaussian,
+		Minimum,
+		Maximum,
 		Tensor
 	}
 	private Checkbox m_colorByMax;
@@ -115,6 +148,18 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_gaussianCurvature, c);
 
+		// minimum curvature
+		m_minimumCurvature = new Checkbox("Minimum", group, false);
+		m_minimumCurvature.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_minimumCurvature, c);
+
+		// minimum curvature
+		m_maximumCurvature = new Checkbox("Maximum", group, false);
+		m_maximumCurvature.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_maximumCurvature, c);
+
 		// curvature tensor
 		m_curvatureTensor = new Checkbox("Tensor", group, false);
 		m_curvatureTensor.addItemListener(this);
@@ -144,8 +189,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_panel.add(m_colorByDeviation, c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 
-		m_colorType = ColorType.Maximum;
-		group2.setSelectedCheckbox(m_colorByMax);
+		m_colorType = ColorType.Deviation;
+		group2.setSelectedCheckbox(m_colorByDeviation);
 
 		show();
 	}
@@ -161,6 +206,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			m_curvatureType = CurvatureType.Tensor;
 		} else if (source == m_disableCurvature) {
 			m_curvatureType = CurvatureType.Disable;
+		} else if (source == m_maximumCurvature) {
+			m_curvatureType = CurvatureType.Maximum;
+		} else if (source == m_minimumCurvature) {
+			m_curvatureType = CurvatureType.Minimum;
 		} else if (source == m_colorByDeviation) {
 			m_colorType = ColorType.Deviation;
 		} else if (source == m_colorByMax) {
@@ -202,13 +251,14 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// nothing to do, we always clear before
 			break;
 		case Gaussian:
-			setGaussianCurvature(geometry);
-			break;
 		case Mean:
-			setMeanCurvature(geometry);
+		case Minimum:
+		case Maximum:
+			setCurvatureColors(geometry, m_curvatureType, m_colorType);
 			break;
 		case Tensor:
 			setCurvatureTensor(geometry);
+			break;
 		}
 	}
 	private void setCurvatureTensor(PgElementSet geometry)
@@ -218,7 +268,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	private double[] getCurvature(PgElementSet geometry, CurvatureType type)
 	{
-		assert type == CurvatureType.Mean || type == CurvatureType.Gaussian;
+		assert type == CurvatureType.Mean || type == CurvatureType.Gaussian
+				|| type == CurvatureType.Minimum || type == CurvatureType.Maximum;
 		CornerTable table = new CornerTable(geometry);
 		CotanCache cotanCache = new CotanCache(table.size());
 		// iterate over all corners, each time adding the partial 
@@ -294,12 +345,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			Curvature cache = vertexMap[corner.vertex];
 			if (cache == null) {
 				cache = new Curvature();
-				cache.area = 0;
-				if (type == CurvatureType.Mean) {
-					cache.meanOp = new PdVector(0, 0, 0);
-				} else {
-					cache.gaussian = 0;
-				}
 				vertexMap[corner.vertex] = cache;
 			}
 			if (type == CurvatureType.Mean) {
@@ -330,10 +375,16 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 			assert curvature.area > 0;
 			if (type == CurvatureType.Mean) {
-				ret[i] = 1.0d / (4.0 * curvature.area) * curvature.meanOp.length();
+				ret[i] = curvature.meanCurvature();
+				assert ret[i] >= 0;
+			} else if (type == CurvatureType.Minimum) {
+				ret[i] = curvature.minimumCurvature();
+			} else if (type == CurvatureType.Maximum) {
+				ret[i] = curvature.maximumCurvature();
 				assert ret[i] >= 0;
 			} else {
-				ret[i] = (2.0d * Math.PI - Math.toRadians(curvature.gaussian)) / curvature.area;
+				assert type == CurvatureType.Gaussian;
+				ret[i] = curvature.gaussianCurvature();
 				total += Math.toRadians(curvature.gaussian);
 			}
 		}
@@ -411,9 +462,17 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			geometry.setVertexColor(i, Color.getHSBColor(hue, 1.0f, 1.0f));
 		}
 	}
-	private void setCurvatureColors(PgElementSet geometry, double[] curvature, boolean hasNegative)
+	private void setCurvatureColors(PgElementSet geometry, CurvatureType type, ColorType colorType)
 	{
-		switch(m_colorType) {
+		assert type == CurvatureType.Mean ||
+				type == CurvatureType.Gaussian ||
+				type == CurvatureType.Minimum ||
+				type == CurvatureType.Maximum;
+		System.out.println("calculating curvature of geometry " + geometry.getName() + ", type: " + type);
+		double[] curvature = getCurvature(geometry, type);
+		System.out.println("done, setting colors via type: " + colorType);
+		boolean hasNegative = type == CurvatureType.Gaussian || type == CurvatureType.Minimum;
+		switch(colorType) {
 		case Deviation:
 			setColorsFromDeviation(geometry, curvature, hasNegative);
 			break;
@@ -421,25 +480,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			setColorsFromMaxAbs(geometry, curvature, hasNegative);
 			break;
 		}
+		System.out.println("done, updating display");
 		geometry.showElementColors(true);
 		geometry.showElementFromVertexColors(true);
 		m_disp.update(geometry);
-	}
-	private void setMeanCurvature(PgElementSet geometry)
-	{
-		System.out.println("calculating mean curvature of geometry " + geometry.getName());
-		double[] curvature = getCurvature(geometry, CurvatureType.Mean);
-		System.out.println("done, setting colors");
-		setCurvatureColors(geometry, curvature, false);
-		System.out.println("done");
-	}
-	private void setGaussianCurvature(PgElementSet geometry)
-	{
-		System.out.println("calculating gaussian curvature of geometry " + geometry.getName());
-		double[] curvature = getCurvature(geometry, CurvatureType.Gaussian);
-		System.out.println("done, setting colors");
-		setCurvatureColors(geometry, curvature, true);
-		System.out.println("done");
 	}
 	private void clearCurvature(PgElementSet geometry)
 	{
