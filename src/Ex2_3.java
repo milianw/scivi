@@ -5,14 +5,27 @@ import java.awt.GridBagConstraints;
 import java.awt.Label;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
+
+import javax.vecmath.GMatrix;
+import javax.vecmath.GVector;
+
+import com.gregdennis.drej.Kernel;
+import com.gregdennis.drej.Matrices;
+import com.gregdennis.drej.PolynomialKernel;
+import com.gregdennis.drej.Regression;
+import com.gregdennis.drej.Representer;
 
 import jv.geom.PgElementSet;
 import jv.geom.PgVectorField;
 import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
+import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
+import jvx.numeric.PnJacobi;
 
 class Curvature {
 	public Curvature() {
@@ -245,7 +258,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		} catch (Exception e) {
 			return;
 		}
-
+		if (geometry == null) {
+			return;
+		}
 		clearCurvature(geometry);
 		switch(m_curvatureType) {
 		case Disable:
@@ -264,28 +279,133 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	private void setCurvatureTensor(PgElementSet geometry)
 	{
-		geometry.makeVertexNormals();
+		System.out.println("calculating curvature of geometry " + geometry.getName());
+		Curvature[] curvature = getCurvature(geometry);
+
+		System.out.println("calculating principle curvature directions");
 
 		PgVectorField max = new PgVectorField(3);
+		max.setGlobalVectorColor(Color.red);
+//		max.showIndividualMaterial(true);
 		max.setName("+max");
 		max.setBasedOn(PgVectorField.VERTEX_BASED);
 		max.setNumVectors(geometry.getNumVertices());
 		geometry.addVectorField(max);
 
 		PgVectorField min = new PgVectorField(3);
-		min.setName("Y");
+		min.setGlobalVectorColor(Color.green);
+//		min.showIndividualMaterial(true);
+		min.showVectorColors(true);
+		min.setName("+min");
 		min.setBasedOn(PgVectorField.VERTEX_BASED);
 		min.setNumVectors(geometry.getNumVertices());
 		geometry.addVectorField(min);
 
-		for (int i = 0; i < geometry.getNumVertices(); i++) {
-			PdVector vec = new PdVector(1d, 0d, 0d);
-			vec.orthogonalize(geometry.getVertexNormal(i));
-			vec.normalize();
-
-			max.setVector(i, vec);
-			min.setVector(i,
-					PdVector.crossNew(vec, geometry.getVertexNormal(i)));
+		CornerTable table = new CornerTable(geometry);
+		Set<Integer> visitedVertices = new HashSet<Integer>(geometry.getNumVertices());
+		for (Corner corner : table.corners()) {
+			if (!visitedVertices.add(corner.vertex)) {
+				// vertex already handled
+				continue;
+			}
+			Curvature curve = curvature[corner.vertex];
+			if (curve == null) {
+				continue;
+			}
+			// now we find all neighbors and compute:
+			// \kappa_{i,j}^N (see page 13)
+			// \vec{\delta_{i,j}} (see page 14)
+			// to iterate over all neighbors we iterate over the corner table
+			// starting with c.p and then jumping to .o.p of that corner
+			// until we reach c.n and quit
+			PdVector x_i = geometry.getVertex(corner.vertex);
+			assert curve.meanCurvature() != 0;
+			PdVector n = (PdVector) curve.meanOp.clone();
+			n.normalize();
+			PdVector t1 = PdVector.normalToVectorNew(n);
+			PdVector t2 = PdVector.crossNew(n, t1);
+			Corner j = corner.prev;
+			ArrayList<Double> kappas = new ArrayList<Double>(5);
+			ArrayList<PdVector> deltas = new ArrayList<PdVector>(5);
+			while(true) {
+				PdVector x_j = geometry.getVertex(j.vertex);
+				// x_i - x_j
+				PdVector e = PdVector.subNew(x_i, x_j);
+				double e_dot_n = e.dot(n);
+				kappas.add(2.0d * e_dot_n / e.sqrLength());
+				// (e*n)n - e
+				PdVector delta = PdVector.blendNew(e_dot_n, n, -1.0d, e);
+				// ... / |(e*n)n-e|
+				delta.normalize();
+				// now compute coordinates in plane by dotting to t1, t2
+				deltas.add(new PdVector(t1.dot(delta), t2.dot(delta)));
+				if (j.vertex == corner.next.vertex) {
+					// we just handled the last neighbor, c.n - stop now
+					break;
+				} else {
+					j = j.prev.opposite;
+					//TODO: in such cases, also find neighbors starting
+					//from c.next and going around the different direction
+					assert j != null;
+				}
+			}
+			assert kappas.size() == deltas.size();
+			// prepare least-square approximation
+			// TODO: meh, var-sized GMatrix would be nicer
+			GMatrix data = new GMatrix(3, kappas.size());
+			GVector values = new GVector(kappas.size());
+			for(int i = 0; i < kappas.size(); ++i) {
+				PdVector delta = deltas.get(i);
+				double kappa = kappas.get(i);
+				double a = delta.getEntry(0);
+				double b = delta.getEntry(1);
+				data.setElement(0, i, a * a);
+				data.setElement(1, i, 2.0d * a * b);
+				data.setElement(2, i, b * b);
+				values.setElement(i, kappa);
+			}
+//			Kernel kernel = LinearKernel.KERNEL;
+			Kernel kernel = PolynomialKernel.QUADRATIC_KERNEL;
+			double lambda = 0.01;
+			Representer representer = Regression.solve(data, values, kernel, lambda);
+			GVector predictedValues = Matrices.mapCols(representer, data);
+			predictedValues.sub(values);
+			double cost = predictedValues.normSquared();
+			System.out.println("Cost is: " + cost);
+//			System.out.println(representer.coeffs().getSize());
+//			System.out.println(representer.coeffs());
+			///FIXME: wah! what is coeffs? how do I get the values of B ?!
+//			assert representer.coeffs().getSize() == 3;
+			// we now have a,b,c:
+			double a = representer.coeffs().getElement(0);
+			double b = representer.coeffs().getElement(1);
+			double c = representer.coeffs().getElement(2);
+			// build curvature matrix
+			PdMatrix B = new PdMatrix(2, 2);
+			B.setEntry(0, 0, a);
+			B.setEntry(0, 1, b);
+			B.setEntry(1, 0, b);
+			B.setEntry(1, 1, c);
+			PdVector eigenValues = new PdVector(0, 0);
+			PdVector[] eigenVectors = {new PdVector(0, 0), new PdVector(0, 0)};
+			PnJacobi.computeEigenvectors(B, 2, eigenValues, eigenVectors);
+			///ZOMG! the eigen values are not even sorted -.-'
+			int minI, maxI;
+			if (eigenValues.getEntry(0) < eigenValues.getEntry(1)) {
+				minI = 0;
+				maxI = 1;
+			} else {
+				minI = 1;
+				maxI = 0;
+			}
+			assert eigenValues.getEntry(minI) <= eigenValues.getEntry(maxI);
+			// now scale up to 3d for display
+			PdVector bMinDir = eigenVectors[minI];
+			PdVector bMaxDir = eigenVectors[maxI];
+			PdVector minDir = PdVector.blendNew(bMinDir.getEntry(0), t1, bMinDir.getEntry(1), t2);
+			PdVector maxDir = PdVector.blendNew(bMaxDir.getEntry(0), t1, bMaxDir.getEntry(1), t2);
+			min.setVector(corner.vertex, minDir);
+			max.setVector(corner.vertex, maxDir);
 		}
 
 		PgVectorField maxNeg = (PgVectorField) max.clone();
@@ -295,9 +415,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		PgVectorField minNeg = (PgVectorField) min.clone();
 		minNeg.multScalar(-1);
 		minNeg.setName("-min");
-		geometry.setGlobalVectorLength(0.01);
 		geometry.addVectorField(minNeg);
 
+		geometry.setGlobalVectorLength(0.01);
 		m_disp.update(geometry);
 	}
 	private Curvature[] getCurvature(PgElementSet geometry)
