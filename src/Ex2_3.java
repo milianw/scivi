@@ -10,14 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.vecmath.GMatrix;
-import javax.vecmath.GVector;
-
-import com.gregdennis.drej.Kernel;
-import com.gregdennis.drej.Matrices;
-import com.gregdennis.drej.PolynomialKernel;
-import com.gregdennis.drej.Regression;
-import com.gregdennis.drej.Representer;
+import Jama.Matrix;
 
 import jv.geom.PgElementSet;
 import jv.geom.PgVectorField;
@@ -350,42 +343,38 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				}
 			}
 			assert kappas.size() == deltas.size();
-			// prepare least-square approximation
-			// TODO: meh, var-sized GMatrix would be nicer
-			GMatrix data = new GMatrix(3, kappas.size());
-			GVector values = new GVector(kappas.size());
+			// prepare A x = b, we look for the solution x
+			// each row is: d1^2 2d1d2 d2^2, with d1,d2 being the coeffs of delta_{i,j}
+			Matrix A = new Matrix(kappas.size(), 3);
+			// kappas
+			Matrix b = new Matrix(kappas.size(), 1);
 			for(int i = 0; i < kappas.size(); ++i) {
+				b.set(i, 0, kappas.get(i));
 				PdVector delta = deltas.get(i);
-				double kappa = kappas.get(i);
-				double a = delta.getEntry(0);
-				double b = delta.getEntry(1);
-				data.setElement(0, i, a * a);
-				data.setElement(1, i, 2.0d * a * b);
-				data.setElement(2, i, b * b);
-				values.setElement(i, kappa);
+				double d1 = delta.getEntry(0);
+				double d2 = delta.getEntry(1);
+				A.set(i, 0, d1 * d1);
+				A.set(i, 1, 2.0d * d1 * d2);
+				A.set(i, 2, d1 * d2);
 			}
-//			Kernel kernel = LinearKernel.KERNEL;
-			Kernel kernel = PolynomialKernel.QUADRATIC_KERNEL;
-			double lambda = 0.01;
-			Representer representer = Regression.solve(data, values, kernel, lambda);
-			GVector predictedValues = Matrices.mapCols(representer, data);
-			predictedValues.sub(values);
-			double cost = predictedValues.normSquared();
-			System.out.println("Cost is: " + cost);
-//			System.out.println(representer.coeffs().getSize());
-//			System.out.println(representer.coeffs());
-			///FIXME: wah! what is coeffs? how do I get the values of B ?!
-//			assert representer.coeffs().getSize() == 3;
-			// we now have a,b,c:
-			double a = representer.coeffs().getElement(0);
-			double b = representer.coeffs().getElement(1);
-			double c = representer.coeffs().getElement(2);
+			// x is vector of [l, m, n]
+			Matrix x;
+			try {
+				x = A.solve(b);
+			} catch(RuntimeException e) {
+				System.err.println(e.getMessage());
+				System.err.println("neighbors: " + kappas.size());
+				continue;
+			}
+			assert x.getRowDimension() == 3;
+			assert x.getColumnDimension() == 1;
+
 			// build curvature matrix
 			PdMatrix B = new PdMatrix(2, 2);
-			B.setEntry(0, 0, a);
-			B.setEntry(0, 1, b);
-			B.setEntry(1, 0, b);
-			B.setEntry(1, 1, c);
+			B.setEntry(0, 0, x.get(0, 0));
+			B.setEntry(0, 1, x.get(1, 0));
+			B.setEntry(1, 0, x.get(1, 0));
+			B.setEntry(1, 1, x.get(2, 0));
 			PdVector eigenValues = new PdVector(0, 0);
 			PdVector[] eigenVectors = {new PdVector(0, 0), new PdVector(0, 0)};
 			PnJacobi.computeEigenvectors(B, 2, eigenValues, eigenVectors);
