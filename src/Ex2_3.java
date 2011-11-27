@@ -110,15 +110,17 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		Mean,
 		Gaussian,
 		Minimum,
-		Maximum,
-		Tensor
+		Maximum
 	}
+	boolean m_displayTensor;
 	private Checkbox m_colorByMax;
 	private Checkbox m_colorByDeviation;
+	private Checkbox m_noColors;
 	private ColorType m_colorType;
 	private enum ColorType {
 		Maximum,
-		Deviation
+		Deviation,
+		NoColors
 	}
 	public Ex2_3(String[] args)
 	{
@@ -167,18 +169,23 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_maximumCurvature, c);
 
-		// curvature tensor
-		m_curvatureTensor = new Checkbox("Tensor", group, false);
-		m_curvatureTensor.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_curvatureTensor, c);
-
 		m_curvatureType = CurvatureType.Mean;
 		group.setSelectedCheckbox(m_meanCurvature);
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
+		m_panel.add(new Label("Other"), c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+		// curvature tensor
+		m_curvatureTensor = new Checkbox("Tensor", false);
+		m_curvatureTensor.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_curvatureTensor, c);
+
+		c.gridy++;
+		c.fill = GridBagConstraints.CENTER;
 		m_panel.add(new Label("Colorization"), c);
+		c.fill = GridBagConstraints.HORIZONTAL;
 		// color method choice
 		CheckboxGroup group2 = new CheckboxGroup();
 
@@ -187,13 +194,19 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_colorByMax.addItemListener(this);
 		c.gridy++;
 		m_panel.add(m_colorByMax, c);
-		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// color by deviation
 		m_colorByDeviation = new Checkbox("Deviation", group2, false);
 		m_colorByDeviation.addItemListener(this);
 		c.gridy++;
 		m_panel.add(m_colorByDeviation, c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+
+		// no colors (required for tensor)
+		m_noColors = new Checkbox("None", group2, false);
+		m_noColors.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_noColors, c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 
 		m_colorType = ColorType.Deviation;
@@ -210,7 +223,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		} else if (source == m_gaussianCurvature) {
 			m_curvatureType = CurvatureType.Gaussian;
 		} else if (source == m_curvatureTensor) {
-			m_curvatureType = CurvatureType.Tensor;
+			m_displayTensor = m_curvatureTensor.getState();
 		} else if (source == m_disableCurvature) {
 			m_curvatureType = CurvatureType.Disable;
 		} else if (source == m_maximumCurvature) {
@@ -221,6 +234,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			m_colorType = ColorType.Deviation;
 		} else if (source == m_colorByMax) {
 			m_colorType = ColorType.Maximum;
+		} else if (source == m_noColors) {
+			m_colorType = ColorType.NoColors;
 		} else {
 			assert false;
 		}
@@ -263,18 +278,12 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		case Mean:
 		case Minimum:
 		case Maximum:
-			setCurvatureColors(geometry, m_curvatureType, m_colorType);
-			break;
-		case Tensor:
-			setCurvatureTensor(geometry);
+			setCurvatureColors(geometry, m_curvatureType, m_colorType, m_displayTensor);
 			break;
 		}
 	}
-	private void setCurvatureTensor(PgElementSet geometry)
+	private void setCurvatureTensor(PgElementSet geometry, Curvature[] curvature)
 	{
-		System.out.println("calculating curvature of geometry " + geometry.getName());
-		Curvature[] curvature = getCurvature(geometry);
-
 		System.out.println("calculating principle curvature directions");
 
 		PgVectorField max = new PgVectorField(3);
@@ -294,8 +303,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		min.setNumVectors(geometry.getNumVertices());
 		geometry.addVectorField(min);
 
-		CornerTable table = new CornerTable(geometry);
 		Set<Integer> visitedVertices = new HashSet<Integer>(geometry.getNumVertices());
+		CornerTable table = new CornerTable(geometry);
 		for (Corner corner : table.corners()) {
 			if (!visitedVertices.add(corner.vertex)) {
 				// vertex already handled
@@ -418,7 +427,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		geometry.setGlobalVectorLength(0.01);
 		m_disp.update(geometry);
 	}
-	private Curvature[] getCurvature(PgElementSet geometry)
+	private Curvature[] getCurvature(PgElementSet geometry, boolean displayTensor)
 	{
 		CornerTable table = new CornerTable(geometry);
 		CotanCache cotanCache = new CotanCache(table.size());
@@ -582,14 +591,15 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			geometry.setVertexColor(i, Color.getHSBColor(hue, 1.0f, 1.0f));
 		}
 	}
-	private void setCurvatureColors(PgElementSet geometry, CurvatureType type, ColorType colorType)
+	private void setCurvatureColors(PgElementSet geometry, CurvatureType type, ColorType colorType,
+									boolean displayTensor)
 	{
 		assert type == CurvatureType.Mean ||
 				type == CurvatureType.Gaussian ||
 				type == CurvatureType.Minimum ||
 				type == CurvatureType.Maximum;
 		System.out.println("calculating curvature of geometry " + geometry.getName() + ", type: " + type);
-		Curvature[] curvature = getCurvature(geometry);
+		Curvature[] curvature = getCurvature(geometry, displayTensor);
 		System.out.println("done, setting colors via type: " + colorType);
 		double values[] = new double[curvature.length];
 		double totalGaussian = 0;
@@ -622,9 +632,18 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		case Maximum:
 			setColorsFromMaxAbs(geometry, values, hasNegative);
 			break;
+		case NoColors:
+			break;
 		}
 		System.out.println("total gaussian curvature: " + totalGaussian);
 		System.out.println("divided by 2pi: " + (totalGaussian / (2.0d * Math.PI)));
+
+		if (displayTensor) {
+			setCurvatureTensor(geometry, curvature);
+		} else if (geometry.getNumVectorFields() > 0) {
+			System.out.println("Hiding Curvature Tensor");
+			geometry.removeAllVectorFields();
+		}
 
 		System.out.println("done, updating display");
 		geometry.showElementColors(true);
