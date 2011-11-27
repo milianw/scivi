@@ -381,8 +381,15 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				x = A.solve(b);
 			} catch(RuntimeException e) {
 				System.err.println(e.getMessage());
-				System.err.println("neighbors: " + kappas.size());
-				continue;
+				System.out.println("fallback to SVD algorithm");
+				// lets try the SVD algo here
+				Matrix AB = new Matrix(kappas.size(), 4);
+				AB.setMatrix(0, kappas.size() - 1, 0, 2, A);
+				AB.setMatrix(0, kappas.size() - 1, 3, 3, b);
+				Matrix V = AB.svd().getV();
+				assert V.getRowDimension() == 4;
+				assert V.getColumnDimension() == 4;
+				x = V.getMatrix(0, 2, 3, 3).times(-V.get(3, 3));
 			}
 			assert x.getRowDimension() == 3;
 			assert x.getColumnDimension() == 1;
