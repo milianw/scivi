@@ -366,6 +366,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert m_lastGeometry == currentGeometry();
 			assert m_lastTensorField != null;
 			smoothTensorField(m_lastGeometry, m_lastCornerTable, m_lastCurvature);
+			m_lastTensorField = getCurvatureTensorFields(m_lastGeometry, m_lastCurvature,
+															m_lastCornerTable);
+			updateView();
 		} else {
 			assert false : "unhandled action source: " + source;
 		}
@@ -431,7 +434,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		case Mean:
 		case Minimum:
 		case Maximum:
-			setCurvatureColors(geometry, m_curvatureType, m_colorType, m_displayTensor, m_tensorType);
+			setCurvatureColors(geometry, m_curvatureType, m_colorType,
+					m_displayTensor, m_tensorType);
 			break;
 		}
 	}
@@ -439,36 +443,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	 * Compute tensor fields for given @param geometry, reusing previously
 	 * calculated curvature and corner table.
 	 *
-	 * @param geometry
-	 * @param curvature
-	 * @param cornerTable
-	 * @return array of four vector fields like this: {max, min, -max, -min}
+	 * Results are stored in the curvature objects (see Curvature::B).
 	 */
-	private PgVectorField[] getCurvatureTensorFields(PgElementSet geometry, Curvature[] curvature,
+	private void computeCurvatureTensor(PgElementSet geometry, Curvature[] curvature,
 									CornerTable cornerTable)
 	{
-		System.out.println("calculating principle curvature directions");
-
-		PgVectorField[] ret = new PgVectorField[4];
-
-		PgVectorField max = new PgVectorField(3);
-		max.setGlobalVectorColor(Color.red);
-		max.showIndividualMaterial(true);
-		max.setGlobalVectorLength(0.01);
-		max.setName("+max");
-		max.setBasedOn(PgVectorField.VERTEX_BASED);
-		max.setNumVectors(geometry.getNumVertices());
-		ret[0] = max;
-
-		PgVectorField min = new PgVectorField(3);
-		min.setGlobalVectorColor(Color.blue);
-		min.showIndividualMaterial(true);
-		min.setGlobalVectorLength(0.01);
-		min.setName("+min");
-		min.setBasedOn(PgVectorField.VERTEX_BASED);
-		min.setNumVectors(geometry.getNumVertices());
-		ret[1] = min;
-
 		Set<Integer> visitedVertices = new HashSet<Integer>(geometry.getNumVertices());
 		for (Corner corner : cornerTable.corners()) {
 			if (!visitedVertices.add(corner.vertex)) {
@@ -547,9 +526,56 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			B.setEntry(0, 1, x.get(1, 0));
 			B.setEntry(1, 0, x.get(1, 0));
 			B.setEntry(1, 1, x.get(2, 0));
+		}
+		System.out.println("done");
+	}
+	/**
+	 * Compute tensor fields for given @param geometry, reusing previously
+	 * calculated curvature tensor in @param curvature and the given corner table.
+	 *
+	 * This basically just finds the eigenvectors of each B which are then
+	 * put into vector fields and returned.
+	 *
+	 * @param geometry
+	 * @param curvature
+	 * @param cornerTable
+	 * @return array of four vector fields like this: {max, min, -max, -min}
+	 */
+	private PgVectorField[] getCurvatureTensorFields(PgElementSet geometry, Curvature[] curvature,
+									CornerTable cornerTable)
+	{
+		System.out.println("calculating principle curvature directions");
+
+		PgVectorField[] ret = new PgVectorField[4];
+
+		PgVectorField max = new PgVectorField(3);
+		max.setGlobalVectorColor(Color.red);
+		max.showIndividualMaterial(true);
+		max.setGlobalVectorLength(0.01);
+		max.setName("+max");
+		max.setBasedOn(PgVectorField.VERTEX_BASED);
+		max.setNumVectors(geometry.getNumVertices());
+		ret[0] = max;
+
+		PgVectorField min = new PgVectorField(3);
+		min.setGlobalVectorColor(Color.blue);
+		min.showIndividualMaterial(true);
+		min.setGlobalVectorLength(0.01);
+		min.setName("+min");
+		min.setBasedOn(PgVectorField.VERTEX_BASED);
+		min.setNumVectors(geometry.getNumVertices());
+		ret[1] = min;
+
+		for (int i = 0; i < curvature.length; ++i) {
+			Curvature curve = curvature[i];
+			if (curve == null) {
+				continue;
+			}
+			assert curve.B != null;
+			// find eigenvectors / principle directions
 			PdVector eigenValues = new PdVector(0, 0);
 			PdVector[] eigenVectors = {new PdVector(0, 0), new PdVector(0, 0)};
-			PnJacobi.computeEigenvectors(B, 2, eigenValues, eigenVectors);
+			PnJacobi.computeEigenvectors(curve.B, 2, eigenValues, eigenVectors);
 			///ZOMG! the eigenvalues are not even sorted -.-'
 			int minI, maxI;
 			if (eigenValues.getEntry(0) < eigenValues.getEntry(1)) {
@@ -563,10 +589,13 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// now scale up to 3d for display
 			PdVector bMinDir = eigenVectors[minI];
 			PdVector bMaxDir = eigenVectors[maxI];
-			PdVector minDir = PdVector.blendNew(bMinDir.getEntry(0), t1, bMinDir.getEntry(1), t2);
-			PdVector maxDir = PdVector.blendNew(bMaxDir.getEntry(0), t1, bMaxDir.getEntry(1), t2);
-			min.setVector(corner.vertex, minDir);
-			max.setVector(corner.vertex, maxDir);
+			PdMatrix plane = curve.tangentPlane();
+			PdVector x = plane.getRow(1);
+			PdVector y = plane.getRow(2);
+			PdVector minDir = PdVector.blendNew(bMinDir.getEntry(0), x, bMinDir.getEntry(1), y);
+			PdVector maxDir = PdVector.blendNew(bMaxDir.getEntry(0), x, bMaxDir.getEntry(1), y);
+			min.setVector(i, minDir);
+			max.setVector(i, maxDir);
 		}
 
 		PgVectorField maxNeg = (PgVectorField) max.clone();
@@ -856,6 +885,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			if (wasCached && m_lastTensorField != null) {
 				tensorField = m_lastTensorField;
 			} else {
+				assert curvature[0].B == null;
+				computeCurvatureTensor(geometry, curvature, cornerTable);
 				tensorField = getCurvatureTensorFields(geometry, curvature, cornerTable);
 				m_lastTensorField = tensorField;
 			}
