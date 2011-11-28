@@ -247,6 +247,21 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		updateView();
 	}
 	@Override
+	public void removeGeometry(PgGeometryIf geometry) {
+		if (geometry == m_lastGeometry) {
+			// clear cache
+			m_lastGeometry = null;
+			m_lastCurvature = null;
+			m_lastCornerTable = null;
+			m_lastTensorField = null;
+		}
+		super.removeGeometry(geometry);
+	}
+	/*
+	 * remove other geometries when opening a new one
+	 * @see ProjectBase#addGeometry(jv.project.PgGeometryIf)
+	 */
+	@Override
 	public void addGeometry(PgGeometryIf geometry) {
 		// hide other geometries
 		for(PgGeometryIf other : m_disp.getGeometries()) {
@@ -258,6 +273,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 		}
 	}
+	/*
+	 * update view after settings changed, i.e. new color scheme
+	 * or similar
+	 */
 	private void updateView()
 	{
 		PgElementSet geometry;
@@ -282,9 +301,21 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			break;
 		}
 	}
-	private void setCurvatureTensor(PgElementSet geometry, Curvature[] curvature)
+	/**
+	 * Compute tensor fields for given @param geometry, reusing previously
+	 * calculated curvature and corner table.
+	 *
+	 * @param geometry
+	 * @param curvature
+	 * @param cornerTable
+	 * @return array of four vector fields like this: {max, min, -max, -min}
+	 */
+	private PgVectorField[] getCurvatureTensorFields(PgElementSet geometry, Curvature[] curvature,
+									CornerTable cornerTable)
 	{
 		System.out.println("calculating principle curvature directions");
+
+		PgVectorField[] ret = new PgVectorField[4];
 
 		PgVectorField max = new PgVectorField(3);
 		max.setGlobalVectorColor(Color.red);
@@ -292,7 +323,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		max.setName("+max");
 		max.setBasedOn(PgVectorField.VERTEX_BASED);
 		max.setNumVectors(geometry.getNumVertices());
-		geometry.addVectorField(max);
+		ret[0] = max;
 
 		PgVectorField min = new PgVectorField(3);
 		min.setGlobalVectorColor(Color.green);
@@ -301,11 +332,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		min.setName("+min");
 		min.setBasedOn(PgVectorField.VERTEX_BASED);
 		min.setNumVectors(geometry.getNumVertices());
-		geometry.addVectorField(min);
+		ret[1] = min;
 
 		Set<Integer> visitedVertices = new HashSet<Integer>(geometry.getNumVertices());
-		CornerTable table = new CornerTable(geometry);
-		for (Corner corner : table.corners()) {
+		for (Corner corner : cornerTable.corners()) {
 			if (!visitedVertices.add(corner.vertex)) {
 				// vertex already handled
 				continue;
@@ -425,18 +455,24 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		PgVectorField maxNeg = (PgVectorField) max.clone();
 		maxNeg.multScalar(-1);
 		maxNeg.setName("-max");
-		geometry.addVectorField(maxNeg);
+		ret[2] = maxNeg;
 		PgVectorField minNeg = (PgVectorField) min.clone();
 		minNeg.multScalar(-1);
 		minNeg.setName("-min");
-		geometry.addVectorField(minNeg);
+		ret[3] = minNeg;
 
-		geometry.setGlobalVectorLength(0.01);
-		m_disp.update(geometry);
+		return ret;
 	}
-	private Curvature[] getCurvature(PgElementSet geometry, boolean displayTensor)
+	/**
+	 * compute curvature values of each vertex in @param geometry
+	 *
+	 * @param geometry for which to compute the curvature
+	 * @param cornerTable optional optimization: reuse existing corner table for above @param geometry
+	 * @return array of Curvature objects, one for each vertex in @param geometry
+	 */
+	private Curvature[] getCurvature(PgElementSet geometry, CornerTable cornerTable)
 	{
-		CornerTable table = new CornerTable(geometry);
+		CornerTable table = (cornerTable == null) ? new CornerTable(geometry) : cornerTable;
 		CotanCache cotanCache = new CotanCache(table.size());
 		// iterate over all corners, each time adding the partial 
 		// contribution to the mixed area and mean curvature normal operator
@@ -539,6 +575,22 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 		return max;
 	}
+	/**
+	 * given curvature values @param curvature, set vertex colors
+	 * of @param geometry, by mapping the curvature values to the
+	 * HSV color space. This is done by normalizing the (possibly
+	 * negative values, see @hasNegative) to the range [0-1] by
+	 * first finding the absolute maximum of the curvature values,
+	 * then dividing each entry by that value.
+	 *
+	 * It turns out that this is a not-so-good color scheme,
+	 * see setColorsFromDeviation for a better alternative.
+	 *
+	 * @param geometry
+	 * @param curvature
+	 * @param hasNegative must be true if the values passed can
+	 * be negative, e.g. for gaussian or minimum curvatures
+	 */
 	private void setColorsFromMaxAbs(PgElementSet geometry, double[] curvature, boolean hasNegative)
 	{
 		assert curvature.length == geometry.getNumVertices();
@@ -566,6 +618,18 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 		System.out.println("max curvature: " + max);
 	}
+	/**
+	 * Set vertex colors of @param geometry based on associated entry in @param curvature.
+	 * Again, we get colors from the HSV color space, but this time we normalize
+	 * the values into the range [0-1] by calculating the standard deviation of
+	 * the calculated curvatures. Then we interpolate the values to our desired
+	 * range by capping the value at the tripled standard deviation interval
+	 * around the mean value. Values above or below are set the hue = 0 = 1 = red.
+	 *
+	 * @param geometry
+	 * @param curvature
+	 * @param hasNegative
+	 */
 	private void setColorsFromDeviation(PgElementSet geometry, double[] curvature, boolean hasNegative)
 	{
 		assert curvature.length == geometry.getNumVertices();
@@ -584,7 +648,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		double standardDeviation = Math.sqrt(variance);
 		// now set colors based on deviation:
 		// zero deviation is hue of 0.5
-		// deviation is normalized to +- 0.5 in the trippled standard deviation interval 
+		// deviation is normalized to +- 0.5 in the tripled standard deviation interval
 		// anything higher just gets the maximum hue of 1 or 0 (both are red)
 		for(int i = 0; i < curvature.length; ++i) {
 			double c = curvature[i];
@@ -598,6 +662,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			geometry.setVertexColor(i, Color.getHSBColor(hue, 1.0f, 1.0f));
 		}
 	}
+	// cache
+	private PgElementSet m_lastGeometry;
+	private Curvature[] m_lastCurvature;
+	private CornerTable m_lastCornerTable;
+	private PgVectorField[] m_lastTensorField;
 	private void setCurvatureColors(PgElementSet geometry, CurvatureType type, ColorType colorType,
 									boolean displayTensor)
 	{
@@ -605,9 +674,29 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				type == CurvatureType.Gaussian ||
 				type == CurvatureType.Minimum ||
 				type == CurvatureType.Maximum;
-		System.out.println("calculating curvature of geometry " + geometry.getName() + ", type: " + type);
-		Curvature[] curvature = getCurvature(geometry, displayTensor);
-		System.out.println("done, setting colors via type: " + colorType);
+
+		CornerTable cornerTable;
+		Curvature[] curvature;
+		boolean wasCached = false;
+		if (m_lastGeometry == geometry) {
+			System.out.println("reusing cached curvature calculations");
+			cornerTable = m_lastCornerTable;
+			curvature = m_lastCurvature;
+			wasCached = true;
+		} else {
+			System.out.println("calculating curvature of geometry " + geometry.getName() + ", type: " + type);
+			cornerTable = new CornerTable(geometry);
+			curvature = getCurvature(geometry, cornerTable);
+			System.out.println("done");
+
+			// cache results
+			m_lastGeometry = geometry;
+			m_lastCurvature = curvature;
+			m_lastCornerTable = cornerTable;
+			// gets updated on-demand, see below
+			m_lastTensorField = null;
+		}
+		System.out.println("setting colors via type: " + colorType);
 		double values[] = new double[curvature.length];
 		double totalGaussian = 0;
 		for (int i = 0; i < curvature.length; ++i) {
@@ -646,7 +735,19 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		System.out.println("divided by 2pi: " + (totalGaussian / (2.0d * Math.PI)));
 
 		if (displayTensor) {
-			setCurvatureTensor(geometry, curvature);
+			PgVectorField[] tensorField;
+			if (wasCached && m_lastTensorField != null) {
+				tensorField = m_lastTensorField;
+			} else {
+				tensorField = getCurvatureTensorFields(geometry, curvature, cornerTable);
+				m_lastTensorField = tensorField;
+			}
+			assert tensorField != null;
+			assert tensorField.length == 4;
+			for(int i = 0; i < tensorField.length; ++i) {
+				geometry.addVectorField(tensorField[i]);
+			}
+			geometry.setGlobalVectorLength(0.05);
 		} else if (geometry.getNumVectorFields() > 0) {
 			System.out.println("Hiding Curvature Tensor");
 			geometry.removeAllVectorFields();
