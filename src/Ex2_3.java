@@ -175,11 +175,19 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private enum TensorType {
 		Minor,
 		Major,
-		Both
+		MinorAndMajor
 	}
 	private Button m_smoothTensor;
 	private PuInteger m_smoothSteps;
 	private PuDouble m_smoothStepSize;
+	private JComboBox m_weighting;
+	private WeightingType m_weightingType;
+	private enum WeightingType {
+		Uniform,
+		Cord,
+		Cotangent,
+		MeanValue
+	}
 	private ColorType m_colorType;
 	private PuDouble m_vectorLength;
 	private JComboBox m_color;
@@ -244,10 +252,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		m_tensor = new JComboBox();
 		m_tensor.addItemListener(this);
-		m_tensor.addItem(TensorType.Both);
+		m_tensor.addItem(TensorType.MinorAndMajor);
 		m_tensor.addItem(TensorType.Minor);
 		m_tensor.addItem(TensorType.Major);
-		m_tensorType = TensorType.Both;
+		m_tensorType = TensorType.MinorAndMajor;
 		m_tensor.setSelectedItem(m_tensorType);
 		c.gridy++;
 		m_panel.add(m_tensor, c);
@@ -274,6 +282,17 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_smoothStepSize.setBounds(0, 10);
 		c.gridy++;
 		m_panel.add(m_smoothStepSize.getInfoPanel(), c);
+
+		m_weighting = new JComboBox();
+		m_weighting.addItemListener(this);
+		m_weighting.addItem(WeightingType.Uniform);
+		m_weighting.addItem(WeightingType.Cord);
+		m_weighting.addItem(WeightingType.Cotangent);
+		m_weighting.addItem(WeightingType.MeanValue);
+		m_weightingType = WeightingType.Uniform;
+		m_weighting.setSelectedItem(m_weightingType);
+		c.gridy++;
+		m_panel.add(m_weighting, c);
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
@@ -306,6 +325,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			m_smoothTensor.setEnabled(m_displayTensor);
 		} else if (source == m_tensor) {
 			m_tensorType = (TensorType) m_tensor.getSelectedItem();
+		} else if (source == m_weighting) {
+			m_weightingType = (WeightingType) m_weighting.getSelectedItem();
+			return;
 		} else if (source == m_color) {
 			m_colorType = (ColorType) m_color.getSelectedItem();
 		} else {
@@ -885,7 +907,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 						continue;
 					}
 					break;
-				case Both:
+				case MinorAndMajor:
 					// add all
 					break;
 				}
