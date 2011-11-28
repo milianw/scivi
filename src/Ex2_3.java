@@ -75,6 +75,38 @@ class Curvature {
 	public double delta() {
 		return Math.max(0, Math.pow(meanCurvature(), 2) - gaussianCurvature());
 	}
+	/**
+	 * Normalize the mean curvature operator and return it.
+	 *
+	 * According to the paper by Meyer e.a. this is the
+	 * normal of the tangent plane.
+	 */
+	public PdVector tangentPlaneNormal()
+	{
+		assert meanCurvature() != 0;
+		assert meanOp.length() > 0;
+		PdVector n = (PdVector) meanOp.clone();
+		n.normalize();
+		return n;
+	}
+	/**
+	 * Return matrix describing the tangent plane.
+	 * 
+	 * Row 1: tangent plane normal
+	 * Row 2: arbitrary normal to tangent plane normal
+	 * Row 3: cross product of the other two vectors
+	 */
+	public PdMatrix tangentPlane()
+	{
+		PdVector n = tangentPlaneNormal();
+		PdVector x = PdVector.normalToVectorNew(n);
+		PdVector y = PdVector.crossNew(n, x);
+		PdMatrix ret = new PdMatrix(3, 3);
+		ret.setRow(0, n);
+		ret.setRow(1, x);
+		ret.setRow(2, y);
+		return ret;
+	}
 }
 
 class CotanCache {
@@ -445,11 +477,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// starting with c.p and then jumping to .o.p of that corner
 			// until we reach c.n and quit
 			PdVector x_i = geometry.getVertex(corner.vertex);
-			assert curve.meanCurvature() != 0;
-			PdVector n = (PdVector) curve.meanOp.clone();
-			n.normalize();
-			PdVector t1 = PdVector.normalToVectorNew(n);
-			PdVector t2 = PdVector.crossNew(n, t1);
+			PdMatrix tangentPlane = curve.tangentPlane();
+			PdVector n = tangentPlane.getRow(0);
+			PdVector t1 = tangentPlane.getRow(1);
+			PdVector t2 = tangentPlane.getRow(2);
 			Corner j = corner.prev;
 			ArrayList<Double> kappas = new ArrayList<Double>(5);
 			ArrayList<PdVector> deltas = new ArrayList<PdVector>(5);
@@ -871,6 +902,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	{
 		for(Curvature curve : curvature) {
 			assert curve.B != null;
+			PdMatrix tangentPlane = curve.tangentPlane();
 		}
 	}
 	private void clearCurvature(PgElementSet geometry)
