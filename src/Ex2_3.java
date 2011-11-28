@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.Label;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -18,6 +19,8 @@ import Jama.Matrix;
 
 import jv.geom.PgElementSet;
 import jv.geom.PgVectorField;
+import jv.number.PuDouble;
+import jv.number.PuInteger;
 import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
 import jv.vecmath.PdMatrix;
@@ -176,6 +179,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		Both
 	}
 	private Button m_smoothTensor;
+	private PuInteger m_smoothSteps;
+	private PuDouble m_smoothStepSize;
 	private Checkbox m_colorByMax;
 	private Checkbox m_colorByDeviation;
 	private Checkbox m_noColors;
@@ -286,6 +291,21 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_smoothTensor, c);
 
+		// number of steps for smoothing
+		m_smoothSteps = new PuInteger("Steps");
+		m_smoothSteps.init();
+		m_smoothSteps.setBounds(1, 1000);
+		m_smoothSteps.setValue(10);
+		c.gridy++;
+		m_panel.add(m_smoothSteps.getInfoPanel(), c);
+
+		m_smoothStepSize = new PuDouble("Step size");
+		m_smoothStepSize.init();
+		m_smoothStepSize.setValue(0.1);
+		m_smoothStepSize.setBounds(0, 10);
+		c.gridy++;
+		m_panel.add(m_smoothStepSize.getInfoPanel(), c);
+
 		// colorization options
 
 		c.gridy++;
@@ -321,6 +341,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		group2.setSelectedCheckbox(m_colorByDeviation);
 
 		show();
+		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
 	}
 	@Override
 	public void itemStateChanged(ItemEvent e)
@@ -365,7 +386,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 			assert m_lastGeometry == currentGeometry();
 			assert m_lastTensorField != null;
-			smoothTensorField(m_lastGeometry, m_lastCornerTable, m_lastCurvature);
+			smoothTensorField(m_lastGeometry, m_lastCornerTable, m_lastCurvature,
+							  m_smoothSteps.getValue(), m_smoothStepSize.getValue());
 			m_lastTensorField = getCurvatureTensorFields(m_lastGeometry, m_lastCurvature,
 															m_lastCornerTable);
 			updateView();
@@ -920,8 +942,22 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		geometry.showElementFromVertexColors(true);
 		m_disp.update(geometry);
 	}
-	private void smoothTensorField(PgElementSet geometry, CornerTable cornerTable, Curvature[] curvature)
+	/**
+	 * Smoothen tensor field @param curvature, new values will be stored in Curvate.B
+	 *
+	 * @param geometry
+	 * @param cornerTable precomputed corner table for @param geometry
+	 * @param curvature precomputed
+	 * @param steps number of smoothing steps, must be greater than one
+	 * @param stepSize \Delta t, i.e. integration step size, must be greater zero
+	 */
+	private void smoothTensorField(PgElementSet geometry, CornerTable cornerTable,
+									Curvature[] curvature, int steps, double stepSize)
 	{
+		System.out.println("Smoothening curvature tensor field. steps: " + steps + ", step size: " + stepSize);
+		assert steps > 1;
+		assert stepSize > 0;
+		// project local 2x2 tensors into 3x3 space
 		PdMatrix[] globalTensors = new PdMatrix[curvature.length];
 		for(int i = 0; i < curvature.length; ++i) {
 			Curvature curve = curvature[i];
@@ -931,6 +967,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			PdMatrix tangentPlane = curve.tangentPlane();
 			PdVector x = tangentPlane.getRow(1);
 			PdVector y = tangentPlane.getRow(2);
+			// wow, what a nice api -.-'
 			// [ x y ]
 			PdMatrix xy = new PdMatrix(3, 2);
 			xy.setColumn(0, x);
@@ -950,30 +987,37 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert global.getNumRows() == 3;
 			globalTensors[i] = global;
 		}
-		///TODO: algorithm choice
-		// explicit method for now
-		HashSet<Integer> visitedVertices = new HashSet<Integer>(globalTensors.length);
-		for(Corner c : cornerTable.corners()) {
-			if (!visitedVertices.add(c.vertex)) {
-				// already visited
-				continue;
+		// smooth global tensors
+		for(int step = 0; step < steps; ++step) {
+			PdMatrix[] smoothened = new PdMatrix[globalTensors.length];
+			HashSet<Integer> visitedVertices = new HashSet<Integer>(globalTensors.length);
+			///TODO: algorithm choice
+			// explicit method for now
+			for(Corner c : cornerTable.corners()) {
+				if (!visitedVertices.add(c.vertex)) {
+					// already visited
+					continue;
+				}
+				int i = c.vertex;
+				PdMatrix sum = PdMatrix.copyNew(globalTensors[i]);
+				for(int j : c.vertexNeighbors()) {
+					assert i != j;
+					///TODO: weighting choice
+					// uniform for now
+					double weight = 1.0d * stepSize;
+					PdMatrix term = PdMatrix.copyNew(globalTensors[j]);
+					term.sub(globalTensors[i]);
+					term.multScalar(weight);
+					sum.add(term);
+				}
+				// note: must not overwrite old values
+				smoothened[i] = sum;
 			}
-			int i = c.vertex;
-			///TODO: stepsize choice
-			double stepSize = 0.1;
-			PdMatrix sum = PdMatrix.copyNew(globalTensors[i]);
-			for(int j : c.vertexNeighbors()) {
-				assert i != j;
-				///TODO: weighting choice
-				// uniform for now
-				double weight = 1.0d * stepSize;
-				PdMatrix term = PdMatrix.copyNew(globalTensors[j]);
-				term.sub(globalTensors[i]);
-				term.multScalar(weight);
-				sum.add(term);
-			}
-			// note: must not overwrite old values, store directly in curvature
-			// i.e. project back to 2d:
+			// for the next step, use the "new" smoothened values as "old"
+			globalTensors = smoothened;
+		}
+		// project back into 2x2, globalTensors contains smoothened values now
+		for(int i = 0; i < globalTensors.length; ++i) {
 			Curvature curve = curvature[i];
 			PdMatrix tangentPlane = curve.tangentPlane();
 			PdVector x = tangentPlane.getRow(1);
@@ -988,7 +1032,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			xy_over.setRow(0, x);
 			xy_over.setRow(1, y);
 			PdMatrix b_times_xy = new PdMatrix();
-			b_times_xy.mult(sum, xy);
+			b_times_xy.mult(globalTensors[i], xy);
 			PdMatrix local = new PdMatrix();
 			local.mult(xy_over, b_times_xy);
 			assert local.getNumCols() == 2;
