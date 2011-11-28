@@ -205,18 +205,22 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// listener
 		m_disp.addGeometryListener(this);
 		GridBagConstraints c = new GridBagConstraints();
-		c.gridwidth = 1;
+		c.gridwidth = 2;
 		c.gridx = 0;
 		c.gridy = 0;
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		Label l = new Label("Display Curvature");
+		Label l = new Label("Curvature");
 		l.setFont(boldFont);
 		m_panel.add(l, c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// curvature method choice
+		c.gridy++;
+		c.gridwidth = 1;
+		m_panel.add(new Label("Show:"), c);
+		c.gridx = 1;
 		m_curvature = new JComboBox();
 		m_curvature.addItem(CurvatureType.Mean);
 		m_curvature.addItem(CurvatureType.Gaussian);
@@ -225,13 +229,30 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_curvatureType = CurvatureType.Mean;
 		m_curvature.setSelectedItem(m_curvatureType);
 		m_curvature.addItemListener(this);
-		c.gridy++;
 		m_panel.add(m_curvature, c);
+		c.gridwidth = 2;
+		c.gridx = 0;
+
+		// color type
+		c.gridy++;
+		c.gridwidth = 1;
+		m_panel.add(new Label("Color By:"), c);
+		c.gridx = 1;
+		m_color = new JComboBox();
+		m_color.addItemListener(this);
+		m_color.addItem(ColorType.NoColors);
+		m_color.addItem(ColorType.Maximum);
+		m_color.addItem(ColorType.Deviation);
+		m_colorType = ColorType.Deviation;
+		m_color.setSelectedItem(m_colorType);
+		m_panel.add(m_color, c);
+		c.gridwidth = 2;
+		c.gridx = 0;
 
 		// curvature tensor
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		l = new Label("Curvature Tensor");
+		l = new Label("Tensor");
 		l.setFont(boldFont);
 		m_panel.add(l, c);
 		c.fill = GridBagConstraints.HORIZONTAL;
@@ -250,6 +271,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_vectorLength.getInfoPanel(), c);
 
+		c.gridy++;
+		c.gridwidth = 1;
+		m_panel.add(new Label("Show:"), c);
+		c.gridx = 1;
 		m_tensor = new JComboBox();
 		m_tensor.addItemListener(this);
 		m_tensor.addItem(TensorType.MinorAndMajor);
@@ -257,8 +282,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_tensor.addItem(TensorType.Major);
 		m_tensorType = TensorType.MinorAndMajor;
 		m_tensor.setSelectedItem(m_tensorType);
-		c.gridy++;
 		m_panel.add(m_tensor, c);
+		c.gridwidth = 2;
+		c.gridx = 0;
 
 		// smooth tensor
 		m_smoothTensor = new Button("Smooth Tensor");
@@ -283,6 +309,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_smoothStepSize.getInfoPanel(), c);
 
+		// weighting
+		c.gridy++;
+		c.gridwidth = 1;
+		m_panel.add(new Label("Weighting:"), c);
+		c.gridx = 1;
 		m_weighting = new JComboBox();
 		m_weighting.addItemListener(this);
 		m_weighting.addItem(WeightingType.Uniform);
@@ -291,25 +322,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_weighting.addItem(WeightingType.MeanValue);
 		m_weightingType = WeightingType.Uniform;
 		m_weighting.setSelectedItem(m_weightingType);
-		c.gridy++;
 		m_panel.add(m_weighting, c);
-
-		c.gridy++;
-		c.fill = GridBagConstraints.CENTER;
-		l = new Label("Colorization");
-		l.setFont(boldFont);
-		m_panel.add(l, c);
-		c.fill = GridBagConstraints.HORIZONTAL;
-
-		m_color = new JComboBox();
-		m_color.addItemListener(this);
-		m_color.addItem(ColorType.NoColors);
-		m_color.addItem(ColorType.Maximum);
-		m_color.addItem(ColorType.Deviation);
-		m_colorType = ColorType.Deviation;
-		m_color.setSelectedItem(m_colorType);
-		c.gridy++;
-		m_panel.add(m_color, c);
+		c.gridx = 0;
+		c.gridwidth = 2;
 
 		show();
 		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
