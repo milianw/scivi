@@ -1,6 +1,7 @@
 import java.awt.Checkbox;
 import java.awt.CheckboxGroup;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.Label;
 import java.awt.event.ItemEvent;
@@ -134,7 +135,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		m_panel.add(new Label("Curvature"), c);
+		Font boldFont = new Font("Dialog", Font.BOLD, 12);
+		Label l = new Label("Curvature");
+		l.setFont(boldFont);
+		m_panel.add(l, c);
 		// curvature method choice
 		CheckboxGroup group = new CheckboxGroup();
 
@@ -174,7 +178,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		m_panel.add(new Label("Other"), c);
+		l = new Label("Other");
+		l.setFont(boldFont);
+		m_panel.add(l, c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		// curvature tensor
 		m_curvatureTensor = new Checkbox("Tensor", false);
@@ -182,9 +188,17 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_curvatureTensor, c);
 
+		m_smoothTensor = new Button("Smooth Tensor");
+		m_smoothTensor.setEnabled(false);
+		m_smoothTensor.addActionListener(this);
+		c.gridy++;
+		m_panel.add(m_smoothTensor, c);
+
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		m_panel.add(new Label("Colorization"), c);
+		l = new Label("Colorization");
+		l.setFont(boldFont);
+		m_panel.add(l, c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		// color method choice
 		CheckboxGroup group2 = new CheckboxGroup();
@@ -224,6 +238,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			m_curvatureType = CurvatureType.Gaussian;
 		} else if (source == m_curvatureTensor) {
 			m_displayTensor = m_curvatureTensor.getState();
+			m_smoothTensor.setEnabled(m_displayTensor);
 		} else if (source == m_disableCurvature) {
 			m_curvatureType = CurvatureType.Disable;
 		} else if (source == m_maximumCurvature) {
@@ -240,6 +255,20 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert false;
 		}
 		updateView();
+	}
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		Object source = e.getSource();
+		if (source == m_smoothTensor) {
+			if (currentGeometry() == null) {
+				return;
+			}
+			assert m_lastGeometry == currentGeometry();
+			assert m_lastTensorField != null;
+			smoothTensorField(m_lastGeometry, m_lastCurvature);
+		} else {
+			assert false : "unhandled action source: " + source;
+		}
 	}
 	@Override
 	public void selectGeometry(PgGeometryIf geometry)
@@ -273,18 +302,23 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 		}
 	}
-	/*
-	 * update view after settings changed, i.e. new color scheme
-	 * or similar
+	/**
+	 * @return currently selected PgElementSet or null
+	 */
+	private PgElementSet currentGeometry()
+	{
+		try {
+			return (PgElementSet) m_disp.getSelectedGeometry();
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	/**
+	 * update view after settings changed, i.e. new color scheme or similar
 	 */
 	private void updateView()
 	{
-		PgElementSet geometry;
-		try {
-			geometry = (PgElementSet) m_disp.getSelectedGeometry();
-		} catch (Exception e) {
-			return;
-		}
+		PgElementSet geometry = currentGeometry();
 		if (geometry == null) {
 			return;
 		}
@@ -755,6 +789,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		geometry.showElementColors(true);
 		geometry.showElementFromVertexColors(true);
 		m_disp.update(geometry);
+	}
+	private void smoothTensorField(PgElementSet geometry, Curvature[] curvature)
+	{
+
 	}
 	private void clearCurvature(PgElementSet geometry)
 	{
