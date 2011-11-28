@@ -913,9 +913,51 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	private void smoothTensorField(PgElementSet geometry, Curvature[] curvature)
 	{
-		for(Curvature curve : curvature) {
+		Matrix[] globalTensors = new Matrix[curvature.length];
+		for(int i = 0; i < curvature.length; ++i) {
+			Curvature curve = curvature[i];
 			assert curve.B != null;
+			assert curve.B.getNumCols() == 2;
+			assert curve.B.getNumRows() == 2;
+			/* stupid javaview api, can't get it to work -.-'
+			 * stick to jama for now
 			PdMatrix tangentPlane = curve.tangentPlane();
+			PdVector x = tangentPlane.getRow(1);
+			PdVector y = tangentPlane.getRow(2);
+			// [ x y ]
+			PdMatrix xy = new PdMatrix(3, 2);
+			xy.setRow(0, x);
+			xy.setRow(1, y);
+			// [ x ]
+			// [ y ]
+			PdMatrix xy_transposed = new PdMatrix(2, 3);
+			xy_transposed.transpose(xy);
+			PdMatrix global = new PdMatrix();
+			global.rightMult(xy_transposed);
+			global.leftMult(xy);
+			assert global.getNumCols() == 3;
+			assert global.getNumRows() == 3;
+			globalTensors[i] = global;
+			*/
+			Matrix B = Matrix.constructWithCopy(curve.B.getEntries());
+			assertEqual(B, curve.B);
+			Matrix plane = new Matrix(curve.tangentPlane().getEntries());
+			assertEqual(plane, curve.tangentPlane());
+			// [ x y ]
+			Matrix xy = plane.getMatrix(0, 2, 0, 1);
+			assert xy.getRowDimension() == 3;
+			assert xy.getColumnDimension() == 2;
+			globalTensors[i] = xy.times(B.times(xy.transpose()));
+		}
+	}
+	private void assertEqual(Matrix a, PdMatrix b)
+	{
+		assert a.getColumnDimension() == b.getNumCols();
+		assert a.getRowDimension() == b.getNumRows();
+		for(int i = 0; i < a.getRowDimension(); ++i) {
+			for(int j = 0; j < a.getColumnDimension(); ++j) {
+				assert a.get(i, j) == b.getEntry(i, j);
+			}
 		}
 	}
 	private void clearCurvature(PgElementSet geometry)
