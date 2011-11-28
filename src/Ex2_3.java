@@ -319,16 +319,17 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		PgVectorField max = new PgVectorField(3);
 		max.setGlobalVectorColor(Color.red);
-//		max.showIndividualMaterial(true);
+		max.showIndividualMaterial(true);
+		max.setGlobalVectorLength(0.01);
 		max.setName("+max");
 		max.setBasedOn(PgVectorField.VERTEX_BASED);
 		max.setNumVectors(geometry.getNumVertices());
 		ret[0] = max;
 
 		PgVectorField min = new PgVectorField(3);
-		min.setGlobalVectorColor(Color.green);
-//		min.showIndividualMaterial(true);
-		min.showVectorColors(true);
+		min.setGlobalVectorColor(Color.blue);
+		min.showIndividualMaterial(true);
+		min.setGlobalVectorLength(0.01);
 		min.setName("+min");
 		min.setBasedOn(PgVectorField.VERTEX_BASED);
 		min.setNumVectors(geometry.getNumVertices());
@@ -433,7 +434,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			PdVector eigenValues = new PdVector(0, 0);
 			PdVector[] eigenVectors = {new PdVector(0, 0), new PdVector(0, 0)};
 			PnJacobi.computeEigenvectors(B, 2, eigenValues, eigenVectors);
-			///ZOMG! the eigen values are not even sorted -.-'
+			///ZOMG! the eigenvalues are not even sorted -.-'
 			int minI, maxI;
 			if (eigenValues.getEntry(0) < eigenValues.getEntry(1)) {
 				minI = 0;
