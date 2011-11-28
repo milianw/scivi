@@ -749,9 +749,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				geometry.addVectorField(tensorField[i]);
 			}
 			geometry.setGlobalVectorLength(0.05);
-		} else if (geometry.getNumVectorFields() > 0) {
-			System.out.println("Hiding Curvature Tensor");
-			geometry.removeAllVectorFields();
 		}
 
 		System.out.println("done, updating display");
@@ -764,6 +761,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		geometry.removeElementColors();
 		geometry.removeVertexColors();
 		geometry.showElementFromVertexColors(false);
+		geometry.removeAllVectorFields();
 		m_disp.update(geometry);
 	}
 }
