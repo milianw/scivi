@@ -1,6 +1,5 @@
 import java.awt.Button;
 import java.awt.Checkbox;
-import java.awt.CheckboxGroup;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -14,6 +13,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+
+import javax.swing.JComboBox;
 
 import Jama.Matrix;
 
@@ -159,14 +160,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	{
 		new Ex2_3(args);
 	}
-	private Checkbox m_disableCurvature;
-	private Checkbox m_gaussianCurvature;
-	private Checkbox m_meanCurvature;
-	private Checkbox m_minimumCurvature;
-	private Checkbox m_maximumCurvature;
+	private JComboBox m_curvature;
 	private CurvatureType m_curvatureType;
 	private enum CurvatureType {
-		Disable,
 		Mean,
 		Gaussian,
 		Minimum,
@@ -174,6 +170,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	private Checkbox m_curvatureTensor;
 	private boolean m_displayTensor;
+	private JComboBox m_tensor;
 	private TensorType m_tensorType;
 	private enum TensorType {
 		Minor,
@@ -183,14 +180,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private Button m_smoothTensor;
 	private PuInteger m_smoothSteps;
 	private PuDouble m_smoothStepSize;
-	private Checkbox m_colorByMax;
-	private Checkbox m_colorByDeviation;
-	private Checkbox m_noColors;
 	private ColorType m_colorType;
-	private Checkbox m_minorTensor;
-	private Checkbox m_majorTensor;
-	private Checkbox m_bothTensor;
 	private PuDouble m_vectorLength;
+	private JComboBox m_color;
 	private enum ColorType {
 		NoColors,
 		Maximum,
@@ -199,6 +191,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	public Ex2_3(String[] args)
 	{
 		super(args, "SciVis - Project 2 - Exercise 3 - Milian Wolff");
+
+		Font boldFont = new Font("Dialog", Font.BOLD, 12);
+
 		// listener
 		m_disp.addGeometryListener(this);
 		GridBagConstraints c = new GridBagConstraints();
@@ -208,46 +203,22 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		Font boldFont = new Font("Dialog", Font.BOLD, 12);
-		Label l = new Label("Curvature");
+		Label l = new Label("Display Curvature");
 		l.setFont(boldFont);
 		m_panel.add(l, c);
-		// curvature method choice
-		CheckboxGroup group = new CheckboxGroup();
-
 		c.fill = GridBagConstraints.HORIZONTAL;
-		// disable curvature
-		m_disableCurvature = new Checkbox("Disabled", group, false);
-		m_disableCurvature.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_disableCurvature, c);
 
-		// mean curvature
-		m_meanCurvature = new Checkbox("Mean", group, true);
-		m_meanCurvature.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_meanCurvature, c);
-
-		// gaussian curvature
-		m_gaussianCurvature = new Checkbox("Gaussian", group, false);
-		m_gaussianCurvature.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_gaussianCurvature, c);
-
-		// minimum curvature
-		m_minimumCurvature = new Checkbox("Minimum", group, false);
-		m_minimumCurvature.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_minimumCurvature, c);
-
-		// minimum curvature
-		m_maximumCurvature = new Checkbox("Maximum", group, false);
-		m_maximumCurvature.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_maximumCurvature, c);
-
+		// curvature method choice
+		m_curvature = new JComboBox();
+		m_curvature.addItem(CurvatureType.Mean);
+		m_curvature.addItem(CurvatureType.Gaussian);
+		m_curvature.addItem(CurvatureType.Maximum);
+		m_curvature.addItem(CurvatureType.Minimum);
 		m_curvatureType = CurvatureType.Mean;
-		group.setSelectedCheckbox(m_meanCurvature);
+		m_curvature.setSelectedItem(m_curvatureType);
+		m_curvature.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_curvature, c);
 
 		// curvature tensor
 		c.gridy++;
@@ -271,29 +242,15 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_vectorLength.getInfoPanel(), c);
 
-		// tensor display type
-		CheckboxGroup tensorGroup = new CheckboxGroup();
-
-		// minor only
-		m_minorTensor = new Checkbox("Minor", tensorGroup, false);
-		m_minorTensor.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_minorTensor, c);
-
-		// major only
-		m_majorTensor = new Checkbox("Major", tensorGroup, false);
-		m_majorTensor.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_majorTensor, c);
-
-		// both, minor and major
-		m_bothTensor = new Checkbox("Both", tensorGroup, false);
-		m_bothTensor.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_bothTensor, c);
-
+		m_tensor = new JComboBox();
+		m_tensor.addItemListener(this);
+		m_tensor.addItem(TensorType.Both);
+		m_tensor.addItem(TensorType.Minor);
+		m_tensor.addItem(TensorType.Major);
 		m_tensorType = TensorType.Both;
-		tensorGroup.setSelectedCheckbox(m_bothTensor);
+		m_tensor.setSelectedItem(m_tensorType);
+		c.gridy++;
+		m_panel.add(m_tensor, c);
 
 		// smooth tensor
 		m_smoothTensor = new Button("Smooth Tensor");
@@ -318,39 +275,22 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_smoothStepSize.getInfoPanel(), c);
 
-		// colorization options
-
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
 		l = new Label("Colorization");
 		l.setFont(boldFont);
 		m_panel.add(l, c);
 		c.fill = GridBagConstraints.HORIZONTAL;
-		// color method choice
-		CheckboxGroup group2 = new CheckboxGroup();
 
-		// color by maximum
-		m_colorByMax = new Checkbox("Maximum", group2, false);
-		m_colorByMax.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_colorByMax, c);
-
-		// color by deviation
-		m_colorByDeviation = new Checkbox("Deviation", group2, false);
-		m_colorByDeviation.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_colorByDeviation, c);
-		c.fill = GridBagConstraints.HORIZONTAL;
-
-		// no colors (required for tensor)
-		m_noColors = new Checkbox("None", group2, false);
-		m_noColors.addItemListener(this);
-		c.gridy++;
-		m_panel.add(m_noColors, c);
-		c.fill = GridBagConstraints.HORIZONTAL;
-
+		m_color = new JComboBox();
+		m_color.addItemListener(this);
+		m_color.addItem(ColorType.NoColors);
+		m_color.addItem(ColorType.Maximum);
+		m_color.addItem(ColorType.Deviation);
 		m_colorType = ColorType.Deviation;
-		group2.setSelectedCheckbox(m_colorByDeviation);
+		m_color.setSelectedItem(m_colorType);
+		c.gridy++;
+		m_panel.add(m_color, c);
 
 		show();
 		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
@@ -359,33 +299,17 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	public void itemStateChanged(ItemEvent e)
 	{
 		Object source = e.getSource();
-		if (source == m_meanCurvature) {
-			m_curvatureType = CurvatureType.Mean;
-		} else if (source == m_gaussianCurvature) {
-			m_curvatureType = CurvatureType.Gaussian;
+		if (source == m_curvature) {
+			m_curvatureType = (CurvatureType) m_curvature.getSelectedItem();
 		} else if (source == m_curvatureTensor) {
 			m_displayTensor = m_curvatureTensor.getState();
 			m_smoothTensor.setEnabled(m_displayTensor);
-		} else if (source == m_minorTensor) {
-			m_tensorType = TensorType.Minor;
-		} else if (source == m_majorTensor) {
-			m_tensorType = TensorType.Major;
-		} else if (source == m_bothTensor) {
-			m_tensorType = TensorType.Both;
-		} else if (source == m_disableCurvature) {
-			m_curvatureType = CurvatureType.Disable;
-		} else if (source == m_maximumCurvature) {
-			m_curvatureType = CurvatureType.Maximum;
-		} else if (source == m_minimumCurvature) {
-			m_curvatureType = CurvatureType.Minimum;
-		} else if (source == m_colorByDeviation) {
-			m_colorType = ColorType.Deviation;
-		} else if (source == m_colorByMax) {
-			m_colorType = ColorType.Maximum;
-		} else if (source == m_noColors) {
-			m_colorType = ColorType.NoColors;
+		} else if (source == m_tensor) {
+			m_tensorType = (TensorType) m_tensor.getSelectedItem();
+		} else if (source == m_color) {
+			m_colorType = (ColorType) m_color.getSelectedItem();
 		} else {
-			assert false;
+			assert false : source;
 		}
 		updateView();
 	}
@@ -409,7 +333,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	@Override
 	public boolean update(Object e) {
-		// TODO Auto-generated method stub
 		if (e == m_vectorLength) {
 			if (m_lastTensorField != null) {
 				for(PgVectorField field : m_lastTensorField) {
@@ -422,18 +345,14 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	@Override
 	public PsUpdateIf getFather() {
-		// TODO Auto-generated method stub
-		// wah?
 		return null;
 	}
 	@Override
 	public String getName() {
-		// TODO Auto-generated method stub
 		return super.getName();
 	}
 	@Override
 	public void setParent(PsUpdateIf arg0) {
-		// TODO Auto-generated method stub
 		// wah - what to do?
 		assert false;
 	}
@@ -491,9 +410,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 		clearCurvature(geometry);
 		switch(m_curvatureType) {
-		case Disable:
-			// nothing to do, we always clear before
-			break;
 		case Gaussian:
 		case Mean:
 		case Minimum:
