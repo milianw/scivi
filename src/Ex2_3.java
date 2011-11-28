@@ -80,10 +80,14 @@ class Curvature {
 	 *
 	 * According to the paper by Meyer e.a. this is the
 	 * normal of the tangent plane.
+	 *
+	 * Returns null if mean curvature is zero.
 	 */
 	public PdVector tangentPlaneNormal()
 	{
-		assert meanCurvature() != 0;
+		if (meanCurvature() == 0) {
+			return null;
+		}
 		assert meanOp.length() > 0;
 		PdVector n = (PdVector) meanOp.clone();
 		n.normalize();
@@ -95,9 +99,14 @@ class Curvature {
 	 * Row 1: tangent plane normal
 	 * Row 2: arbitrary normal to tangent plane normal
 	 * Row 3: cross product of the other two vectors
+	 *
+	 * Returns null if mean curvature is zero.
 	 */
 	public PdMatrix tangentPlane()
 	{
+		if (meanCurvature() == 0) {
+			return null;
+		}
 		PdVector n = tangentPlaneNormal();
 		PdVector x = PdVector.normalToVectorNew(n);
 		PdVector y = PdVector.crossNew(n, x);
@@ -478,6 +487,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// until we reach c.n and quit
 			PdVector x_i = geometry.getVertex(corner.vertex);
 			PdMatrix tangentPlane = curve.tangentPlane();
+			if (tangentPlane == null) {
+				System.err.println("skipping zero mean curvature at vertex: " + x_i + ", index: " + corner.vertex);
+				continue;
+			}
 			PdVector n = tangentPlane.getRow(0);
 			PdVector t1 = tangentPlane.getRow(1);
 			PdVector t2 = tangentPlane.getRow(2);
