@@ -1,9 +1,12 @@
+import java.awt.Button;
 import java.awt.Checkbox;
 import java.awt.CheckboxGroup;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.Label;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
@@ -26,6 +29,8 @@ class Curvature {
 		area = 0;
 		meanOp = new PdVector(0, 0, 0);
 		gaussian = 0;
+		// not computed by default
+		B = null;
 	}
 	/**
 	 * mean curvature normal operator
@@ -46,6 +51,14 @@ class Curvature {
 	 * see fig. 4
 	 */
 	public double area;
+	/**
+	 * Symmetric curvature tensor:
+	 *
+	 *  a | b
+	 * ---|---
+	 *  b | c
+	 */
+	public PdMatrix B;
 	public double gaussianCurvature() {
 		return (2.0d * Math.PI - Math.toRadians(gaussian)) / area;
 	}
@@ -94,7 +107,8 @@ class CotanCache {
  * @author		Milian Wolff
  * @version		26.11.2011, 1.00 created
  */
-public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemListener {
+public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemListener, ActionListener
+{
 	public static void main(String[] args)
 	{
 		new Ex2_3(args);
@@ -104,7 +118,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private Checkbox m_meanCurvature;
 	private Checkbox m_minimumCurvature;
 	private Checkbox m_maximumCurvature;
-	private Checkbox m_curvatureTensor;
 	private CurvatureType m_curvatureType;
 	private enum CurvatureType {
 		Disable,
@@ -113,15 +126,26 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		Minimum,
 		Maximum
 	}
-	boolean m_displayTensor;
+	private Checkbox m_curvatureTensor;
+	private boolean m_displayTensor;
+	private TensorType m_tensorType;
+	private enum TensorType {
+		Minor,
+		Major,
+		Both
+	}
+	private Button m_smoothTensor;
 	private Checkbox m_colorByMax;
 	private Checkbox m_colorByDeviation;
 	private Checkbox m_noColors;
 	private ColorType m_colorType;
+	private Checkbox m_minorTensor;
+	private Checkbox m_majorTensor;
+	private Checkbox m_bothTensor;
 	private enum ColorType {
+		NoColors,
 		Maximum,
-		Deviation,
-		NoColors
+		Deviation
 	}
 	public Ex2_3(String[] args)
 	{
@@ -176,23 +200,52 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_curvatureType = CurvatureType.Mean;
 		group.setSelectedCheckbox(m_meanCurvature);
 
+		// curvature tensor
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		l = new Label("Other");
+		l = new Label("Curvature Tensor");
 		l.setFont(boldFont);
 		m_panel.add(l, c);
 		c.fill = GridBagConstraints.HORIZONTAL;
-		// curvature tensor
-		m_curvatureTensor = new Checkbox("Tensor", false);
+
+		// display or hide
+		m_curvatureTensor = new Checkbox("Display", false);
 		m_curvatureTensor.addItemListener(this);
 		c.gridy++;
 		m_panel.add(m_curvatureTensor, c);
 
+		// tensor display type
+		CheckboxGroup tensorGroup = new CheckboxGroup();
+
+		// minor only
+		m_minorTensor = new Checkbox("Minor", tensorGroup, false);
+		m_minorTensor.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_minorTensor, c);
+
+		// major only
+		m_majorTensor = new Checkbox("Major", tensorGroup, false);
+		m_majorTensor.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_majorTensor, c);
+
+		// both, minor and major
+		m_bothTensor = new Checkbox("Both", tensorGroup, false);
+		m_bothTensor.addItemListener(this);
+		c.gridy++;
+		m_panel.add(m_bothTensor, c);
+
+		m_tensorType = TensorType.Both;
+		tensorGroup.setSelectedCheckbox(m_bothTensor);
+
+		// smooth tensor
 		m_smoothTensor = new Button("Smooth Tensor");
 		m_smoothTensor.setEnabled(false);
 		m_smoothTensor.addActionListener(this);
 		c.gridy++;
 		m_panel.add(m_smoothTensor, c);
+
+		// colorization options
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
@@ -239,6 +292,12 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		} else if (source == m_curvatureTensor) {
 			m_displayTensor = m_curvatureTensor.getState();
 			m_smoothTensor.setEnabled(m_displayTensor);
+		} else if (source == m_minorTensor) {
+			m_tensorType = TensorType.Minor;
+		} else if (source == m_majorTensor) {
+			m_tensorType = TensorType.Major;
+		} else if (source == m_bothTensor) {
+			m_tensorType = TensorType.Both;
 		} else if (source == m_disableCurvature) {
 			m_curvatureType = CurvatureType.Disable;
 		} else if (source == m_maximumCurvature) {
@@ -331,7 +390,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		case Mean:
 		case Minimum:
 		case Maximum:
-			setCurvatureColors(geometry, m_curvatureType, m_colorType, m_displayTensor);
+			setCurvatureColors(geometry, m_curvatureType, m_colorType, m_displayTensor, m_tensorType);
 			break;
 		}
 	}
@@ -461,6 +520,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 			// build curvature matrix
 			PdMatrix B = new PdMatrix(2, 2);
+			curve.B = B;
 			B.setEntry(0, 0, x.get(0, 0));
 			B.setEntry(0, 1, x.get(1, 0));
 			B.setEntry(1, 0, x.get(1, 0));
@@ -703,7 +763,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private CornerTable m_lastCornerTable;
 	private PgVectorField[] m_lastTensorField;
 	private void setCurvatureColors(PgElementSet geometry, CurvatureType type, ColorType colorType,
-									boolean displayTensor)
+									boolean displayTensor, TensorType tensorType)
 	{
 		assert type == CurvatureType.Mean ||
 				type == CurvatureType.Gaussian ||
@@ -779,7 +839,24 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 			assert tensorField != null;
 			assert tensorField.length == 4;
-			for(int i = 0; i < tensorField.length; ++i) {
+			for(int i = 0; i < 4; ++i) {
+				switch (tensorType) {
+				case Major:
+					if (i != 0 && i != 2) {
+						// skip minor
+						continue;
+					}
+					break;
+				case Minor:
+					if (i != 1 && i != 3) {
+						// skip major
+						continue;
+					}
+					break;
+				case Both:
+					// add all
+					break;
+				}
 				geometry.addVectorField(tensorField[i]);
 			}
 			geometry.setGlobalVectorLength(0.05);
@@ -792,7 +869,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	private void smoothTensorField(PgElementSet geometry, Curvature[] curvature)
 	{
-
+		for(Curvature curve : curvature) {
+			assert curve.B != null;
+		}
 	}
 	private void clearCurvature(PgElementSet geometry)
 	{
