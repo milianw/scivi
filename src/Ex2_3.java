@@ -21,6 +21,7 @@ import jv.geom.PgElementSet;
 import jv.geom.PgVectorField;
 import jv.number.PuDouble;
 import jv.number.PuInteger;
+import jv.object.PsUpdateIf;
 import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
 import jv.vecmath.PdMatrix;
@@ -151,7 +152,8 @@ class CotanCache {
  * @author		Milian Wolff
  * @version		26.11.2011, 1.00 created
  */
-public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemListener, ActionListener
+public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemListener,
+													ActionListener, PsUpdateIf
 {
 	public static void main(String[] args)
 	{
@@ -188,6 +190,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private Checkbox m_minorTensor;
 	private Checkbox m_majorTensor;
 	private Checkbox m_bothTensor;
+	private PuDouble m_vectorLength;
 	private enum ColorType {
 		NoColors,
 		Maximum,
@@ -260,6 +263,14 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_curvatureTensor, c);
 
+		// step size (\Delta t)
+		m_vectorLength = new PuDouble("Vector Length", this);
+		m_vectorLength.init();
+		m_vectorLength.setValue(0.1);
+		m_vectorLength.setBounds(0, 10);
+		c.gridy++;
+		m_panel.add(m_vectorLength.getInfoPanel(), c);
+
 		// tensor display type
 		CheckboxGroup tensorGroup = new CheckboxGroup();
 
@@ -299,6 +310,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridy++;
 		m_panel.add(m_smoothSteps.getInfoPanel(), c);
 
+		// step size (\Delta t)
 		m_smoothStepSize = new PuDouble("Step size");
 		m_smoothStepSize.init();
 		m_smoothStepSize.setValue(0.1);
@@ -394,6 +406,36 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		} else {
 			assert false : "unhandled action source: " + source;
 		}
+	}
+	@Override
+	public boolean update(Object e) {
+		// TODO Auto-generated method stub
+		if (e == m_vectorLength) {
+			if (m_lastTensorField != null) {
+				for(PgVectorField field : m_lastTensorField) {
+					field.setGlobalVectorLength(m_vectorLength.getValue());
+				}
+				m_disp.update(m_lastGeometry);
+			}
+		}
+		return false;
+	}
+	@Override
+	public PsUpdateIf getFather() {
+		// TODO Auto-generated method stub
+		// wah?
+		return null;
+	}
+	@Override
+	public String getName() {
+		// TODO Auto-generated method stub
+		return super.getName();
+	}
+	@Override
+	public void setParent(PsUpdateIf arg0) {
+		// TODO Auto-generated method stub
+		// wah - what to do?
+		assert false;
 	}
 	@Override
 	public void selectGeometry(PgGeometryIf geometry)
@@ -590,10 +632,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		for (int i = 0; i < curvature.length; ++i) {
 			Curvature curve = curvature[i];
-			if (curve == null) {
+			if (curve == null || curve.B == null) {
 				continue;
 			}
-			assert curve.B != null;
 			// find eigenvectors / principle directions
 			PdVector eigenValues = new PdVector(0, 0);
 			PdVector[] eigenVectors = {new PdVector(0, 0), new PdVector(0, 0)};
@@ -932,6 +973,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 					// add all
 					break;
 				}
+				tensorField[i].setGlobalVectorLength(m_vectorLength.getValue());
 				geometry.addVectorField(tensorField[i]);
 			}
 			geometry.setGlobalVectorLength(0.05);
@@ -961,7 +1003,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		PdMatrix[] globalTensors = new PdMatrix[curvature.length];
 		for(int i = 0; i < curvature.length; ++i) {
 			Curvature curve = curvature[i];
-			assert curve.B != null;
+			if (curve == null || curve.B == null) {
+				globalTensors[i] = new PdMatrix(3, 3);
+				continue;
+			}
 			assert curve.B.getNumCols() == 2;
 			assert curve.B.getNumRows() == 2;
 			PdMatrix tangentPlane = curve.tangentPlane();
@@ -1019,7 +1064,14 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// project back into 2x2, globalTensors contains smoothened values now
 		for(int i = 0; i < globalTensors.length; ++i) {
 			Curvature curve = curvature[i];
+			if (curve == null) {
+				continue;
+			}
 			PdMatrix tangentPlane = curve.tangentPlane();
+			if (tangentPlane == null) {
+				///TODO: can we not somehow get the smoothened B into here?
+				continue;
+			}
 			PdVector x = tangentPlane.getRow(1);
 			PdVector y = tangentPlane.getRow(2);
 			// [ x y ]
