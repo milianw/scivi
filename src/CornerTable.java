@@ -4,7 +4,6 @@ import java.util.Collections;
 import jv.geom.PgElementSet;
 import jv.vecmath.PiVector;
 
-
 class Corner {
 	public Corner prev;
 	public Corner next;
@@ -12,6 +11,49 @@ class Corner {
 	public int vertex;
 	public int triangle;
 	public int localVertexIndex;
+	/**
+	 * find neighbors of current vertex by iterating over the corner table
+	 * starting with prev and then jumping to .o.p of that corner
+	 * until we reach next and quit.
+	 *
+	 * If we reach a corner with .o.p == null, we reverse the direction
+	 * and start with next until we reach .o.n == null
+	 *
+	 * @return array of vertex indices that indicate the neighbors of
+	 * the current vertex
+	 */
+	public int[] vertexNeighbors() {
+		ArrayList<Integer> neighbors = new ArrayList<Integer>(10);
+		Corner i = prev;
+		boolean usePrev = true;
+		while(true) {
+			neighbors.add(i.vertex);
+			if ((usePrev && i.vertex == next.vertex) ||
+				(!usePrev && i.vertex == prev.vertex))
+			{
+				// we just handled the last neighbor - stop
+				break;
+			} else {
+				if (usePrev) {
+					i = i.prev.opposite;
+					if (i == null) {
+						i = next;
+						usePrev = false;
+					}
+				} else {
+					i = i.next.opposite;
+					if (i == null) {
+						break;
+					}
+				}
+			}
+		}
+		int[] ret = new int[neighbors.size()];
+		for(int j = 0; j < neighbors.size(); ++j) {
+			ret[j] = neighbors.get(j).intValue();
+		}
+		return ret;
+	}
 }
 
 /**

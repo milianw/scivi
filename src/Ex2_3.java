@@ -482,9 +482,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// now we find all neighbors and compute:
 			// \kappa_{i,j}^N (see page 13)
 			// \vec{\delta_{i,j}} (see page 14)
-			// to iterate over all neighbors we iterate over the corner table
-			// starting with c.p and then jumping to .o.p of that corner
-			// until we reach c.n and quit
 			PdVector x_i = geometry.getVertex(corner.vertex);
 			PdMatrix tangentPlane = curve.tangentPlane();
 			if (tangentPlane == null) {
@@ -494,12 +491,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			PdVector n = tangentPlane.getRow(0);
 			PdVector t1 = tangentPlane.getRow(1);
 			PdVector t2 = tangentPlane.getRow(2);
-			Corner j = corner.prev;
 			ArrayList<Double> kappas = new ArrayList<Double>(5);
 			ArrayList<PdVector> deltas = new ArrayList<PdVector>(5);
-			boolean usePrev = true;
-			while(true) {
-				PdVector x_j = geometry.getVertex(j.vertex);
+			for(int j : corner.vertexNeighbors()) {
+				PdVector x_j = geometry.getVertex(j);
 				// x_i - x_j
 				PdVector e = PdVector.subNew(x_i, x_j);
 				double e_dot_n = e.dot(n);
@@ -510,23 +505,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				delta.normalize();
 				// now compute coordinates in plane by dotting to t1, t2
 				deltas.add(new PdVector(t1.dot(delta), t2.dot(delta)));
-				if (j.vertex == corner.next.vertex) {
-					// we just handled the last neighbor, c.n - stop now
-					break;
-				} else {
-					if (usePrev) {
-						j = j.prev.opposite;
-						if (j == null) {
-							j = corner.next;
-							usePrev = false;
-						}
-					} else {
-						j = j.next.opposite;
-						if (j == null) {
-							break;
-						}
-					}
-				}
 			}
 			assert kappas.size() == deltas.size();
 			// prepare A x = b, we look for the solution x
