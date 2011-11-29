@@ -19,15 +19,15 @@ class Corner {
 	 * If we reach a corner with .o.p == null, we reverse the direction
 	 * and start with next until we reach .o.n == null
 	 *
-	 * @return array of vertex indices that indicate the neighbors of
+	 * @return array of corners that indicate the neighbors of
 	 * the current vertex
 	 */
-	public int[] vertexNeighbors() {
-		ArrayList<Integer> neighbors = new ArrayList<Integer>(10);
+	public Corner[] vertexNeighbors() {
+		ArrayList<Corner> neighbors = new ArrayList<Corner>(10);
 		Corner i = prev;
 		boolean usePrev = true;
 		while(true) {
-			neighbors.add(i.vertex);
+			neighbors.add(i);
 			if ((usePrev && i.vertex == next.vertex) ||
 				(!usePrev && i.vertex == prev.vertex))
 			{
@@ -48,10 +48,8 @@ class Corner {
 				}
 			}
 		}
-		int[] ret = new int[neighbors.size()];
-		for(int j = 0; j < neighbors.size(); ++j) {
-			ret[j] = neighbors.get(j).intValue();
-		}
+		Corner[] ret = new Corner[neighbors.size()];
+		neighbors.toArray(ret);
 		return ret;
 	}
 }

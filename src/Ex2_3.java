@@ -144,6 +144,14 @@ class CotanCache {
 		}
 		return val;
 	}
+	double tan(double degree)
+	{
+		if (degree == 0) {
+			return 0;
+		}
+		assert degree > 0 : degree;
+		return 1.0d / cotan(degree);
+	}
 	private HashMap<Double, Double> map;
 }
 
@@ -360,7 +368,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert m_lastGeometry == currentGeometry();
 			assert m_lastTensorField != null;
 			smoothTensorField(m_lastGeometry, m_lastCornerTable, m_lastCurvature,
-							  m_smoothSteps.getValue(), m_smoothStepSize.getValue());
+							  m_smoothSteps.getValue(), m_smoothStepSize.getValue(),
+							  m_weightingType);
 			m_lastTensorField = getCurvatureTensorFields(m_lastGeometry, m_lastCurvature,
 															m_lastCornerTable);
 			updateView();
@@ -489,7 +498,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			PdVector t2 = tangentPlane.getRow(2);
 			ArrayList<Double> kappas = new ArrayList<Double>(5);
 			ArrayList<PdVector> deltas = new ArrayList<PdVector>(5);
-			for(int j : corner.vertexNeighbors()) {
+			for(Corner neighbor : corner.vertexNeighbors()) {
+				int j = neighbor.vertex;
 				PdVector x_j = geometry.getVertex(j);
 				// x_i - x_j
 				PdVector e = PdVector.subNew(x_i, x_j);
@@ -947,7 +957,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	 * @param stepSize \Delta t, i.e. integration step size, must be greater zero
 	 */
 	private void smoothTensorField(PgElementSet geometry, CornerTable cornerTable,
-									Curvature[] curvature, int steps, double stepSize)
+									Curvature[] curvature, int steps, double stepSize,
+									WeightingType weightingType)
 	{
 		System.out.println("Smoothening curvature tensor field. steps: " + steps + ", step size: " + stepSize);
 		assert steps > 1;
@@ -985,6 +996,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert global.getNumRows() == 3;
 			globalTensors[i] = global;
 		}
+		CotanCache cache = null;
+		if (weightingType == WeightingType.Cotangent || weightingType == WeightingType.MeanValue) {
+			cache = new CotanCache(cornerTable.size());
+		}
 		// smooth global tensors
 		for(int step = 0; step < steps; ++step) {
 			PdMatrix[] smoothened = new PdMatrix[globalTensors.length];
@@ -998,11 +1013,45 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				}
 				int i = c.vertex;
 				PdMatrix sum = PdMatrix.copyNew(globalTensors[i]);
-				for(int j : c.vertexNeighbors()) {
+				PdVector x_i = geometry.getVertex(i);
+				for(Corner neighbor : c.vertexNeighbors()) {
+					int j = neighbor.vertex;
 					assert i != j;
-					///TODO: weighting choice
-					// uniform for now
-					double weight = 1.0d * stepSize;
+					Double weight = null;
+					switch (weightingType) {
+					case Uniform:
+						weight = 1.0d;
+						break;
+					case Cord:
+						weight = 1.0d / PdVector.subNew(x_i, geometry.getVertex(j)).length();
+						break;
+					case Cotangent:
+						assert neighbor.prev.vertex != i;
+						assert neighbor.prev.opposite != null;
+						double theta_1 = cache.cotan(
+								geometry.getVertexAngle(neighbor.prev.triangle,
+														neighbor.prev.localVertexIndex));
+						double theta_2 = cache.cotan(
+								geometry.getVertexAngle(neighbor.prev.opposite.triangle,
+														neighbor.prev.opposite.localVertexIndex));
+						weight = (theta_1 + theta_2) * 0.5d;
+						break;
+					case MeanValue:
+						assert neighbor.prev.vertex != i;
+						assert neighbor.next.vertex == i;
+						double phi_1 = cache.tan(
+								geometry.getVertexAngle(neighbor.next.triangle,
+														neighbor.next.localVertexIndex));
+						assert neighbor.prev.opposite != null;
+						assert neighbor.prev.opposite.next.vertex == i;
+						double phi_2 = cache.tan(
+								geometry.getVertexAngle(neighbor.prev.opposite.next.triangle,
+														neighbor.prev.opposite.next.localVertexIndex));
+						weight = (phi_1 + phi_2) * 0.5d;
+						break;
+					}
+					assert weight != null;
+					weight *= stepSize;
 					PdMatrix term = PdMatrix.copyNew(globalTensors[j]);
 					term.sub(globalTensors[i]);
 					term.multScalar(weight);
