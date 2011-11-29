@@ -260,6 +260,9 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	 */
 	@Override
 	public void addGeometry(PgGeometryIf geometry) {
+		if (m_rendering) {
+			return;
+		}
 		// hide other geometries
 		for(PgGeometryIf other : m_disp.getGeometries()) {
 			if (other == geometry) {
@@ -310,6 +313,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		int oldLightningModel = m_disp.getLightingModel();
 		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
+		assert m_disp.containsGeometry(geometry);
 
 		BufferedImage image = createImage();
 		renderOffscreen(image);
@@ -319,6 +323,13 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		m_disp.setLightingModel(oldLightningModel);
 		
+		return image;
+	}
+	private BufferedImage getGrayScale(PgElementSet geometry)
+	{
+		m_disp.update(geometry);
+		BufferedImage image = createImage();
+		renderOffscreen(image);
 		return image;
 	}
 	private void updateView()
@@ -337,6 +348,9 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			m_lastCurvature.computeCurvatureTensor();
 		}
 
+		m_disp.setEnabledExternalRendering(true);
+		m_disp.setExternalRenderSize(m_disp.getSize().width, m_disp.getSize().height);
+
 		// disable lighting / unwanted settings that might temper with colors
 		boolean wasShowingVertices = geometry.isShowingVertices();
 		geometry.showVertices(false);
@@ -347,6 +361,8 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		Color oldElementColor = geometry.getGlobalElementColor();
 		geometry.setGlobalElementColor(Color.white);
 
+		m_disp.update(geometry);
+
 		Color oldBackgroundColor = m_disp.getBackgroundColor();
 		m_disp.setBackgroundColor(Color.WHITE);
 		boolean wasShowingBorder = m_disp.hasPaintTag(PvDisplayIf.PAINT_BORDER);
@@ -356,9 +372,9 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		final long PAINT_FOCUS = 536870912;
 		boolean wasShowingFocus	= m_disp.hasPaintTag(PAINT_FOCUS);
 		m_disp.setPaintTag(PAINT_FOCUS, false);
-		m_disp.setEnabledExternalRendering(true);
-		m_disp.setExternalRenderSize(m_disp.getSize().width, m_disp.getSize().height);
-		
+
+		BufferedImage grayScale = getGrayScale(geometry);
+
 		BufferedImage silhouette = getSilhouette(geometry);
 		//composite image
 		BufferedImage compositedImage = new BufferedImage(m_disp.getCanvas().getWidth(),
@@ -380,7 +396,6 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		geometry.showElementColors(wasShowingElementColors);
 		geometry.setGlobalElementColor(oldElementColor);
 
-		m_disp.addGeometry(geometry);
 		m_disp.update(geometry);
 		m_rendering = false;
 	}
