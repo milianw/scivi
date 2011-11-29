@@ -31,28 +31,28 @@ public class Silhouette {
 		FaceBased,
 		VertexBased
 	}
-	public static PgPolygonSet create(PgElementSet geometry, Type type, PdVector viewDirection)
+	public static PgPolygonSet create(PgElementSet geometry, Type type, PdVector viewer)
 	{
 		switch(type) {
 		case FaceBased:
-			return createFaceBasedSilhouette(geometry, viewDirection);
+			return createFaceBasedSilhouette(geometry, viewer);
 		case VertexBased:
-			return createVertexBasedSilhouette(geometry, viewDirection);
+			return createVertexBasedSilhouette(geometry, viewer);
 		}
 		assert false : "unhandled type: " + type;
 		return null;
 	}
-	public static PgPolygonSet createFaceBasedSilhouette(PgElementSet geometry, PdVector viewDirection)
+	public static PgPolygonSet createFaceBasedSilhouette(PgElementSet geometry, PdVector viewer)
 	{
 		PgPolygonSet silhouette = new PgPolygonSet();
 		silhouette.setName("Face Based Silhouette of " + geometry.getName());
 
 		// find visible faces
-		PdVector ray = viewDirection;
 		Set<Integer> visibleFaces = new HashSet<Integer>();
 		geometry.assureElementNormals();
 		assert geometry.hasElementNormals();
 		for(int i = 0; i < geometry.getNumElements(); ++i) {
+			PdVector ray = PdVector.subNew(geometry.getCenterOfElement(null, i), viewer);
 			double dot = ray.dot(geometry.getElementNormal(i));
 			// if the dot product is zero, the face is either visible or hidden :-/
 			// we ignore this case, assuming that it only happens for faces somewhere
@@ -103,7 +103,7 @@ public class Silhouette {
 		edge.multScalar(x0);
 		return PdVector.addNew(p1, edge);
 	}
-	public static PgPolygonSet createVertexBasedSilhouette(PgElementSet geometry, PdVector viewDirection)
+	public static PgPolygonSet createVertexBasedSilhouette(PgElementSet geometry, PdVector viewer)
 	{
 		PgPolygonSet silhouette = new PgPolygonSet();
 		silhouette.setName("Vertex Based Silhouette of " + geometry.getName());
@@ -112,9 +112,9 @@ public class Silhouette {
 		// we iterate over all edges, if the dot product flips sign between
 		// corner base vertex and next and prev vertex, we draw the zero level set
 		// to find it we interpolate the dot products (cmp. barycentric coordinates)
-		PdVector ray = viewDirection;
 		CornerTable table = new CornerTable(geometry);
 		for(Corner corner : table.corners()) {
+			PdVector ray = PdVector.subNew(geometry.getVertex(corner.vertex), viewer);
 			// TODO: optimize: only compute visibility (i.e. dot product) once for each vertex
 			// but see whether this is actually noticeably faster
 			double a = ray.dot(geometry.getVertexNormal(corner.vertex));

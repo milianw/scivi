@@ -157,7 +157,7 @@ public class Ex2_2 extends ProjectBase implements PvCameraListenerIf, ItemListen
 
 		if (m_showSilhouette) {
 			m_silhouette = Silhouette.create(geometry, m_silhouetteType,
-											 m_disp.getCamera().getViewDir());
+											 m_disp.getCamera().getPosition());
 			assert m_silhouette != null;
 			System.out.println("got silhouette: " + m_silhouette.getName());
 			System.out.println("adding: " + m_silhouette.getName());
