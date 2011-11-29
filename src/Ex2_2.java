@@ -101,10 +101,14 @@ public class Ex2_2 extends ProjectBase implements PvCameraListenerIf, ItemListen
 	@Override
 	public void addGeometry(PgGeometryIf geometry) {
 		// hide other geometries
+		if (geometry == m_silhouette) {
+			return;
+		}
 		for(PgGeometryIf other : m_disp.getGeometries()) {
 			if (other == geometry || other == m_silhouette) {
 				continue;
 			} else {
+				System.out.println("removing geometry: " + geometry.getName());
 				m_disp.removeGeometry(other);
 			}
 		}
@@ -146,6 +150,7 @@ public class Ex2_2 extends ProjectBase implements PvCameraListenerIf, ItemListen
 	//END ItemListener
 	private void viewUpdated()
 	{
+		System.out.println("updating view");
 		if (m_disp.getSelectedGeometry() == m_silhouette) {
 			return;
 		}
@@ -169,6 +174,7 @@ public class Ex2_2 extends ProjectBase implements PvCameraListenerIf, ItemListen
 			break;
 		}
 
+		System.out.println("got silhouette: " + m_silhouette.getName());
 		if (m_silhouette != null) {
 			assert m_silhouetteType == SilhouetteType.FaceBased ||
 					m_silhouetteType == SilhouetteType.VertexBased;
@@ -177,7 +183,9 @@ public class Ex2_2 extends ProjectBase implements PvCameraListenerIf, ItemListen
 			m_silhouette.showEdgeColorFromVertices(true);
 			m_silhouette.setGlobalPolygonColor(Color.black);
 
+			assert !m_disp.containsGeometry(m_silhouette);
 			m_disp.addGeometry(m_silhouette);
+			assert m_disp.containsGeometry(m_silhouette);
 			m_disp.update(m_silhouette);
 
 			// disable lightning to get completely white surface
@@ -297,7 +305,9 @@ public class Ex2_2 extends ProjectBase implements PvCameraListenerIf, ItemListen
 	private void clearSilhouette()
 	{
 		if (m_silhouette != null) {
+			assert m_disp.containsGeometry(m_silhouette);
 			m_disp.removeGeometry(m_silhouette);
+			assert !m_disp.containsGeometry(m_silhouette);
 			m_disp.update(m_silhouette);
 			m_silhouette = null;
 		}
