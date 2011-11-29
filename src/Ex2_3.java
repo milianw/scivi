@@ -27,7 +27,6 @@ import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
-import jvx.numeric.PnJacobi;
 
 class Curvature {
 	public Curvature() {
@@ -119,6 +118,66 @@ class Curvature {
 		ret.setRow(0, n);
 		ret.setRow(1, x);
 		ret.setRow(2, y);
+		return ret;
+	}
+	/**
+	 * Find principle directions (in tangent plane) of
+	 * curvature tensor.
+	 *
+	 * See e.g.: http://www.math.harvard.edu/archive/21b_fall_04/exhibits/2dmatrices/index.html
+	 *
+	 * Returned matrix has two rows:
+	 * Row 1: major principle direction
+	 * Row 2: minor principle direction
+	 */
+	public PdMatrix principleDirections()
+	{
+		double D = B.det();
+		double a = B.getEntry(0, 0);
+		double b = B.getEntry(0, 1);
+		double c = B.getEntry(1, 0);
+		double d = B.getEntry(1, 1);
+		///TODO: this hits, with quite high differences :-/
+//		assert b == c : Math.abs(b-c);
+
+		double T_half = 0.5d * (a + d);
+		double root = Math.sqrt(T_half * T_half - D);
+		double L_1 = T_half + root;
+		double L_2 = T_half - root;
+		boolean singular = Double.isNaN(L_1) || Double.isNaN(L_2);
+		assert L_2 <= L_1 || singular : "L_1: " + L_1 + ", L_2: " + L_2;
+
+		PdVector major = new PdVector(2);
+		PdVector minor = new PdVector(2);
+		if (c != 0 && !singular) {
+			major.setEntry(0, L_1 - d);
+			major.setEntry(1, c);
+			minor.setEntry(0, L_2 - d);
+			minor.setEntry(1, c);
+			major.normalize();
+			minor.normalize();
+		} else if (b != 0 && !singular) {
+			major.setEntry(0, b);
+			major.setEntry(1, L_1 - a);
+			minor.setEntry(0, b);
+			minor.setEntry(1, L_2 - a);
+			major.normalize();
+			minor.normalize();
+		}
+		if (minor.equals(major) || singular
+				|| Double.isNaN(minor.length())
+				|| Double.isNaN(major.length())) {
+			// singular
+			major.setEntry(0, 1);
+			major.setEntry(1, 0);
+			minor.setEntry(0, 0);
+			minor.setEntry(1, 1);
+		}
+		assert minor.dot(major) <= 1E-10
+				: minor.toShortString() + major.toShortString() + ", dot: " + minor.dot(major);
+		PdMatrix ret = new PdMatrix(2, 2);
+		ret.setRow(0, major);
+		ret.setRow(1, minor);
 		return ret;
 	}
 }
@@ -598,28 +657,15 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			if (curve == null || curve.B == null) {
 				continue;
 			}
-			// find eigenvectors / principle directions
-			PdVector eigenValues = new PdVector(0, 0);
-			PdVector[] eigenVectors = {new PdVector(0, 0), new PdVector(0, 0)};
-			PnJacobi.computeEigenvectors(curve.B, 2, eigenValues, eigenVectors);
-			///ZOMG! the eigenvalues are not even sorted -.-'
-			int minI, maxI;
-			if (eigenValues.getEntry(0) < eigenValues.getEntry(1)) {
-				minI = 0;
-				maxI = 1;
-			} else {
-				minI = 1;
-				maxI = 0;
-			}
-			assert eigenValues.getEntry(minI) <= eigenValues.getEntry(maxI);
 			// now scale up to 3d for display
-			PdVector bMinDir = eigenVectors[minI];
-			PdVector bMaxDir = eigenVectors[maxI];
+			PdMatrix p = curve.principleDirections();
+			PdVector major = p.getRow(0);
+			PdVector minor = p.getRow(1);
 			PdMatrix plane = curve.tangentPlane();
 			PdVector x = plane.getRow(1);
 			PdVector y = plane.getRow(2);
-			PdVector minDir = PdVector.blendNew(bMinDir.getEntry(0), x, bMinDir.getEntry(1), y);
-			PdVector maxDir = PdVector.blendNew(bMaxDir.getEntry(0), x, bMaxDir.getEntry(1), y);
+			PdVector minDir = PdVector.blendNew(minor.getEntry(0), x, minor.getEntry(1), y);
+			PdVector maxDir = PdVector.blendNew(major.getEntry(0), x, major.getEntry(1), y);
 			min.setVector(i, minDir);
 			max.setVector(i, maxDir);
 		}
