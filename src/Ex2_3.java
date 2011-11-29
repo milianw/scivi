@@ -16,8 +16,6 @@ import java.util.Set;
 
 import javax.swing.JComboBox;
 
-import Jama.Matrix;
-
 import jv.geom.PgElementSet;
 import jv.geom.PgVectorField;
 import jv.number.PuDouble;
@@ -605,44 +603,45 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert kappas.size() == deltas.size();
 			// prepare A x = b, we look for the solution x
 			// each row is: d1^2 2d1d2 d2^2, with d1,d2 being the coeffs of delta_{i,j}
-			Matrix A = new Matrix(kappas.size(), 3);
+			PdMatrix A = new PdMatrix(kappas.size(), 3);
 			// kappas
-			Matrix b = new Matrix(kappas.size(), 1);
+			PdVector b = new PdVector(kappas.size());
 			for(int i = 0; i < kappas.size(); ++i) {
-				b.set(i, 0, kappas.get(i));
 				PdVector delta = deltas.get(i);
 				double d1 = delta.getEntry(0);
 				double d2 = delta.getEntry(1);
-				A.set(i, 0, d1 * d1);
-				A.set(i, 1, 2.0d * d1 * d2);
-				A.set(i, 2, d1 * d2);
+				A.setEntry(i, 0, d1 * d1);
+				A.setEntry(i, 1, 2.0d * d1 * d2);
+				A.setEntry(i, 2, d2 * d2);
+				b.setEntry(i,  kappas.get(i));
 			}
+			PdMatrix A_T = new PdMatrix(3, kappas.size());
+			A_T.transpose(A);
+			PdMatrix K = new PdMatrix();
+			K.mult(A_T, A);
+			PdVector R = new PdVector();
+			R.leftMultMatrix(A_T, b);
+			// now apply cramer's rule
+			// see e.g.: http://en.wikipedia.org/wiki/Cramer%27s_rule
+			assert K.getNumCols() == 3;
+			assert K.getNumRows() == 3;
+			assert R.getSize() == 3;
+			double det = K.det33();
 			// x is vector of [l, m, n]
-			Matrix x;
-			try {
-				x = A.solve(b);
-			} catch(RuntimeException e) {
-				System.err.println(e.getMessage());
-				System.out.println("fallback to SVD algorithm");
-				// lets try the SVD algo here
-				Matrix AB = new Matrix(kappas.size(), 4);
-				AB.setMatrix(0, kappas.size() - 1, 0, 2, A);
-				AB.setMatrix(0, kappas.size() - 1, 3, 3, b);
-				Matrix V = AB.svd().getV();
-				assert V.getRowDimension() == 4;
-				assert V.getColumnDimension() == 4;
-				x = V.getMatrix(0, 2, 3, 3).times(-V.get(3, 3));
+			PdVector x = new PdVector(3);
+			for(int k = 0; k < 3; ++k) {
+				PdMatrix K2 = PdMatrix.copyNew(K);
+				K2.setColumn(k, R);
+				x.setEntry(k, K2.det33() / det);
 			}
-			assert x.getRowDimension() == 3;
-			assert x.getColumnDimension() == 1;
 
 			// build curvature matrix
 			PdMatrix B = new PdMatrix(2, 2);
 			curve.B = B;
-			B.setEntry(0, 0, x.get(0, 0));
-			B.setEntry(0, 1, x.get(1, 0));
-			B.setEntry(1, 0, x.get(1, 0));
-			B.setEntry(1, 1, x.get(2, 0));
+			B.setEntry(0, 0, x.getEntry(0));
+			B.setEntry(0, 1, x.getEntry(1));
+			B.setEntry(1, 0, x.getEntry(1));
+			B.setEntry(1, 1, x.getEntry(2));
 		}
 		System.out.println("done");
 	}
