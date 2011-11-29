@@ -239,6 +239,7 @@ public class Curvature {
 	 */
 	public void computeCurvatureTensor()
 	{
+		System.out.println("Computing curvature tensor for " + m_geometry.getName());
 		Set<Integer> visitedVertices = new HashSet<Integer>(m_geometry.getNumVertices());
 		for (Corner corner : m_cornerTable.corners()) {
 			if (!visitedVertices.add(corner.vertex)) {
@@ -340,7 +341,7 @@ public class Curvature {
 		if (!hasTensor()) {
 			computeCurvatureTensor();
 		}
-		System.out.println("calculating principle curvature directions");
+		System.out.println("computing principle curvature directions of " + m_geometry.getName());
 
 		PgVectorField[] ret = new PgVectorField[4];
 
@@ -389,6 +390,8 @@ public class Curvature {
 		minNeg.setName("-min");
 		ret[3] = minNeg;
 
+		System.out.println("done");
+
 		return ret;
 	}
 	/**
@@ -396,6 +399,7 @@ public class Curvature {
 	 */
 	private void computeCurvature()
 	{
+		System.out.println("computing curvature of " + m_geometry.getName());
 		// iterate over all corners, each time adding the partial 
 		// contribution to the mixed area and mean curvature normal operator
 		// note: each corner is one summand of the sums in eq. 8 / fig 4.
@@ -485,6 +489,7 @@ public class Curvature {
 		for(int i : blackList) {
 			m_vertexMap[i] = null;
 		}
+		System.out.println("done");
 	}
 	/**
 	 * Smoothen tensor field @param curvature, new values will be stored in Curvate.B
@@ -630,5 +635,6 @@ public class Curvature {
 			assert local.getNumRows() == 2;
 			curve.B = local;
 		}
+		System.out.println("done");
 	}
 }

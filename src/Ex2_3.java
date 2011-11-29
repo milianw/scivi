@@ -355,17 +355,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 	}
 	/**
-	 * @return currently selected PgElementSet or null
-	 */
-	private PgElementSet currentGeometry()
-	{
-		try {
-			return (PgElementSet) m_disp.getSelectedGeometry();
-		} catch (Exception e) {
-			return null;
-		}
-	}
-	/**
 	 * update view after settings changed, i.e. new color scheme or similar
 	 */
 	private void updateView()
@@ -494,13 +483,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		boolean wasCached = true;
 		if (m_lastCurvature == null || m_lastCurvature.geometry() != geometry) {
-			System.out.println("calculating curvature of geometry " + geometry.getName() + ", type: " + type);
 			m_lastCurvature = new Curvature(geometry);
-			System.out.println("done");
 			// gets updated on-demand, see below
 			m_lastTensorField = null;
 		}
-		System.out.println("setting colors via type: " + colorType);
+		System.out.println("setting colors: " + colorType + ", " + type);
 		Curvature.VertexCurvature[] curvature = m_lastCurvature.curvatures();
 		double values[] = new double[curvature.length];
 		double totalGaussian = 0;

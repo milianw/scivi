@@ -28,10 +28,13 @@ import java.awt.event.ItemListener;
 
 import javax.swing.JComboBox;
 
+import jv.geom.PgElementSet;
+import jv.geom.PgPolygonSet;
 import jv.geom.PgVectorField;
 import jv.number.PuDouble;
 import jv.number.PuInteger;
 import jv.object.PsUpdateIf;
+import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
 
 
@@ -238,8 +241,50 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert false : "unhandled action source: " + source;
 		}
 	}
+	@Override
+	public void selectGeometry(PgGeometryIf geometry)
+	{
+		updateView();
+	}
+	@Override
+	public void removeGeometry(PgGeometryIf geometry) {
+		if (m_lastCurvature != null && geometry == m_lastCurvature.geometry()) {
+			// clear cache
+			m_lastCurvature = null;
+			m_lastTensorField = null;
+		}
+		super.removeGeometry(geometry);
+	}
+	/*
+	 * remove other geometries when opening a new one
+	 * @see ProjectBase#addGeometry(jv.project.PgGeometryIf)
+	 */
+	@Override
+	public void addGeometry(PgGeometryIf geometry) {
+		// hide other geometries
+		for(PgGeometryIf other : m_disp.getGeometries()) {
+			if (other == geometry) {
+				continue;
+			} else {
+				System.out.println("removing geometry " + other.getName());
+				m_disp.removeGeometry(other);
+			}
+		}
+	}
 	private void updateView()
 	{
-		
+		PgElementSet geometry = currentGeometry();
+		if (geometry == null) {
+			return;
+		}
+		System.out.println("updating view");
+		// always re-compute silhouette, position might have changed
+		// TODO: cache when pos has _not_ changed?
+		PgPolygonSet silhouette = Silhouette.createVertexBasedSilhouette(geometry,
+											m_disp.getCamera().getPosition());
+		if (m_lastCurvature == null || m_lastCurvature.geometry() != geometry) {
+			m_lastCurvature = new Curvature(geometry);
+			m_lastCurvature.computeCurvatureTensor();
+		}
 	}
 }

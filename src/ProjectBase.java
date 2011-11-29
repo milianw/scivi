@@ -4,6 +4,7 @@ import java.awt.GridBagLayout;
 import java.awt.Panel;
 import java.awt.Rectangle;
 
+import jv.geom.PgElementSet;
 import jv.object.PsMainFrame;
 import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
@@ -68,4 +69,15 @@ public class ProjectBase implements PvGeometryListenerIf {
 		return getClass().getName();
 	}
 	//END PvGeometryListenerIf
+	/**
+	 * @return currently selected PgElementSet or null
+	 */
+	public PgElementSet currentGeometry()
+	{
+		try {
+			return (PgElementSet) m_disp.getSelectedGeometry();
+		} catch (Exception e) {
+			return null;
+		}
+	}
 }
