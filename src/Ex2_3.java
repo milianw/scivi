@@ -233,8 +233,16 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		Minimum,
 		Maximum
 	}
+	private JComboBox m_color;
+	private ColorType m_colorType;
+	private enum ColorType {
+		NoColors,
+		Maximum,
+		Deviation
+	}
 	private Checkbox m_curvatureTensor;
 	private boolean m_displayTensor;
+	private PuDouble m_vectorLength;
 	private JComboBox m_tensor;
 	private TensorType m_tensorType;
 	private enum TensorType {
@@ -254,13 +262,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		Cotangent,
 		MeanValue
 	}
-	private ColorType m_colorType;
-	private PuDouble m_vectorLength;
-	private JComboBox m_color;
-	private enum ColorType {
-		NoColors,
-		Maximum,
-		Deviation
+	private JComboBox m_smoothing;
+	private SmoothingScheme m_smoothingScheme;
+	private enum SmoothingScheme {
+		ForwardEuler,
+		GaussSeidel
 	}
 	public Ex2_3(String[] args)
 	{
@@ -332,8 +338,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// step size (\Delta t)
 		m_vectorLength = new PuDouble("Vector Length", this);
 		m_vectorLength.init();
-		m_vectorLength.setValue(0.1);
-		m_vectorLength.setBounds(0, 10);
+		m_vectorLength.setValue(0.03);
+		m_vectorLength.setBounds(0, 1);
 		c.gridy++;
 		m_panel.add(m_vectorLength.getInfoPanel(), c);
 
@@ -343,10 +349,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridx = 1;
 		m_tensor = new JComboBox();
 		m_tensor.addItemListener(this);
-		m_tensor.addItem(TensorType.MinorAndMajor);
 		m_tensor.addItem(TensorType.Minor);
 		m_tensor.addItem(TensorType.Major);
-		m_tensorType = TensorType.MinorAndMajor;
+		m_tensor.addItem(TensorType.MinorAndMajor);
+		m_tensorType = TensorType.Minor;
 		m_tensor.setSelectedItem(m_tensorType);
 		m_panel.add(m_tensor, c);
 		c.gridwidth = 2;
@@ -393,6 +399,21 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridx = 0;
 		c.gridwidth = 2;
 
+		// method
+		c.gridy++;
+		c.gridwidth = 1;
+		m_panel.add(new Label("Scheme:"), c);
+		c.gridx = 1;
+		m_smoothing = new JComboBox();
+		m_smoothing.addItemListener(this);
+		m_smoothing.addItem(SmoothingScheme.ForwardEuler);
+		m_smoothing.addItem(SmoothingScheme.GaussSeidel);
+		m_smoothingScheme = SmoothingScheme.ForwardEuler;
+		m_smoothing.setSelectedItem(m_smoothingScheme);
+		m_panel.add(m_smoothing, c);
+		c.gridx = 0;
+		c.gridwidth = 2;
+
 		// smooth tensor
 		c.gridy++;
 		c.gridwidth = 1;
@@ -433,6 +454,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			return;
 		} else if (source == m_color) {
 			m_colorType = (ColorType) m_color.getSelectedItem();
+		} else if (source == m_smoothing) {
+			m_smoothingScheme = (SmoothingScheme) m_smoothing.getSelectedItem();
 		} else {
 			assert false : source;
 		}
@@ -448,7 +471,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert m_lastGeometry == currentGeometry();
 			smoothTensorField(m_lastGeometry, m_lastCornerTable, m_lastCurvature,
 							  m_smoothSteps.getValue(), m_smoothStepSize.getValue(),
-							  m_weightingType);
+							  m_weightingType, m_smoothingScheme);
 			m_lastTensorField = getCurvatureTensorFields(m_lastGeometry, m_lastCurvature,
 															m_lastCornerTable);
 			updateView();
@@ -1034,7 +1057,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	 */
 	private void smoothTensorField(PgElementSet geometry, CornerTable cornerTable,
 									Curvature[] curvature, int steps, double stepSize,
-									WeightingType weightingType)
+									WeightingType weightingType, SmoothingScheme scheme)
 	{
 		System.out.println("Smoothening curvature tensor field. steps: " + steps + ", step size: " + stepSize);
 		assert steps > 1;
@@ -1080,7 +1103,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		for(int step = 0; step < steps; ++step) {
 			PdMatrix[] smoothened = new PdMatrix[globalTensors.length];
 			HashSet<Integer> visitedVertices = new HashSet<Integer>(globalTensors.length);
-			///TODO: algorithm choice
 			// explicit method for now
 			for(Corner c : cornerTable.corners()) {
 				if (!visitedVertices.add(c.vertex)) {
@@ -1128,7 +1150,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 					}
 					assert weight != null;
 					weight *= stepSize;
-					PdMatrix term = PdMatrix.copyNew(globalTensors[j]);
+					PdMatrix term = PdMatrix.copyNew(
+						scheme == SmoothingScheme.ForwardEuler ? globalTensors[j]
+							// Gauss-Seidel, use current i.e. potentially smoothened
+							: (smoothened[j] == null ? globalTensors[j] : smoothened[j])
+					);
 					term.sub(globalTensors[i]);
 					term.multScalar(weight);
 					sum.add(term);
