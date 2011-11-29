@@ -26,9 +26,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.swing.JComboBox;
 
@@ -39,8 +36,6 @@ import jv.number.PuInteger;
 import jv.object.PsUpdateIf;
 import jv.project.PgGeometryIf;
 import jv.project.PvGeometryListenerIf;
-import jv.vecmath.PdMatrix;
-import jv.vecmath.PdVector;
 
 /**
  * Solution to third exercise of second project
@@ -55,7 +50,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	{
 		new Ex2_3(args);
 	}
-	private JComboBox m_curvature;
+	private JComboBox m_curvatureCombo;
 	private CurvatureType m_curvatureType;
 	private enum CurvatureType {
 		Mean,
@@ -85,19 +80,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private PuInteger m_smoothSteps;
 	private PuDouble m_smoothStepSize;
 	private JComboBox m_weighting;
-	private WeightingType m_weightingType;
-	private enum WeightingType {
-		Uniform,
-		Cord,
-		Cotangent,
-		MeanValue
-	}
+	private Curvature.WeightingType m_weightingType;
 	private JComboBox m_smoothing;
-	private SmoothingScheme m_smoothingScheme;
-	private enum SmoothingScheme {
-		ForwardEuler,
-		GaussSeidel
-	}
+	private Curvature.SmoothingScheme m_smoothingScheme;
 	public Ex2_3(String[] args)
 	{
 		super(args, "SciVis - Project 2 - Exercise 3 - Milian Wolff");
@@ -123,15 +108,15 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridwidth = 1;
 		m_panel.add(new Label("Show:"), c);
 		c.gridx = 1;
-		m_curvature = new JComboBox();
-		m_curvature.addItem(CurvatureType.Mean);
-		m_curvature.addItem(CurvatureType.Gaussian);
-		m_curvature.addItem(CurvatureType.Maximum);
-		m_curvature.addItem(CurvatureType.Minimum);
+		m_curvatureCombo = new JComboBox();
+		m_curvatureCombo.addItem(CurvatureType.Mean);
+		m_curvatureCombo.addItem(CurvatureType.Gaussian);
+		m_curvatureCombo.addItem(CurvatureType.Maximum);
+		m_curvatureCombo.addItem(CurvatureType.Minimum);
 		m_curvatureType = CurvatureType.Mean;
-		m_curvature.setSelectedItem(m_curvatureType);
-		m_curvature.addItemListener(this);
-		m_panel.add(m_curvature, c);
+		m_curvatureCombo.setSelectedItem(m_curvatureType);
+		m_curvatureCombo.addItemListener(this);
+		m_panel.add(m_curvatureCombo, c);
 		c.gridwidth = 2;
 		c.gridx = 0;
 
@@ -219,11 +204,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridx = 1;
 		m_weighting = new JComboBox();
 		m_weighting.addItemListener(this);
-		m_weighting.addItem(WeightingType.Uniform);
-		m_weighting.addItem(WeightingType.Cord);
-		m_weighting.addItem(WeightingType.Cotangent);
-		m_weighting.addItem(WeightingType.MeanValue);
-		m_weightingType = WeightingType.Uniform;
+		m_weighting.addItem(Curvature.WeightingType.Uniform);
+		m_weighting.addItem(Curvature.WeightingType.Cord);
+		m_weighting.addItem(Curvature.WeightingType.Cotangent);
+		m_weighting.addItem(Curvature.WeightingType.MeanValue);
+		m_weightingType = Curvature.WeightingType.Uniform;
 		m_weighting.setSelectedItem(m_weightingType);
 		m_panel.add(m_weighting, c);
 		c.gridx = 0;
@@ -236,9 +221,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridx = 1;
 		m_smoothing = new JComboBox();
 		m_smoothing.addItemListener(this);
-		m_smoothing.addItem(SmoothingScheme.ForwardEuler);
-		m_smoothing.addItem(SmoothingScheme.GaussSeidel);
-		m_smoothingScheme = SmoothingScheme.ForwardEuler;
+		m_smoothing.addItem(Curvature.SmoothingScheme.ForwardEuler);
+		m_smoothing.addItem(Curvature.SmoothingScheme.GaussSeidel);
+		m_smoothingScheme = Curvature.SmoothingScheme.ForwardEuler;
 		m_smoothing.setSelectedItem(m_smoothingScheme);
 		m_panel.add(m_smoothing, c);
 		c.gridx = 0;
@@ -271,8 +256,8 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	public void itemStateChanged(ItemEvent e)
 	{
 		Object source = e.getSource();
-		if (source == m_curvature) {
-			m_curvatureType = (CurvatureType) m_curvature.getSelectedItem();
+		if (source == m_curvatureCombo) {
+			m_curvatureType = (CurvatureType) m_curvatureCombo.getSelectedItem();
 		} else if (source == m_curvatureTensor) {
 			m_displayTensor = m_curvatureTensor.getState();
 			m_smoothTensor.setEnabled(m_displayTensor);
@@ -280,12 +265,12 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		} else if (source == m_tensor) {
 			m_tensorType = (TensorType) m_tensor.getSelectedItem();
 		} else if (source == m_weighting) {
-			m_weightingType = (WeightingType) m_weighting.getSelectedItem();
+			m_weightingType = (Curvature.WeightingType) m_weighting.getSelectedItem();
 			return;
 		} else if (source == m_color) {
 			m_colorType = (ColorType) m_color.getSelectedItem();
 		} else if (source == m_smoothing) {
-			m_smoothingScheme = (SmoothingScheme) m_smoothing.getSelectedItem();
+			m_smoothingScheme = (Curvature.SmoothingScheme) m_smoothing.getSelectedItem();
 		} else {
 			assert false : source;
 		}
@@ -295,24 +280,19 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	public void actionPerformed(ActionEvent e) {
 		Object source = e.getSource();
 		if (source == m_smoothTensor) {
-			if (currentGeometry() == null) {
+			if (m_lastCurvature == null) {
 				return;
 			}
-			assert m_lastGeometry == currentGeometry();
-			smoothTensorField(m_lastGeometry, m_lastCornerTable, m_lastCurvature,
-							  m_smoothSteps.getValue(), m_smoothStepSize.getValue(),
-							  m_weightingType, m_smoothingScheme);
-			m_lastTensorField = getCurvatureTensorFields(m_lastGeometry, m_lastCurvature,
-															m_lastCornerTable);
+			m_lastCurvature.smoothTensorField(m_smoothSteps.getValue(), m_smoothStepSize.getValue(),
+												m_weightingType, m_smoothingScheme);
+			m_lastTensorField = m_lastCurvature.computeCurvatureTensorFields();
 			updateView();
 		} else if (source == m_resetTensor) {
-			if (currentGeometry() == null) {
+			if (m_lastCurvature == null) {
 				return;
 			}
-			assert m_lastGeometry == currentGeometry();
-			computeCurvatureTensor(m_lastGeometry, m_lastCurvature, m_lastCornerTable);
-			m_lastTensorField = getCurvatureTensorFields(m_lastGeometry, m_lastCurvature,
-					m_lastCornerTable);
+			m_lastCurvature.computeCurvatureTensor();
+			m_lastTensorField = m_lastCurvature.computeCurvatureTensorFields();
 			updateView();
 		} else {
 			assert false : "unhandled action source: " + source;
@@ -322,10 +302,11 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	public boolean update(Object e) {
 		if (e == m_vectorLength) {
 			if (m_lastTensorField != null) {
+				assert m_lastCurvature != null;
 				for(PgVectorField field : m_lastTensorField) {
 					field.setGlobalVectorLength(m_vectorLength.getValue());
 				}
-				m_disp.update(m_lastGeometry);
+				m_disp.update(m_lastCurvature.geometry());
 			}
 		}
 		return false;
@@ -350,11 +331,9 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	@Override
 	public void removeGeometry(PgGeometryIf geometry) {
-		if (geometry == m_lastGeometry) {
+		if (m_lastCurvature != null && geometry == m_lastCurvature.geometry()) {
 			// clear cache
-			m_lastGeometry = null;
 			m_lastCurvature = null;
-			m_lastCornerTable = null;
 			m_lastTensorField = null;
 		}
 		super.removeGeometry(geometry);
@@ -405,267 +384,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 					m_displayTensor, m_tensorType);
 			break;
 		}
-	}
-	/**
-	 * Compute tensor fields for given @param geometry, reusing previously
-	 * calculated curvature and corner table.
-	 *
-	 * Results are stored in the curvature objects (see Curvature::B).
-	 */
-	private void computeCurvatureTensor(PgElementSet geometry, Curvature[] curvature,
-									CornerTable cornerTable)
-	{
-		Set<Integer> visitedVertices = new HashSet<Integer>(geometry.getNumVertices());
-		for (Corner corner : cornerTable.corners()) {
-			if (!visitedVertices.add(corner.vertex)) {
-				// vertex already handled
-				continue;
-			}
-			Curvature curve = curvature[corner.vertex];
-			if (curve == null) {
-				continue;
-			}
-			// now we find all neighbors and compute:
-			// \kappa_{i,j}^N (see page 13)
-			// \vec{\delta_{i,j}} (see page 14)
-			PdVector x_i = geometry.getVertex(corner.vertex);
-			PdMatrix tangentPlane = curve.tangentPlane();
-			if (tangentPlane == null) {
-				System.err.println("skipping zero mean curvature at vertex: " + x_i + ", index: " + corner.vertex);
-				continue;
-			}
-			PdVector n = tangentPlane.getRow(0);
-			PdVector t1 = tangentPlane.getRow(1);
-			PdVector t2 = tangentPlane.getRow(2);
-			ArrayList<Double> kappas = new ArrayList<Double>(5);
-			ArrayList<PdVector> deltas = new ArrayList<PdVector>(5);
-			for(Corner neighbor : corner.vertexNeighbors()) {
-				int j = neighbor.vertex;
-				PdVector x_j = geometry.getVertex(j);
-				// x_i - x_j
-				PdVector e = PdVector.subNew(x_i, x_j);
-				double e_dot_n = e.dot(n);
-				kappas.add(2.0d * e_dot_n / e.sqrLength());
-				// (e*n)n - e
-				PdVector delta = PdVector.blendNew(e_dot_n, n, -1.0d, e);
-				// ... / |(e*n)n-e|
-				delta.normalize();
-				// now compute coordinates in plane by dotting to t1, t2
-				deltas.add(new PdVector(t1.dot(delta), t2.dot(delta)));
-			}
-			assert kappas.size() == deltas.size();
-			// prepare A x = b, we look for the solution x
-			// each row is: d1^2 2d1d2 d2^2, with d1,d2 being the coeffs of delta_{i,j}
-			PdMatrix A = new PdMatrix(kappas.size(), 3);
-			// kappas
-			PdVector b = new PdVector(kappas.size());
-			for(int i = 0; i < kappas.size(); ++i) {
-				PdVector delta = deltas.get(i);
-				double d1 = delta.getEntry(0);
-				double d2 = delta.getEntry(1);
-				A.setEntry(i, 0, d1 * d1);
-				A.setEntry(i, 1, 2.0d * d1 * d2);
-				A.setEntry(i, 2, d2 * d2);
-				b.setEntry(i,  kappas.get(i));
-			}
-			PdMatrix A_T = new PdMatrix(3, kappas.size());
-			A_T.transpose(A);
-			PdMatrix K = new PdMatrix();
-			K.mult(A_T, A);
-			PdVector R = new PdVector();
-			R.leftMultMatrix(A_T, b);
-			// now apply cramer's rule
-			// see e.g.: http://en.wikipedia.org/wiki/Cramer%27s_rule
-			assert K.getNumCols() == 3;
-			assert K.getNumRows() == 3;
-			assert R.getSize() == 3;
-			double det = K.det33();
-			// x is vector of [l, m, n]
-			PdVector x = new PdVector(3);
-			for(int k = 0; k < 3; ++k) {
-				PdMatrix K2 = PdMatrix.copyNew(K);
-				K2.setColumn(k, R);
-				x.setEntry(k, K2.det33() / det);
-			}
-
-			// build curvature matrix
-			PdMatrix B = new PdMatrix(2, 2);
-			curve.B = B;
-			B.setEntry(0, 0, x.getEntry(0));
-			B.setEntry(0, 1, x.getEntry(1));
-			B.setEntry(1, 0, x.getEntry(1));
-			B.setEntry(1, 1, x.getEntry(2));
-		}
-		System.out.println("done");
-	}
-	/**
-	 * Compute tensor fields for given @param geometry, reusing previously
-	 * calculated curvature tensor in @param curvature and the given corner table.
-	 *
-	 * This basically just finds the eigenvectors of each B which are then
-	 * put into vector fields and returned.
-	 *
-	 * @param geometry
-	 * @param curvature
-	 * @param cornerTable
-	 * @return array of four vector fields like this: {max, min, -max, -min}
-	 */
-	private PgVectorField[] getCurvatureTensorFields(PgElementSet geometry, Curvature[] curvature,
-									CornerTable cornerTable)
-	{
-		System.out.println("calculating principle curvature directions");
-
-		PgVectorField[] ret = new PgVectorField[4];
-
-		PgVectorField max = new PgVectorField(3);
-		max.setGlobalVectorColor(Color.red);
-		max.showIndividualMaterial(true);
-		max.setGlobalVectorLength(0.01);
-		max.setName("+max");
-		max.setBasedOn(PgVectorField.VERTEX_BASED);
-		max.setNumVectors(geometry.getNumVertices());
-		ret[0] = max;
-
-		PgVectorField min = new PgVectorField(3);
-		min.setGlobalVectorColor(Color.blue);
-		min.showIndividualMaterial(true);
-		min.setGlobalVectorLength(0.01);
-		min.setName("+min");
-		min.setBasedOn(PgVectorField.VERTEX_BASED);
-		min.setNumVectors(geometry.getNumVertices());
-		ret[1] = min;
-
-		for (int i = 0; i < curvature.length; ++i) {
-			Curvature curve = curvature[i];
-			if (curve == null || curve.B == null) {
-				continue;
-			}
-			// now scale up to 3d for display
-			PdMatrix p = curve.principleDirections();
-			PdVector major = p.getRow(0);
-			PdVector minor = p.getRow(1);
-			PdMatrix plane = curve.tangentPlane();
-			PdVector x = plane.getRow(1);
-			PdVector y = plane.getRow(2);
-			PdVector minDir = PdVector.blendNew(minor.getEntry(0), x, minor.getEntry(1), y);
-			PdVector maxDir = PdVector.blendNew(major.getEntry(0), x, major.getEntry(1), y);
-			min.setVector(i, minDir);
-			max.setVector(i, maxDir);
-		}
-
-		PgVectorField maxNeg = (PgVectorField) max.clone();
-		maxNeg.multScalar(-1);
-		maxNeg.setName("-max");
-		ret[2] = maxNeg;
-		PgVectorField minNeg = (PgVectorField) min.clone();
-		minNeg.multScalar(-1);
-		minNeg.setName("-min");
-		ret[3] = minNeg;
-
-		return ret;
-	}
-	/**
-	 * compute curvature values of each vertex in @param geometry
-	 *
-	 * @param geometry for which to compute the curvature
-	 * @param cornerTable optional optimization: reuse existing corner table for above @param geometry
-	 * @return array of Curvature objects, one for each vertex in @param geometry
-	 */
-	private Curvature[] getCurvature(PgElementSet geometry, CornerTable cornerTable)
-	{
-		CornerTable table = (cornerTable == null) ? new CornerTable(geometry) : cornerTable;
-		CotanCache cotanCache = new CotanCache(table.size());
-		// iterate over all corners, each time adding the partial 
-		// contribution to the mixed area and mean curvature normal operator
-		// note: each corner is one summand of the sums in eq. 8 / fig 4.
-		// we take xi = corner.vertex
-		// and xj = corner.prev.vertex
-		// hence the angles are:
-		// alpha = angle(corner.next.vertex)
-		// beta = angle(corner.next.opposite.vertex)
-		// note: we must take obtuse triangles into account and
-		// can only sum parts of the voronoi cell up at each time
-		// the e.q. for that is given in sec. 3.3 on page 8
-		Curvature[] vertexMap = new Curvature[geometry.getNumVertices()];
-		// for bad geometries, like the hand
-		HashSet<Integer> blackList = new HashSet<Integer>();
-		for(Corner corner : table.corners()) {
-			Corner cno = corner.next.opposite;
-			if (cno == null) {
-				///TODO: what to do in such cases?
-				continue;
-			}
-
-			//note: alpha, beta, gamma are all in corner.triangle
-			//note: all values are apparently in degrees!
-			// alpha: angle at x_i in T, between AB and AC
-			// compare to angle(P) in paper
-			double alpha = geometry.getVertexAngle(corner.triangle, corner.localVertexIndex);
-			// beta: angle at prev corner, between AB and BC
-			// compare to angle(Q)
-			double beta = geometry.getVertexAngle(corner.triangle, corner.prev.localVertexIndex);
-			// gamma: angle at next corner, between AC and BC
-			// compare to angle(R)
-			double gamma = geometry.getVertexAngle(corner.triangle, corner.next.localVertexIndex);
-
-			if (alpha == 0 || beta == 0 || gamma == 0) {
-				System.err.println("Zero-angle encountered in triangle, skipping: " + corner.triangle);
-				blackList.add(corner.vertex);
-				blackList.add(corner.prev.vertex);
-				blackList.add(corner.next.vertex);
-				continue;
-			}
-			
-			double cotGamma = cotanCache.cotan(gamma);
-
-			// edge between A and B, angle is beta
-			// compare to PQ
-			PdVector AB = PdVector.subNew(geometry.getVertex(corner.vertex),
-											geometry.getVertex(corner.prev.vertex));
-
-			double area = -1;
-			// check for obtuse angle
-			if (alpha >= 90 || beta >= 90 || gamma >= 90) {
-				area = geometry.getAreaOfElement(corner.triangle);
-				assert area > 0;
-				// check if angle of T at x is obtuse
-				if (alpha > 90) {
-					area /= 2.0d;
-				} else {
-					area /= 4.0d;
-				}
-			} else {
-				// voronoi region of x in t:
-				// edge between A and C, angle is gamma
-				// compare to PR
-				PdVector AC = PdVector.subNew(geometry.getVertex(corner.vertex),
-												geometry.getVertex(corner.next.vertex));
-				double cotBeta = cotanCache.cotan(beta);
-				area = 1.0d/8.0d * (AB.sqrLength() * cotGamma + AC.sqrLength() * cotBeta);
-				assert area > 0;
-			}
-
-			Curvature cache = vertexMap[corner.vertex];
-			if (cache == null) {
-				cache = new Curvature();
-				vertexMap[corner.vertex] = cache;
-			}
-			// now e.q. 8, with alpha = our gamma from above, and beta = cnoAngle
-			double cnoAngle = geometry.getVertexAngle(cno.triangle, cno.localVertexIndex);
-			if (cnoAngle == 0) {
-				System.err.println("Zero-Angle encountered in triangle " + cno.triangle + ", vertex: " + corner.vertex);
-				blackList.add(corner.vertex);
-				continue;
-			}
-			double cotCnoAngle = cotanCache.cotan(cnoAngle);
-			cache.meanOp.add(cotGamma + cotCnoAngle, AB);
-			cache.gaussian += alpha;
-			cache.area += area;
-		}
-		for(int i : blackList) {
-			vertexMap[i] = null;
-		}
-		return vertexMap;
 	}
 	private double absMax(double[] l)
 	{
@@ -764,9 +482,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 	}
 	// cache
-	private PgElementSet m_lastGeometry;
-	private Curvature[] m_lastCurvature;
-	private CornerTable m_lastCornerTable;
+	private Curvature m_lastCurvature;
 	private PgVectorField[] m_lastTensorField;
 	private void setCurvatureColors(PgElementSet geometry, CurvatureType type, ColorType colorType,
 									boolean displayTensor, TensorType tensorType)
@@ -776,32 +492,20 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				type == CurvatureType.Minimum ||
 				type == CurvatureType.Maximum;
 
-		CornerTable cornerTable;
-		Curvature[] curvature;
-		boolean wasCached = false;
-		if (m_lastGeometry == geometry) {
-			System.out.println("reusing cached curvature calculations");
-			cornerTable = m_lastCornerTable;
-			curvature = m_lastCurvature;
-			wasCached = true;
-		} else {
+		boolean wasCached = true;
+		if (m_lastCurvature == null || m_lastCurvature.geometry() != geometry) {
 			System.out.println("calculating curvature of geometry " + geometry.getName() + ", type: " + type);
-			cornerTable = new CornerTable(geometry);
-			curvature = getCurvature(geometry, cornerTable);
+			m_lastCurvature = new Curvature(geometry);
 			System.out.println("done");
-
-			// cache results
-			m_lastGeometry = geometry;
-			m_lastCurvature = curvature;
-			m_lastCornerTable = cornerTable;
 			// gets updated on-demand, see below
 			m_lastTensorField = null;
 		}
 		System.out.println("setting colors via type: " + colorType);
+		Curvature.VertexCurvature[] curvature = m_lastCurvature.curvatures();
 		double values[] = new double[curvature.length];
 		double totalGaussian = 0;
 		for (int i = 0; i < curvature.length; ++i) {
-			Curvature c = curvature[i];
+			Curvature.VertexCurvature c = curvature[i];
 			if (c == null) {
 				values[i] = 0;
 				continue;
@@ -840,9 +544,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			if (wasCached && m_lastTensorField != null) {
 				tensorField = m_lastTensorField;
 			} else {
-				assert curvature[0].B == null;
-				computeCurvatureTensor(geometry, curvature, cornerTable);
-				tensorField = getCurvatureTensorFields(geometry, curvature, cornerTable);
+				tensorField = m_lastCurvature.computeCurvatureTensorFields();
 				m_lastTensorField = tensorField;
 			}
 			assert tensorField != null;
@@ -875,156 +577,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		geometry.showElementColors(true);
 		geometry.showElementFromVertexColors(true);
 		m_disp.update(geometry);
-	}
-	/**
-	 * Smoothen tensor field @param curvature, new values will be stored in Curvate.B
-	 *
-	 * @param geometry
-	 * @param cornerTable precomputed corner table for @param geometry
-	 * @param curvature precomputed
-	 * @param steps number of smoothing steps, must be greater than one
-	 * @param stepSize \Delta t, i.e. integration step size, must be greater zero
-	 */
-	private void smoothTensorField(PgElementSet geometry, CornerTable cornerTable,
-									Curvature[] curvature, int steps, double stepSize,
-									WeightingType weightingType, SmoothingScheme scheme)
-	{
-		System.out.println("Smoothening curvature tensor field. steps: " + steps + ", step size: " + stepSize);
-		assert steps > 1;
-		assert stepSize > 0;
-		// project local 2x2 tensors into 3x3 space
-		PdMatrix[] globalTensors = new PdMatrix[curvature.length];
-		for(int i = 0; i < curvature.length; ++i) {
-			Curvature curve = curvature[i];
-			if (curve == null || curve.B == null) {
-				globalTensors[i] = new PdMatrix(3, 3);
-				continue;
-			}
-			assert curve.B.getNumCols() == 2;
-			assert curve.B.getNumRows() == 2;
-			PdMatrix tangentPlane = curve.tangentPlane();
-			PdVector x = tangentPlane.getRow(1);
-			PdVector y = tangentPlane.getRow(2);
-			// wow, what a nice api -.-'
-			// [ x y ]
-			PdMatrix xy = new PdMatrix(3, 2);
-			xy.setColumn(0, x);
-			xy.setColumn(1, y);
-			// [ x ]
-			// [ y ]
-			PdMatrix xy_over = new PdMatrix(2, 3);
-			xy_over.setRow(0, x);
-			xy_over.setRow(1, y);
-			PdMatrix b_times_xy_over = new PdMatrix();
-			b_times_xy_over.mult(curve.B, xy_over);
-			assert b_times_xy_over.getNumRows() == 2;
-			assert b_times_xy_over.getNumCols() == 3;
-			PdMatrix global = new PdMatrix();
-			global.mult(xy, b_times_xy_over);
-			assert global.getNumCols() == 3;
-			assert global.getNumRows() == 3;
-			globalTensors[i] = global;
-		}
-		CotanCache cache = null;
-		if (weightingType == WeightingType.Cotangent || weightingType == WeightingType.MeanValue) {
-			cache = new CotanCache(cornerTable.size());
-		}
-		// smooth global tensors
-		for(int step = 0; step < steps; ++step) {
-			PdMatrix[] smoothened = new PdMatrix[globalTensors.length];
-			HashSet<Integer> visitedVertices = new HashSet<Integer>(globalTensors.length);
-			// explicit method for now
-			for(Corner c : cornerTable.corners()) {
-				if (!visitedVertices.add(c.vertex)) {
-					// already visited
-					continue;
-				}
-				int i = c.vertex;
-				PdMatrix sum = PdMatrix.copyNew(globalTensors[i]);
-				PdVector x_i = geometry.getVertex(i);
-				for(Corner neighbor : c.vertexNeighbors()) {
-					int j = neighbor.vertex;
-					assert i != j;
-					Double weight = null;
-					switch (weightingType) {
-					case Uniform:
-						weight = 1.0d;
-						break;
-					case Cord:
-						weight = 1.0d / PdVector.subNew(x_i, geometry.getVertex(j)).length();
-						break;
-					case Cotangent:
-						assert neighbor.prev.vertex != i;
-						assert neighbor.prev.opposite != null;
-						double theta_1 = cache.cotan(
-								geometry.getVertexAngle(neighbor.prev.triangle,
-														neighbor.prev.localVertexIndex));
-						double theta_2 = cache.cotan(
-								geometry.getVertexAngle(neighbor.prev.opposite.triangle,
-														neighbor.prev.opposite.localVertexIndex));
-						weight = (theta_1 + theta_2) * 0.5d;
-						break;
-					case MeanValue:
-						assert neighbor.prev.vertex != i;
-						assert neighbor.next.vertex == i;
-						double phi_1 = cache.tan(
-								geometry.getVertexAngle(neighbor.next.triangle,
-														neighbor.next.localVertexIndex));
-						assert neighbor.prev.opposite != null;
-						assert neighbor.prev.opposite.next.vertex == i;
-						double phi_2 = cache.tan(
-								geometry.getVertexAngle(neighbor.prev.opposite.next.triangle,
-														neighbor.prev.opposite.next.localVertexIndex));
-						weight = (phi_1 + phi_2) * 0.5d;
-						break;
-					}
-					assert weight != null;
-					weight *= stepSize;
-					PdMatrix term = PdMatrix.copyNew(
-						scheme == SmoothingScheme.ForwardEuler ? globalTensors[j]
-							// Gauss-Seidel, use current i.e. potentially smoothened
-							: (smoothened[j] == null ? globalTensors[j] : smoothened[j])
-					);
-					term.sub(globalTensors[i]);
-					term.multScalar(weight);
-					sum.add(term);
-				}
-				// note: must not overwrite old values
-				smoothened[i] = sum;
-			}
-			// for the next step, use the "new" smoothened values as "old"
-			globalTensors = smoothened;
-		}
-		// project back into 2x2, globalTensors contains smoothened values now
-		for(int i = 0; i < globalTensors.length; ++i) {
-			Curvature curve = curvature[i];
-			if (curve == null) {
-				continue;
-			}
-			PdMatrix tangentPlane = curve.tangentPlane();
-			if (tangentPlane == null) {
-				///TODO: can we not somehow get the smoothened B into here?
-				continue;
-			}
-			PdVector x = tangentPlane.getRow(1);
-			PdVector y = tangentPlane.getRow(2);
-			// [ x y ]
-			PdMatrix xy = new PdMatrix(3, 2);
-			xy.setColumn(0, x);
-			xy.setColumn(1, y);
-			// [ x ]
-			// [ y ]
-			PdMatrix xy_over = new PdMatrix(2, 3);
-			xy_over.setRow(0, x);
-			xy_over.setRow(1, y);
-			PdMatrix b_times_xy = new PdMatrix();
-			b_times_xy.mult(globalTensors[i], xy);
-			PdMatrix local = new PdMatrix();
-			local.mult(xy_over, b_times_xy);
-			assert local.getNumCols() == 2;
-			assert local.getNumRows() == 2;
-			curve.B = local;
-		}
 	}
 	private void clearCurvature(PgElementSet geometry)
 	{
