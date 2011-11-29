@@ -38,7 +38,9 @@ import jv.number.PuInteger;
 import jv.project.PgGeometryIf;
 import jv.project.PvCameraEvent;
 import jv.project.PvCameraListenerIf;
+import jv.project.PvDisplayIf;
 import jv.project.PvGeometryListenerIf;
+import jv.project.PvLightIf;
 
 
 /**
@@ -208,17 +210,6 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridwidth = 2;
 		c.fill = GridBagConstraints.HORIZONTAL;
 
-		// disable lighting / unwanted settings that might temper with colors
-//		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
-//		m_disp.setBackgroundColor(Color.WHITE);
-//		boolean wasShowingBorder = m_disp.hasPaintTag(PvDisplayIf.PAINT_BORDER);
-//		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, false);
-//		boolean hadAntiAliasing = m_disp.hasPaintTag(PvDisplayIf.PAINT_ANTIALIAS);
-//		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, false);
-//		final long PAINT_FOCUS = 536870912;
-//		boolean wasShowingFocus	= m_disp.hasPaintTag(PAINT_FOCUS);
-//		m_disp.setPaintTag(PAINT_FOCUS, false);
-
 		show();
 		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
 	}
@@ -291,13 +282,44 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	public void pickCamera(PvCameraEvent event) {
 		updateView();
 	}
-	protected void renderOffscreen(BufferedImage image) {
+	protected void renderOffscreen(BufferedImage image)
+	{
 		//render
+		assert m_disp.isEnabledExternalRendering();
 		assert m_disp.getCanvas().getGraphics() != null;
 		m_disp.update(m_disp.getCanvas().getGraphics());
 		Graphics2D gfx = image.createGraphics();
 		m_disp.render();
 		gfx.drawImage(m_disp.getImage(), 0, 0, Color.white, null);
+	}
+	private BufferedImage createImage()
+	{
+		return new BufferedImage(m_disp.getCanvas().getWidth(),
+								 m_disp.getCanvas().getHeight(),
+								 BufferedImage.TYPE_INT_RGB);
+	}
+	private BufferedImage getSilhouette(PgElementSet geometry)
+	{
+		// always re-compute silhouette, position might have changed
+		// TODO: cache when pos has _not_ changed?
+		PgPolygonSet silhouette = Silhouette.createVertexBasedSilhouette(geometry,
+											m_disp.getCamera().getPosition());
+
+		m_disp.addGeometry(silhouette);
+		m_disp.update(silhouette);
+
+		int oldLightningModel = m_disp.getLightingModel();
+		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
+
+		BufferedImage image = createImage();
+		renderOffscreen(image);
+
+		m_disp.removeGeometry(silhouette);
+		m_disp.update(silhouette);
+
+		m_disp.setLightingModel(oldLightningModel);
+		
+		return image;
 	}
 	private void updateView()
 	{
@@ -310,34 +332,53 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_rendering = true;
 
 		System.out.println("updating view");
-		// always re-compute silhouette, position might have changed
-		// TODO: cache when pos has _not_ changed?
-		PgPolygonSet silhouette = Silhouette.createVertexBasedSilhouette(geometry,
-											m_disp.getCamera().getPosition());
-
 		if (m_lastCurvature == null || m_lastCurvature.geometry() != geometry) {
 			m_lastCurvature = new Curvature(geometry);
 			m_lastCurvature.computeCurvatureTensor();
 		}
 
+		// disable lighting / unwanted settings that might temper with colors
+		boolean wasShowingVertices = geometry.isShowingVertices();
 		geometry.showVertices(false);
+		boolean wasShowingEdges = geometry.isShowingEdges();
 		geometry.showEdges(false);
+		boolean wasShowingElementColors = geometry.isShowingElementColors();
+		geometry.showElementColors(false);
+		Color oldElementColor = geometry.getGlobalElementColor();
+		geometry.setGlobalElementColor(Color.white);
 
+		Color oldBackgroundColor = m_disp.getBackgroundColor();
+		m_disp.setBackgroundColor(Color.WHITE);
+		boolean wasShowingBorder = m_disp.hasPaintTag(PvDisplayIf.PAINT_BORDER);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, false);
+		boolean hadAntiAliasing = m_disp.hasPaintTag(PvDisplayIf.PAINT_ANTIALIAS);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, false);
+		final long PAINT_FOCUS = 536870912;
+		boolean wasShowingFocus	= m_disp.hasPaintTag(PAINT_FOCUS);
+		m_disp.setPaintTag(PAINT_FOCUS, false);
 		m_disp.setEnabledExternalRendering(true);
-		m_disp.setExternalRenderSize(m_disp.getCanvas().getWidth(), m_disp.getCanvas().getHeight());
-
-		//create image
-		final BufferedImage compositedImage = new BufferedImage(m_disp.getCanvas().getWidth(),
+		m_disp.setExternalRenderSize(m_disp.getSize().width, m_disp.getSize().height);
+		
+		BufferedImage silhouette = getSilhouette(geometry);
+		//composite image
+		BufferedImage compositedImage = new BufferedImage(m_disp.getCanvas().getWidth(),
 				m_disp.getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
 
-		m_disp.addGeometry(silhouette);
-		m_disp.update(silhouette);
-		renderOffscreen(compositedImage);
-		m_img.setImage(compositedImage);
-		m_disp.removeGeometry(silhouette);
-		m_disp.update(silhouette);
+		compositedImage = silhouette;
 
+		m_img.setImage(compositedImage);
+
+		// Restore stuff with border, do it after image has been used
 		m_disp.setEnabledExternalRendering(false);
+		m_disp.setPaintTag(PAINT_FOCUS, wasShowingFocus);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, wasShowingBorder);
+		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, hadAntiAliasing);
+		m_disp.setBackgroundColor(oldBackgroundColor);
+
+		geometry.showVertices(wasShowingVertices);
+		geometry.showEdges(wasShowingEdges);
+		geometry.showElementColors(wasShowingElementColors);
+		geometry.setGlobalElementColor(oldElementColor);
 
 		m_disp.addGeometry(geometry);
 		m_disp.update(geometry);
