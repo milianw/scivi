@@ -16,8 +16,9 @@
 */
 
 import java.awt.Button;
-import java.awt.Checkbox;
+import java.awt.Color;
 import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.Label;
 import java.awt.Rectangle;
@@ -25,6 +26,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.image.BufferedImage;
 
 import javax.swing.JComboBox;
 
@@ -33,8 +35,9 @@ import jv.geom.PgPolygonSet;
 import jv.geom.PgVectorField;
 import jv.number.PuDouble;
 import jv.number.PuInteger;
-import jv.object.PsUpdateIf;
 import jv.project.PgGeometryIf;
+import jv.project.PvCameraEvent;
+import jv.project.PvCameraListenerIf;
 import jv.project.PvGeometryListenerIf;
 
 
@@ -45,7 +48,7 @@ import jv.project.PvGeometryListenerIf;
  * @version		26.11.2011, 1.00 created
  */
 public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemListener,
-													ActionListener
+													ActionListener, PvCameraListenerIf
 {
 	public static void main(String[] args)
 	{
@@ -73,14 +76,22 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private Curvature.SmoothingScheme m_smoothingScheme;
 	private Curvature m_lastCurvature;
 	private PgVectorField[] m_lastTensorField;
+	private boolean m_rendering;
+	private DisplayImage m_img;
 	public Ex2_4(String[] args)
 	{
 		super(args, "SciVis - Project 2 - Exercise 4 - Milian Wolff");
 
 		Font boldFont = new Font("Dialog", Font.BOLD, 12);
 
+		m_rendering = false;
+
+		m_img = new DisplayImage();
+
 		// listener
 		m_disp.addGeometryListener(this);
+		m_disp.addCameraListener(this);
+
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridwidth = 2;
 		c.gridx = 0;
@@ -197,6 +208,17 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridwidth = 2;
 		c.fill = GridBagConstraints.HORIZONTAL;
 
+		// disable lighting / unwanted settings that might temper with colors
+//		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
+//		m_disp.setBackgroundColor(Color.WHITE);
+//		boolean wasShowingBorder = m_disp.hasPaintTag(PvDisplayIf.PAINT_BORDER);
+//		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, false);
+//		boolean hadAntiAliasing = m_disp.hasPaintTag(PvDisplayIf.PAINT_ANTIALIAS);
+//		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, false);
+//		final long PAINT_FOCUS = 536870912;
+//		boolean wasShowingFocus	= m_disp.hasPaintTag(PAINT_FOCUS);
+//		m_disp.setPaintTag(PAINT_FOCUS, false);
+
 		show();
 		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
 	}
@@ -241,20 +263,6 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert false : "unhandled action source: " + source;
 		}
 	}
-	@Override
-	public void selectGeometry(PgGeometryIf geometry)
-	{
-		updateView();
-	}
-	@Override
-	public void removeGeometry(PgGeometryIf geometry) {
-		if (m_lastCurvature != null && geometry == m_lastCurvature.geometry()) {
-			// clear cache
-			m_lastCurvature = null;
-			m_lastTensorField = null;
-		}
-		super.removeGeometry(geometry);
-	}
 	/*
 	 * remove other geometries when opening a new one
 	 * @see ProjectBase#addGeometry(jv.project.PgGeometryIf)
@@ -271,20 +279,68 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 		}
 	}
+	@Override
+	public void selectGeometry(PgGeometryIf geometry) {
+		updateView();
+	}
+	@Override
+	public void dragCamera(PvCameraEvent event) {
+		updateView();
+	}
+	@Override
+	public void pickCamera(PvCameraEvent event) {
+		updateView();
+	}
+	protected void renderOffscreen(BufferedImage image) {
+		//render
+		assert m_disp.getCanvas().getGraphics() != null;
+		m_disp.update(m_disp.getCanvas().getGraphics());
+		Graphics2D gfx = image.createGraphics();
+		m_disp.render();
+		gfx.drawImage(m_disp.getImage(), 0, 0, Color.white, null);
+	}
 	private void updateView()
 	{
 		PgElementSet geometry = currentGeometry();
-		if (geometry == null) {
+		if (geometry == null || m_rendering) {
 			return;
 		}
+
+		assert !m_rendering;
+		m_rendering = true;
+
 		System.out.println("updating view");
 		// always re-compute silhouette, position might have changed
 		// TODO: cache when pos has _not_ changed?
 		PgPolygonSet silhouette = Silhouette.createVertexBasedSilhouette(geometry,
 											m_disp.getCamera().getPosition());
+
 		if (m_lastCurvature == null || m_lastCurvature.geometry() != geometry) {
 			m_lastCurvature = new Curvature(geometry);
 			m_lastCurvature.computeCurvatureTensor();
 		}
+
+		geometry.showVertices(false);
+		geometry.showEdges(false);
+
+		m_disp.setEnabledExternalRendering(true);
+		m_disp.setExternalRenderSize(m_disp.getCanvas().getWidth(), m_disp.getCanvas().getHeight());
+
+		//create image
+		final BufferedImage compositedImage = new BufferedImage(m_disp.getCanvas().getWidth(),
+				m_disp.getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
+
+		m_disp.addGeometry(silhouette);
+		m_disp.update(silhouette);
+		renderOffscreen(compositedImage);
+		m_img.setImage(compositedImage);
+		m_disp.removeGeometry(silhouette);
+		m_disp.update(silhouette);
+
+		m_disp.setEnabledExternalRendering(false);
+
+		m_disp.addGeometry(geometry);
+		m_disp.update(geometry);
+		m_rendering = false;
 	}
 }

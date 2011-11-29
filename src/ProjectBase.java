@@ -1,8 +1,11 @@
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
 import java.awt.Panel;
 import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 
 import jv.geom.PgElementSet;
 import jv.object.PsMainFrame;

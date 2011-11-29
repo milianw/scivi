@@ -106,6 +106,7 @@ public class Silhouette {
 	public static PgPolygonSet createVertexBasedSilhouette(PgElementSet geometry, PdVector viewer)
 	{
 		PgPolygonSet silhouette = new PgPolygonSet();
+		silhouette.showVertices(false);
 		silhouette.setName("Vertex Based Silhouette of " + geometry.getName());
 
 		// find visible faces by linear interpolation of dot product of vertices
