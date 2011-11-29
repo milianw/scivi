@@ -245,6 +245,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		MinorAndMajor
 	}
 	private Button m_smoothTensor;
+	private Button m_resetTensor;
 	private PuInteger m_smoothSteps;
 	private PuDouble m_smoothStepSize;
 	private JComboBox m_weighting;
@@ -353,12 +354,13 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridwidth = 2;
 		c.gridx = 0;
 
-		// smooth tensor
-		m_smoothTensor = new Button("Smooth Tensor");
-		m_smoothTensor.setEnabled(false);
-		m_smoothTensor.addActionListener(this);
+		// smoothening
 		c.gridy++;
-		m_panel.add(m_smoothTensor, c);
+		c.fill = GridBagConstraints.CENTER;
+		l = new Label("Smoothening");
+		l.setFont(boldFont);
+		m_panel.add(l, c);
+		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// number of steps for smoothing
 		m_smoothSteps = new PuInteger("Steps");
@@ -393,6 +395,26 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridx = 0;
 		c.gridwidth = 2;
 
+		// smooth tensor
+		c.gridy++;
+		c.gridwidth = 1;
+		c.gridx = 0;
+		c.fill = GridBagConstraints.CENTER;
+		m_smoothTensor = new Button("Smooth Tensor");
+		m_smoothTensor.setEnabled(false);
+		m_smoothTensor.addActionListener(this);
+		m_panel.add(m_smoothTensor, c);
+
+		// reset/recalculate tensor
+		m_resetTensor = new Button("Reset Tensor");
+		m_resetTensor.setEnabled(false);
+		m_resetTensor.addActionListener(this);
+		c.gridx = 1;
+		m_panel.add(m_resetTensor, c);
+		c.gridx = 0;
+		c.gridwidth = 2;
+		c.fill = GridBagConstraints.HORIZONTAL;
+
 		show();
 		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
 	}
@@ -405,6 +427,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		} else if (source == m_curvatureTensor) {
 			m_displayTensor = m_curvatureTensor.getState();
 			m_smoothTensor.setEnabled(m_displayTensor);
+			m_resetTensor.setEnabled(m_displayTensor);
 		} else if (source == m_tensor) {
 			m_tensorType = (TensorType) m_tensor.getSelectedItem();
 		} else if (source == m_weighting) {
@@ -425,12 +448,20 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				return;
 			}
 			assert m_lastGeometry == currentGeometry();
-			assert m_lastTensorField != null;
 			smoothTensorField(m_lastGeometry, m_lastCornerTable, m_lastCurvature,
 							  m_smoothSteps.getValue(), m_smoothStepSize.getValue(),
 							  m_weightingType);
 			m_lastTensorField = getCurvatureTensorFields(m_lastGeometry, m_lastCurvature,
 															m_lastCornerTable);
+			updateView();
+		} else if (source == m_resetTensor) {
+			if (currentGeometry() == null) {
+				return;
+			}
+			assert m_lastGeometry == currentGeometry();
+			computeCurvatureTensor(m_lastGeometry, m_lastCurvature, m_lastCornerTable);
+			m_lastTensorField = getCurvatureTensorFields(m_lastGeometry, m_lastCurvature,
+					m_lastCornerTable);
 			updateView();
 		} else {
 			assert false : "unhandled action source: " + source;
