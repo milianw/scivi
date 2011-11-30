@@ -366,6 +366,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			if (curve == null) {
 				continue;
 			}
+			///TODO: use tensor field directly?
 			PdMatrix xy_principle = curve.principleDirections();
 			PdVector principle_dir = xy_principle.getRow(direction == TensorType.Minor ? 1 : 0);
 			principle_dir.multScalar(0.03);
@@ -451,7 +452,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 					continue;
 				}
 				boolean isMajor = major.getRGB(w, h) == black;
-				boolean isMinor = major.getRGB(w, h) == black;
+				boolean isMinor = minor.getRGB(w, h) == black;
 				int grayness = grayScale(grayScale.getRGB(w, h));
 				boolean isBlack = false;
 				if (grayness > 170) {
