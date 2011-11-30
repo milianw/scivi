@@ -380,6 +380,12 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		ret.showVertices(false);
 		return ret;
 	}
+	private int grayScale(int rgb)
+	{
+		Color c = new Color(rgb);
+		return (int) Math.round(0.212671f * c.getRed() + 0.715160f * c.getGreen()
+								+ 0.072169f * c.getBlue());
+	}
 	private void updateView()
 	{
 		PgElementSet geometry = currentGeometry();
@@ -435,7 +441,32 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		BufferedImage compositedImage = new BufferedImage(m_disp.getCanvas().getWidth(),
 				m_disp.getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
 
-		compositedImage = minor;
+		final int white = Color.white.getRGB();
+		final int black = Color.black.getRGB();
+		for(int w = 0; w < compositedImage.getWidth(); ++w) {
+			for(int h = 0; h < compositedImage.getHeight(); ++h) {
+				if (silhouette.getRGB(w, h) == black) {
+					// always paint silhouette
+					compositedImage.setRGB(w, h, black);
+					continue;
+				}
+				boolean isMajor = major.getRGB(w, h) == black;
+				boolean isMinor = major.getRGB(w, h) == black;
+				int grayness = grayScale(grayScale.getRGB(w, h));
+				boolean isBlack = false;
+				if (grayness > 170) {
+					// bright, paint white
+					isBlack = false;
+				} else if (grayness < 85) {
+					// gray, paint selected
+					isBlack = m_tensorType == TensorType.Major ? isMajor : isMinor;
+				} else {
+					// dark, paint both
+					isBlack = isMajor || isMinor;
+				}
+				compositedImage.setRGB(w, h, isBlack ? black : white);
+			}
+		}
 
 		m_img.setImage(compositedImage);
 
