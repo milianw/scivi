@@ -41,6 +41,9 @@ import jv.project.PvCameraListenerIf;
 import jv.project.PvDisplayIf;
 import jv.project.PvGeometryListenerIf;
 import jv.project.PvLightIf;
+import jv.vecmath.PdMatrix;
+import jv.vecmath.PdVector;
+import jv.vecmath.PiVector;
 
 
 /**
@@ -80,6 +83,8 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private PgVectorField[] m_lastTensorField;
 	private boolean m_rendering;
 	private DisplayImage m_img;
+	private PgPolygonSet m_lastMajor;
+	private PgPolygonSet m_lastMinor;
 	public Ex2_4(String[] args)
 	{
 		super(args, "SciVis - Project 2 - Exercise 4 - Milian Wolff");
@@ -332,6 +337,49 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		renderOffscreen(image);
 		return image;
 	}
+	private BufferedImage getTraceImage(PgPolygonSet trace)
+	{
+		m_disp.addGeometry(trace);
+		m_disp.update(trace);
+
+		int oldLightningModel = m_disp.getLightingModel();
+		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
+
+		BufferedImage image = createImage();
+		renderOffscreen(image);
+
+		m_disp.setLightingModel(oldLightningModel);
+
+		m_disp.removeGeometry(trace);
+		m_disp.update(trace);
+
+		return image;
+	}
+	private PgPolygonSet getTrace(Curvature curvature, TensorType direction)
+	{
+		PgPolygonSet ret = new PgPolygonSet();
+		PgElementSet geometry = curvature.geometry();
+		ret.setName("trace of " + geometry.getName() + ", dir: " + direction);
+		Curvature.VertexCurvature[] curvatures = curvature.curvatures();
+		for(int i = 0; i < curvatures.length; ++i) {
+			Curvature.VertexCurvature curve = curvatures[i];
+			if (curve == null) {
+				continue;
+			}
+			PdMatrix xy_principle = curve.principleDirections();
+			PdVector principle_dir = xy_principle.getRow(direction == TensorType.Minor ? 1 : 0);
+			principle_dir.multScalar(0.03);
+			PdMatrix plane = curve.tangentPlane();
+			PdVector x = plane.getRow(1);
+			PdVector y = plane.getRow(2);
+			PdVector dir = PdVector.blendNew(principle_dir.getEntry(0), x, principle_dir.getEntry(1), y);
+			int a = ret.addVertex(geometry.getVertex(i));
+			int b = ret.addVertex(PdVector.addNew(dir, geometry.getVertex(i)));
+			ret.addPolygon(new PiVector(a, b));
+		}
+		ret.showVertices(false);
+		return ret;
+	}
 	private void updateView()
 	{
 		PgElementSet geometry = currentGeometry();
@@ -346,6 +394,11 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		if (m_lastCurvature == null || m_lastCurvature.geometry() != geometry) {
 			m_lastCurvature = new Curvature(geometry);
 			m_lastCurvature.computeCurvatureTensor();
+			m_lastCurvature.smoothTensorField(10, 1, Curvature.WeightingType.MeanValue,
+												Curvature.SmoothingScheme.GaussSeidel);
+			//TODO: update
+			m_lastMajor = getTrace(m_lastCurvature, TensorType.Major);
+			m_lastMinor = getTrace(m_lastCurvature, TensorType.Minor);
 		}
 
 		m_disp.setEnabledExternalRendering(true);
@@ -374,13 +427,15 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_disp.setPaintTag(PAINT_FOCUS, false);
 
 		BufferedImage grayScale = getGrayScale(geometry);
-
 		BufferedImage silhouette = getSilhouette(geometry);
+		BufferedImage minor = getTraceImage(m_lastMinor);
+		BufferedImage major = getTraceImage(m_lastMajor);
+
 		//composite image
 		BufferedImage compositedImage = new BufferedImage(m_disp.getCanvas().getWidth(),
 				m_disp.getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
 
-		compositedImage = silhouette;
+		compositedImage = minor;
 
 		m_img.setImage(compositedImage);
 
