@@ -294,15 +294,17 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	public void pickCamera(PvCameraEvent event) {
 //		updateView();
 	}
-	protected void renderOffscreen(BufferedImage image)
+	protected BufferedImage renderOffscreen()
 	{
-		//render
+		assert m_rendering;
 		assert m_disp.isEnabledExternalRendering();
 		assert m_disp.getCanvas().getGraphics() != null;
 		m_disp.update(m_disp.getCanvas().getGraphics());
-		Graphics2D gfx = image.createGraphics();
+		BufferedImage ret = createImage();
+		Graphics2D gfx = ret.createGraphics();
 		m_disp.render();
 		gfx.drawImage(m_disp.getImage(), 0, 0, Color.white, null);
+		return ret;
 	}
 	private BufferedImage createImage()
 	{
@@ -324,8 +326,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
 		assert m_disp.containsGeometry(geometry);
 
-		BufferedImage image = createImage();
-		renderOffscreen(image);
+		BufferedImage image = renderOffscreen();
 
 		m_disp.removeGeometry(silhouette);
 		m_disp.update(silhouette);
@@ -337,9 +338,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private BufferedImage getGrayScale(PgElementSet geometry)
 	{
 		m_disp.update(geometry);
-		BufferedImage image = createImage();
-		renderOffscreen(image);
-		return image;
+		return renderOffscreen();
 	}
 	private BufferedImage getTraceImage(PgPolygonSet trace)
 	{
@@ -349,8 +348,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		int oldLightningModel = m_disp.getLightingModel();
 		m_disp.setLightingModel(PvLightIf.MODEL_SURFACE);
 
-		BufferedImage image = createImage();
-		renderOffscreen(image);
+		BufferedImage image = renderOffscreen();
 
 		m_disp.setLightingModel(oldLightningModel);
 		
@@ -501,8 +499,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		BufferedImage major = getTraceImage(m_lastMajor);
 
 		//composite image
-		BufferedImage compositedImage = new BufferedImage(m_disp.getCanvas().getWidth(),
-				m_disp.getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
+		BufferedImage compositedImage = createImage();
 
 		final int white = Color.white.getRGB();
 		final int black = Color.black.getRGB();
