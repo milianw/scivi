@@ -58,6 +58,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	{
 		new Ex2_4(args);
 	}
+	private Button m_render;
 	private JComboBox m_methodCombo;
 	private Method m_method;
 	private enum Method {
@@ -101,6 +102,11 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridwidth = 2;
 		c.gridx = 0;
 		c.gridy = 0;
+
+		// reset/recalculate tensor
+		m_render = new Button("Render");
+		m_render.addActionListener(this);
+		m_panel.add(m_render, c);
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
@@ -251,6 +257,8 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 			m_lastCurvature.computeCurvatureTensor();
 			updateView();
+		} else if (source == m_render) {
+			updateView();
 		} else {
 			assert false : "unhandled action source: " + source;
 		}
@@ -280,11 +288,11 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	}
 	@Override
 	public void dragCamera(PvCameraEvent event) {
-		updateView();
+//		updateView();
 	}
 	@Override
 	public void pickCamera(PvCameraEvent event) {
-		updateView();
+//		updateView();
 	}
 	protected void renderOffscreen(BufferedImage image)
 	{
