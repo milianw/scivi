@@ -32,7 +32,6 @@ import javax.swing.JComboBox;
 
 import jv.geom.PgElementSet;
 import jv.geom.PgPolygonSet;
-import jv.geom.PgVectorField;
 import jv.number.PuDouble;
 import jv.number.PuInteger;
 import jv.project.PgGeometryIf;
@@ -80,7 +79,6 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private JComboBox m_smoothing;
 	private Curvature.SmoothingScheme m_smoothingScheme;
 	private Curvature m_lastCurvature;
-	private PgVectorField[] m_lastTensorField;
 	private boolean m_rendering;
 	private DisplayImage m_img;
 	private PgPolygonSet m_lastMajor;
@@ -246,14 +244,12 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 			m_lastCurvature.smoothTensorField(m_smoothSteps.getValue(), m_smoothStepSize.getValue(),
 												m_weightingType, m_smoothingScheme);
-			m_lastTensorField = m_lastCurvature.computeCurvatureTensorFields();
 			updateView();
 		} else if (source == m_resetTensor) {
 			if (m_lastCurvature == null) {
 				return;
 			}
 			m_lastCurvature.computeCurvatureTensor();
-			m_lastTensorField = m_lastCurvature.computeCurvatureTensorFields();
 			updateView();
 		} else {
 			assert false : "unhandled action source: " + source;
@@ -349,7 +345,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		renderOffscreen(image);
 
 		m_disp.setLightingModel(oldLightningModel);
-
+		
 		m_disp.removeGeometry(trace);
 		m_disp.update(trace);
 
@@ -361,22 +357,80 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		PgElementSet geometry = curvature.geometry();
 		ret.setName("trace of " + geometry.getName() + ", dir: " + direction);
 		Curvature.VertexCurvature[] curvatures = curvature.curvatures();
-		for(int i = 0; i < curvatures.length; ++i) {
-			Curvature.VertexCurvature curve = curvatures[i];
-			if (curve == null) {
-				continue;
+		geometry.assureElementNormals();
+		for(int i = 0; i < geometry.getNumElements(); ++i) {
+			PiVector vertices = geometry.getElement(i);
+			assert vertices.getSize() == 3;
+			// average global curvature tensors of vertices
+			PdMatrix avg = new PdMatrix(3, 3);
+			for(int j : vertices.getEntries()) {
+				Curvature.VertexCurvature curve = curvatures[j];
+				if (curve == null) {
+					continue;
+				}
+				avg.add(curve.globalCurvature());
 			}
-			///TODO: use tensor field directly?
-			PdMatrix xy_principle = curve.principleDirections();
-			PdVector principle_dir = xy_principle.getRow(direction == TensorType.Minor ? 1 : 0);
-			principle_dir.multScalar(0.03);
-			PdMatrix plane = curve.tangentPlane();
-			PdVector x = plane.getRow(1);
-			PdVector y = plane.getRow(2);
-			PdVector dir = PdVector.blendNew(principle_dir.getEntry(0), x, principle_dir.getEntry(1), y);
-			int a = ret.addVertex(geometry.getVertex(i));
-			int b = ret.addVertex(PdVector.addNew(dir, geometry.getVertex(i)));
-			ret.addPolygon(new PiVector(a, b));
+			avg.multScalar(1.0d/vertices.getSize());
+			// create 2x2 curvature for average tensor at center
+			PdVector normal = geometry.getElementNormal(i);
+			// find triangle-plane vectors
+			PdVector x = PdVector.normalToVectorNew(normal);
+			PdVector y = PdVector.crossNew(normal, x);
+			PdMatrix avgLocal = Curvature.toLocalTensor(avg, x, y);
+			// get principle directions of averaged tensor
+			PdMatrix dirs = Curvature.principleDirections2x2(avgLocal);
+			PdVector e1_local = dirs.getRow(direction == TensorType.Minor ? 1 : 0);
+			// find nearest intersections
+			PdVector x_c_local = Curvature.toLocalVector(geometry.getCenterOfElement(null, i),
+					x, y);
+			// coefficients to e1_local for intersections
+			double alphas[] = new double[3];
+			for(int j = 0; j < 3; ++j) {
+				int a = vertices.getEntry(j);
+				int b = vertices.getEntry(j == 2 ? 0 : j+1);
+				// x_a + a*(x_a - x_b) = x_c + \alpha * e_1
+				PdVector x_a_local = Curvature.toLocalVector(geometry.getVertex(a), x, y);
+				assert x_a_local.getSize() == 2;
+				PdVector x_b_local = Curvature.toLocalVector(geometry.getVertex(b), x, y);
+				assert x_b_local.getSize() == 2;
+				PdMatrix coeffs = new PdMatrix(2, 2);
+				coeffs.setColumn(0, PdVector.subNew(x_a_local, x_b_local));
+				coeffs.setColumn(1, e1_local);
+				PdVector x_a_sub_c = PdVector.subNew(x_a_local, x_c_local);
+				assert x_a_sub_c.getSize() == 2;
+				PdVector solution = Curvature.solveCramer(coeffs, x_a_sub_c);
+				double alpha = solution.getEntry(1);
+				alphas[j] = alpha;
+			}
+			// sort by abs
+			if (Math.abs(alphas[0]) > Math.abs(alphas[1])) {
+				double tmp = alphas[1];
+				alphas[1] = alphas[0];
+				alphas[0] = tmp;
+			}
+			if (Math.abs(alphas[1]) > Math.abs(alphas[2])) {
+				double tmp = alphas[2];
+				alphas[2] = alphas[1];
+				alphas[1] = tmp;
+			}
+			if (Math.abs(alphas[0]) > Math.abs(alphas[1])) {
+				double tmp = alphas[1];
+				alphas[1] = alphas[0];
+				alphas[0] = tmp;
+			}
+			assert Math.abs(alphas[0]) <= Math.abs(alphas[1]);
+			assert Math.abs(alphas[1]) <= Math.abs(alphas[2]);
+
+			// calculate intersection points
+			PdVector i1_local = PdVector.blendNew(1.0d, x_c_local, alphas[0], e1_local);
+			PdVector i2_local = PdVector.blendNew(1.0d, x_c_local, alphas[1], e1_local);
+			// map to 3d
+			PdVector i1 = Curvature.toGlobalVector(i1_local, x, y);
+			PdVector i2 = Curvature.toGlobalVector(i2_local, x, y);
+
+			int v1 = ret.addVertex(i1);
+			int v2 = ret.addVertex(i2);
+			ret.addPolygon(new PiVector(v1, v2));
 		}
 		ret.showVertices(false);
 		return ret;

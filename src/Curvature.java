@@ -178,57 +178,22 @@ public class Curvature {
 		 */
 		public PdMatrix principleDirections()
 		{
-			double D = B.det();
-			double a = B.getEntry(0, 0);
-			double b = B.getEntry(0, 1);
-			double c = B.getEntry(1, 0);
-			double d = B.getEntry(1, 1);
-			///TODO: this hits, with quite high differences :-/
-	//		assert b == c : Math.abs(b-c);
-	
-			double T_half = 0.5d * (a + d);
-			double root = Math.sqrt(T_half * T_half - D);
-			double L_1 = T_half + root;
-			double L_2 = T_half - root;
-			boolean singular = Double.isNaN(L_1) || Double.isNaN(L_2);
-			assert L_2 <= L_1 || singular : "L_1: " + L_1 + ", L_2: " + L_2;
-	
-			PdVector major = new PdVector(2);
-			PdVector minor = new PdVector(2);
-			if (c != 0 && !singular) {
-				major.setEntry(0, L_1 - d);
-				major.setEntry(1, c);
-				minor.setEntry(0, L_2 - d);
-				minor.setEntry(1, c);
-				major.normalize();
-				minor.normalize();
-			} else if (b != 0 && !singular) {
-				major.setEntry(0, b);
-				major.setEntry(1, L_1 - a);
-				minor.setEntry(0, b);
-				minor.setEntry(1, L_2 - a);
-				major.normalize();
-				minor.normalize();
-			}
-			if (minor.equals(major) || singular
-					|| Double.isNaN(minor.length())
-					|| Double.isNaN(major.length())) {
-				// singular
-				major.setEntry(0, 1);
-				major.setEntry(1, 0);
-				minor.setEntry(0, 0);
-				minor.setEntry(1, 1);
-			}
-			if (minor.dot(major) > 1E-10) {
-				System.err.println("Non-Orthogonal principle directions computed:");
-				System.err.println("Minor: " + minor.toShortString());
-				System.err.println("Major: "+ major.toShortString());
-				System.err.println("Dot: " + minor.dot(major));
-			}
-			PdMatrix ret = new PdMatrix(2, 2);
-			ret.setRow(0, major);
-			ret.setRow(1, minor);
-			return ret;
+			return Curvature.principleDirections2x2(B);
+		}
+		/**
+		 * Scale local 2x2 curvature tensor up to global 3x3 frame
+		 * and return it.
+		 * 
+		 * @return curvature tensor in global 3x3 frame
+		 */
+		public PdMatrix globalCurvature()
+		{
+			assert B.getNumCols() == 2;
+			assert B.getNumRows() == 2;
+			PdMatrix tangentPlane = tangentPlane();
+			PdVector x = tangentPlane.getRow(1);
+			PdVector y = tangentPlane.getRow(2);
+			return Curvature.toGlobalTensor(B, x, y);
 		}
 	}
 	/**
@@ -300,19 +265,7 @@ public class Curvature {
 			PdVector R = new PdVector();
 			R.leftMultMatrix(A_T, b);
 			// now apply cramer's rule
-			// see e.g.: http://en.wikipedia.org/wiki/Cramer%27s_rule
-			assert K.getNumCols() == 3;
-			assert K.getNumRows() == 3;
-			assert R.getSize() == 3;
-			double det = K.det33();
-			// x is vector of [l, m, n]
-			PdVector x = new PdVector(3);
-			for(int k = 0; k < 3; ++k) {
-				PdMatrix K2 = PdMatrix.copyNew(K);
-				K2.setColumn(k, R);
-				x.setEntry(k, K2.det33() / det);
-			}
-
+			PdVector x = solveCramer(K, R);
 			// build curvature matrix
 			PdMatrix B = new PdMatrix(2, 2);
 			curve.B = B;
@@ -514,30 +467,7 @@ public class Curvature {
 				globalTensors[i] = new PdMatrix(3, 3);
 				continue;
 			}
-			assert curve.B.getNumCols() == 2;
-			assert curve.B.getNumRows() == 2;
-			PdMatrix tangentPlane = curve.tangentPlane();
-			PdVector x = tangentPlane.getRow(1);
-			PdVector y = tangentPlane.getRow(2);
-			// wow, what a nice api -.-'
-			// [ x y ]
-			PdMatrix xy = new PdMatrix(3, 2);
-			xy.setColumn(0, x);
-			xy.setColumn(1, y);
-			// [ x ]
-			// [ y ]
-			PdMatrix xy_over = new PdMatrix(2, 3);
-			xy_over.setRow(0, x);
-			xy_over.setRow(1, y);
-			PdMatrix b_times_xy_over = new PdMatrix();
-			b_times_xy_over.mult(curve.B, xy_over);
-			assert b_times_xy_over.getNumRows() == 2;
-			assert b_times_xy_over.getNumCols() == 3;
-			PdMatrix global = new PdMatrix();
-			global.mult(xy, b_times_xy_over);
-			assert global.getNumCols() == 3;
-			assert global.getNumRows() == 3;
-			globalTensors[i] = global;
+			globalTensors[i] = curve.globalCurvature();
 		}
 		// smooth global tensors
 		for(int step = 0; step < steps; ++step) {
@@ -618,23 +548,158 @@ public class Curvature {
 			}
 			PdVector x = tangentPlane.getRow(1);
 			PdVector y = tangentPlane.getRow(2);
-			// [ x y ]
-			PdMatrix xy = new PdMatrix(3, 2);
-			xy.setColumn(0, x);
-			xy.setColumn(1, y);
-			// [ x ]
-			// [ y ]
-			PdMatrix xy_over = new PdMatrix(2, 3);
-			xy_over.setRow(0, x);
-			xy_over.setRow(1, y);
-			PdMatrix b_times_xy = new PdMatrix();
-			b_times_xy.mult(globalTensors[i], xy);
-			PdMatrix local = new PdMatrix();
-			local.mult(xy_over, b_times_xy);
-			assert local.getNumCols() == 2;
-			assert local.getNumRows() == 2;
-			curve.B = local;
+			curve.B = toLocalTensor(globalTensors[i], x, y);
 		}
 		System.out.println("done");
+	}
+	/**
+	 * @param globalTensor 3x3 curvature in global frame
+	 * @param x first unit vector in plane
+	 * @param y second unit vector in plane
+	 * @return 2x2 curvature tensor in local frame as defined by x,y
+	 */
+	public static PdMatrix toLocalTensor(PdMatrix globalTensor, PdVector x, PdVector y)
+	{
+		assert globalTensor.getNumCols() == 3;
+		assert globalTensor.getNumRows() == 3;
+		// [ x y ]
+		PdMatrix xy = new PdMatrix(3, 2);
+		xy.setColumn(0, x);
+		xy.setColumn(1, y);
+		// [ x ]
+		// [ y ]
+		PdMatrix xy_over = new PdMatrix(2, 3);
+		xy_over.setRow(0, x);
+		xy_over.setRow(1, y);
+		PdMatrix b_times_xy = new PdMatrix();
+		b_times_xy.mult(globalTensor, xy);
+		PdMatrix local = new PdMatrix();
+		local.mult(xy_over, b_times_xy);
+		assert local.getNumCols() == 2;
+		assert local.getNumRows() == 2;
+		return local;
+	}
+	/**
+	 * @param 3x3 vector in global frame
+	 * @param x first unit vector in plane
+	 * @param y second unit vector in plane
+	 * @return 2x2 vector in local frame as defined by x,y
+	 */
+	public static PdVector toLocalVector(PdVector globalVector, PdVector x, PdVector y)
+	{
+		assert globalVector.getSize() == 3;
+		assert x.getSize() == 3;
+		assert y.getSize() == 3;
+		return new PdVector(x.dot(globalVector),y.dot(globalVector));
+	}
+	/**
+	 * 
+	 * @param localTensor
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public static PdVector toGlobalVector(PdVector localVector, PdVector x, PdVector y)
+	{
+		assert localVector.getSize() == 2;
+		assert x.getSize() == 3;
+		assert y.getSize() == 3;
+		return PdVector.blendNew(localVector.getEntry(0), x, localVector.getEntry(1), y);
+	}
+	public static PdMatrix toGlobalTensor(PdMatrix localTensor, PdVector x, PdVector y)
+	{
+		assert localTensor.getNumCols() == 2;
+		assert localTensor.getNumRows() == 2;
+		// wow, what a nice api -.-'
+		// [ x y ]
+		PdMatrix xy = new PdMatrix(3, 2);
+		xy.setColumn(0, x);
+		xy.setColumn(1, y);
+		// [ x ]
+		// [ y ]
+		PdMatrix xy_over = new PdMatrix(2, 3);
+		xy_over.setRow(0, x);
+		xy_over.setRow(1, y);
+		PdMatrix b_times_xy_over = new PdMatrix();
+		b_times_xy_over.mult(localTensor, xy_over);
+		assert b_times_xy_over.getNumRows() == 2;
+		assert b_times_xy_over.getNumCols() == 3;
+		PdMatrix global = new PdMatrix();
+		global.mult(xy, b_times_xy_over);
+		assert global.getNumCols() == 3;
+		assert global.getNumRows() == 3;
+		return global;
+	}
+	public static PdMatrix principleDirections2x2(PdMatrix matrix2x2)
+	{
+		assert matrix2x2.getNumCols() == 2;
+		assert matrix2x2.getNumRows() == 2;
+
+		double D = matrix2x2.det();
+		double a = matrix2x2.getEntry(0, 0);
+		double b = matrix2x2.getEntry(0, 1);
+		double c = matrix2x2.getEntry(1, 0);
+		double d = matrix2x2.getEntry(1, 1);
+		///TODO: this hits, with quite high differences :-/
+//		assert b == c : Math.abs(b-c);
+
+		double T_half = 0.5d * (a + d);
+		double root = Math.sqrt(T_half * T_half - D);
+		double L_1 = T_half + root;
+		double L_2 = T_half - root;
+		boolean singular = Double.isNaN(L_1) || Double.isNaN(L_2);
+		assert L_2 <= L_1 || singular : "L_1: " + L_1 + ", L_2: " + L_2;
+
+		PdVector major = new PdVector(2);
+		PdVector minor = new PdVector(2);
+		if (c != 0 && !singular) {
+			major.setEntry(0, L_1 - d);
+			major.setEntry(1, c);
+			minor.setEntry(0, L_2 - d);
+			minor.setEntry(1, c);
+			major.normalize();
+			minor.normalize();
+		} else if (b != 0 && !singular) {
+			major.setEntry(0, b);
+			major.setEntry(1, L_1 - a);
+			minor.setEntry(0, b);
+			minor.setEntry(1, L_2 - a);
+			major.normalize();
+			minor.normalize();
+		}
+		if (minor.equals(major) || singular
+				|| Double.isNaN(minor.length())
+				|| Double.isNaN(major.length())) {
+			// singular
+			major.setEntry(0, 1);
+			major.setEntry(1, 0);
+			minor.setEntry(0, 0);
+			minor.setEntry(1, 1);
+		}
+		if (minor.dot(major) > 1E-10) {
+			System.err.println("Non-Orthogonal principle directions computed:");
+			System.err.println("Minor: " + minor.toShortString());
+			System.err.println("Major: "+ major.toShortString());
+			System.err.println("Dot: " + minor.dot(major));
+		}
+		PdMatrix ret = new PdMatrix(2, 2);
+		ret.setRow(0, major);
+		ret.setRow(1, minor);
+		return ret;
+	}
+	public static PdVector solveCramer(PdMatrix A, PdVector b)
+	{
+		// see e.g.: http://en.wikipedia.org/wiki/Cramer%27s_rule
+		assert A.isSquare();
+		assert b.getSize() == A.getSize() : b.getSize() + " VS " + A.getSize();
+		double det = A.det();
+		// x is vector of [l, m, n]
+		PdVector x = new PdVector(A.getSize());
+		for(int k = 0; k < A.getSize(); ++k) {
+			PdMatrix A2 = PdMatrix.copyNew(A);
+			A2.setColumn(k, b);
+			x.setEntry(k, A2.det() / det);
+		}
+		return x;
 	}
 }
