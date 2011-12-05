@@ -76,7 +76,7 @@ The implementation can be found in \texttt{CornerTable.java}.
 
 The resulting corner table is essentially a linked list which is straight
 forward to use. I additionally added a \texttt{Corner[] vertexNeighbors()}
-method to my \texttt{Corner} object, which essentially returns the $N^1$-ring
+method to my \texttt{Corner} object, which essentially returns the 1-ring
 vertex neighbors.
 
 \section{Validation}
@@ -294,9 +294,105 @@ and by disabling lightning via
 
 \chapter{Curvature estimation}
 
-TODO: paper source
+In the following we are following the steps and algorithms as outlined by Meyer
+et al. to estimate the curvature of a discretely triangulated mesh surface. The
+code to my implementation can be found in \texttt{Curvature.java} and
+\texttt{Ex2\_3.java}.
 
+\section{Curvature Calculation}
 
+The first step is to calculate the mean and gaussian curvature, which can be
+done in one go. We iterate over our corner table and for each corner accumulate
+the partial addition to the gaussian curvature, mean curvature and
+area $A_{mixed}$ of the associated vertex. The partial discrete gaussian
+curvature is simply the angle $\theta_j$ of the corner, compare to eq. 9 of the
+paper by Meyer et al. To the mean curvature operator we accumulate $(\cot
+\alpha_j + \cot \beta_j) (\vec{x}_i - \vec{x}_j)$, following eq. 8 of the paper.
+
+Both final curvature values need to be normalized by the area $A_{mixed}$ wich
+we also accumulate in each iteration step following fig. 4 of the paper.
+
+Additionally I added the possibility to visualize the minimum and maximum
+curvature values using eqs. 10 and 11 from the paper by Meyer et al.
+
+\subsection{Color Schemes}
+
+To visualize the curvature estimations, I developed two simple color schemes.
+Both set vertex colors which are then propagated to the triangles using
+\texttt{geometry.showElementFromVertexColors(true)}.
+
+Both color schemes leverage the HSV color space with maximum saturation and
+value but varying hue component.
+
+\subsubsection{Maximum Color Scheme}
+
+My first approach was to simply map the range $[min, max]$ to the hue range $[0,
+360]$, which can be seen in e.g. fig. \ref{fig:bunny-mean-max} or
+\ref{fig:bunny-gauss-max}. The minimum value is zero for the mean
+curvature and $max$ is the maximum of the computed curvature values. For
+gaussian curvature we compute $max = -min$ to be the absolute maximum of the
+computed curvature values.
+
+This approach turned out to be a bad choice since the curvature values vary
+over a great range. Especially the extreme values are only encountered rarely
+though, making the linear mapping between curvature range and hue range
+impractical. Due to that this color scheme mostly creates rather equicolored
+images.
+
+\subsubsection{Deviation Color Scheme}
+
+To fix the issues of the maximum color scheme, I decided to assume the
+curvature to be normal distributed. By calculating the mean value $\mu$ and the
+standard deviation $\sigma$ I can now map the curvature values in the tripled
+deviation interval $[\mu - 3 \sigma, \mu + 3 \sigma]$ to the hue range $[0,
+360]$. This covers $99.73\%$ of the curvature values, the rest is simply capped
+to the maximum hue values $0$ or $360$.
+
+This coloring scheme can be seen in e.g. \ref{fig:bunny-mean-dev} and
+\ref{fig:bunny-gauss-dev}. Since it gives more useable results, I will
+stick to it in the rest of this report.
+
+\begin{figure}
+  \subfloat[mean curvature, deviation color scheme]{
+    \label{fig:bunny-mean-dev}
+    \includegraphics[scale=0.4]{img-2-2/bunny-mean-dev.eps}}
+  \subfloat[mean curvature, maximum color scheme]{
+    \label{fig:bunny-mean-max}
+    \includegraphics[scale=0.4]{img-2-2/bunny-mean-max.eps}}
+  \\
+  \subfloat[gaussian curvature, deviation color scheme]{
+    \label{fig:bunny-gauss-dev}
+    \includegraphics[scale=0.4]{img-2-2/bunny-gauss-dev.eps}}
+  \subfloat[gaussian curvature, maximum color scheme]{
+    \label{fig:bunny-gauss-max}
+    \includegraphics[scale=0.4]{img-2-2/bunny-gauss-max.eps}}
+ \caption{Mean and gaussian curvature of the bunny}
+ \label{fig:curvature-bunny}
+\end{figure}
+
+\subsection{Open Surfaces}
+
+To handled open surfaces like e.g. in fig. \ref{fig:curvature-gauss} somewhat
+gracefully, vertices at the edge of a surface are ignored.
+
+\begin{figure}
+  \subfloat[mean curvature, deviation color scheme]{
+    \label{fig:gauss-mean-dev}
+    \includegraphics[scale=0.4]{img-2-2/gauss3042-mean-dev.eps}}
+  \subfloat[mean curvature, maximum color scheme]{
+    \label{fig:gauss-mean-max}
+    \includegraphics[scale=0.4]{img-2-2/gauss3042-mean-max.eps}}
+  \\
+  \subfloat[gaussian curvature, deviation color scheme]{
+    \label{fig:gauss-gauss-dev}
+    \includegraphics[scale=0.4]{img-2-2/gauss3042-gauss-dev.eps}}
+  \subfloat[gaussian curvature, maximum color scheme]{
+    \label{fig:gauss-gauss-max}
+    \includegraphics[scale=0.4]{img-2-2/gauss3042-gauss-max.eps}}
+ \caption{Mean and gaussian curvature of the \texttt{Gauss\_3042.byu} model with
+open surface mesh}
+ \label{fig:curvature-gauss}
+\end{figure}
 
 % \bibliography{sources}
 
