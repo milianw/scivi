@@ -29,6 +29,8 @@
 \newcolumntype{n}{>{$}c<{$}}
 \newcolumntype{o}{>{$}r<{$}}
 
+\newcommand{\mat}[1]{\mathbf{#1}} 
+
 \bibliographystyle{plain}
 
 % Title Page
@@ -171,10 +173,10 @@ as visible in fig. \ref{fig:face-silhouette-sphere}.
 \begin{figure}
   \subfloat[]{
     \label{fig:face-silhouette-bunny-1}
-    \includegraphics[scale=0.4]{img-2-2/bunny-1.eps}}
+    \includegraphics[scale=0.35]{img-2-2/bunny-1.eps}}
   \subfloat[]{
     \label{fig:face-silhouette-bunny-2}
-    \includegraphics[scale=0.4]{img-2-2/bunny-2.eps}}
+    \includegraphics[scale=0.35]{img-2-2/bunny-2.eps}}
  \caption{Face-based silhouette of the bunny under slight rotation}
  \label{fig:face-silhouette-bunny}
 \end{figure}
@@ -226,10 +228,10 @@ similar to an actual ``pen-and-ink'' scetch. The same happens for the buddha in
 \begin{figure}
   \subfloat[face-based]{
     \label{fig:face-silhouette-sphere}
-    \includegraphics[scale=0.4]{img-2-2/sphere-face.eps}}
+    \includegraphics[scale=0.35]{img-2-2/sphere-face.eps}}
   \subfloat[vertex-based]{
     \label{fig:vertex-silhouette-sphere}
-    \includegraphics[scale=0.4]{img-2-2/sphere-vertex.eps}}
+    \includegraphics[scale=0.35]{img-2-2/sphere-vertex.eps}}
  \caption{Comparison of face- and vertex-based silhouette for the sphere}
  \label{fig:silhouette-sphere}
 \end{figure}
@@ -237,10 +239,10 @@ similar to an actual ``pen-and-ink'' scetch. The same happens for the buddha in
 \begin{figure}
   \subfloat[face-based]{
     \label{fig:face-silhouette-dragon}
-    \includegraphics[scale=0.4]{img-2-2/dragon-face.eps}}
+    \includegraphics[scale=0.35]{img-2-2/dragon-face.eps}}
   \subfloat[vertex-based]{
     \label{fig:vertex-silhouette-dragon}
-    \includegraphics[scale=0.4]{img-2-2/dragon-vertex.eps}}
+    \includegraphics[scale=0.35]{img-2-2/dragon-vertex.eps}}
  \caption{Comparison of face- and vertex-based silhouette for the dragon}
  \label{fig:silhouette-dragon}
 \end{figure}
@@ -248,10 +250,10 @@ similar to an actual ``pen-and-ink'' scetch. The same happens for the buddha in
 \begin{figure}
   \subfloat[face-based]{
     \label{fig:face-silhouette-feline}
-    \includegraphics[scale=0.4]{img-2-2/feline-face.eps}}
+    \includegraphics[scale=0.35]{img-2-2/feline-face.eps}}
   \subfloat[vertex-based]{
     \label{fig:vertex-silhouette-feline}
-    \includegraphics[scale=0.4]{img-2-2/feline-vertex.eps}}
+    \includegraphics[scale=0.35]{img-2-2/feline-vertex.eps}}
  \caption{Comparison of face- and vertex-based silhouette for the feline}
  \label{fig:silhouette-feline}
 \end{figure}
@@ -259,10 +261,10 @@ similar to an actual ``pen-and-ink'' scetch. The same happens for the buddha in
 \begin{figure}
   \subfloat[face-based]{
     \label{fig:face-silhouette-buddha}
-    \includegraphics[scale=0.4]{img-2-2/buddha-face.eps}}
+    \includegraphics[scale=0.35]{img-2-2/buddha-face.eps}}
   \subfloat[vertex-based]{
     \label{fig:vertex-silhouette-feline}
-    \includegraphics[scale=0.4]{img-2-2/buddha-vertex.eps}}
+    \includegraphics[scale=0.35]{img-2-2/buddha-vertex.eps}}
  \caption{Comparison of face- and vertex-based silhouette for the buddha}
  \label{fig:silhouette-buddha}
 \end{figure}
@@ -303,11 +305,12 @@ code to my implementation can be found in \texttt{Curvature.java} and
 
 The first step is to calculate the mean and gaussian curvature, which can be
 done in one go. We iterate over our corner table and for each corner accumulate
-the partial addition to the gaussian curvature, mean curvature and
-area $A_{mixed}$ of the associated vertex. The partial discrete gaussian
-curvature is simply the angle $\theta_j$ of the corner, compare to eq. 9 of the
-paper by Meyer et al. To the mean curvature operator we accumulate $(\cot
-\alpha_j + \cot \beta_j) (\vec{x}_i - \vec{x}_j)$, following eq. 8 of the paper.
+the partial addition to the gaussian curvature $\kappa_G$, mean curvature
+$\kappa_H$ and area $A_{mixed}$ of the associated vertex. The partial discrete
+gaussian curvature is simply the angle $\theta_j$ of the corner, compare to eq.
+9 of the paper by Meyer et al. To the mean curvature operator we accumulate
+$(\cot \alpha_j + \cot \beta_j) (\vec{x}_i - \vec{x}_j)$, following eq. 8 of the
+paper.
 
 Both final curvature values need to be normalized by the area $A_{mixed}$ wich
 we also accumulate in each iteration step following fig. 4 of the paper.
@@ -355,17 +358,17 @@ stick to it in the rest of this report.
 \begin{figure}
   \subfloat[mean curvature, deviation color scheme]{
     \label{fig:bunny-mean-dev}
-    \includegraphics[scale=0.4]{img-2-2/bunny-mean-dev.eps}}
+    \includegraphics[scale=0.35]{img-2-2/bunny-mean-dev.eps}}
   \subfloat[mean curvature, maximum color scheme]{
     \label{fig:bunny-mean-max}
-    \includegraphics[scale=0.4]{img-2-2/bunny-mean-max.eps}}
+    \includegraphics[scale=0.35]{img-2-2/bunny-mean-max.eps}}
   \\
   \subfloat[gaussian curvature, deviation color scheme]{
     \label{fig:bunny-gauss-dev}
-    \includegraphics[scale=0.4]{img-2-2/bunny-gauss-dev.eps}}
+    \includegraphics[scale=0.35]{img-2-2/bunny-gauss-dev.eps}}
   \subfloat[gaussian curvature, maximum color scheme]{
     \label{fig:bunny-gauss-max}
-    \includegraphics[scale=0.4]{img-2-2/bunny-gauss-max.eps}}
+    \includegraphics[scale=0.35]{img-2-2/bunny-gauss-max.eps}}
  \caption{Mean and gaussian curvature of the bunny}
  \label{fig:curvature-bunny}
 \end{figure}
@@ -378,20 +381,73 @@ gracefully, vertices at the edge of a surface are ignored.
 \begin{figure}
   \subfloat[mean curvature, deviation color scheme]{
     \label{fig:gauss-mean-dev}
-    \includegraphics[scale=0.4]{img-2-2/gauss3042-mean-dev.eps}}
+    \includegraphics[scale=0.35]{img-2-2/gauss3042-mean-dev.eps}}
   \subfloat[mean curvature, maximum color scheme]{
     \label{fig:gauss-mean-max}
-    \includegraphics[scale=0.4]{img-2-2/gauss3042-mean-max.eps}}
+    \includegraphics[scale=0.35]{img-2-2/gauss3042-mean-max.eps}}
   \\
   \subfloat[gaussian curvature, deviation color scheme]{
     \label{fig:gauss-gauss-dev}
-    \includegraphics[scale=0.4]{img-2-2/gauss3042-gauss-dev.eps}}
+    \includegraphics[scale=0.35]{img-2-2/gauss3042-gauss-dev.eps}}
   \subfloat[gaussian curvature, maximum color scheme]{
     \label{fig:gauss-gauss-max}
-    \includegraphics[scale=0.4]{img-2-2/gauss3042-gauss-max.eps}}
+    \includegraphics[scale=0.35]{img-2-2/gauss3042-gauss-max.eps}}
  \caption{Mean and gaussian curvature of the \texttt{Gauss\_3042.byu} model with
 open surface mesh}
  \label{fig:curvature-gauss}
+\end{figure}
+
+\section{Curvature Tensor}
+
+To compute the curvature tensor $\mat{B}$ we iterate over all vertices and
+then calculate the $\vec{d}_{i,j}$ values (see p. 14 of the paper by Meyer) for
+the 1-ring neighbors using the corner table. This gives us a potentially
+over-determined linear equation system in the curvature tensor variables $l$,
+$m$, $n$. Following the steps outlined in class 7 (pages 16, 17 of the slides),
+we can multiple the eqation system from left with the transposed coefficient
+matrix, yielding a square coefficient matrix that can then be solved by
+applying Cramer's rule.
+
+While it is quite easily explained, this took me quite some time to implement.
+The code can be found in \texttt{Curvature.computeCurvatureTensor()}.
+
+\subsection{Tensor Visualization}
+
+To visualize the curvature tensor, we compute the principle directions of it,
+i.e. the two dimensional eigen vectors $\vec{e}_{minor}$ and $\vec{e}_{major}$.
+These are easily mapped to three dimensions by blending the three dimensional
+tangent plane vectors $x$, $y$ by the associated value of each eigen vector.
+
+These vectors can then be added to a \texttt{PgVectorField} in JavaView with a
+user defined length to visualize the curvature tensor.
+
+A few results can be seen in \ref{fig:curvature-tensor}, the code to my
+implementation can be found in
+\texttt{Curvature.computeCurvatureTensorFields()}.
+
+\begin{figure}
+  \subfloat[minor]{
+    \label{fig:dragon-t-minor}
+    \includegraphics[scale=0.35]{img-2-2/dragon-t-minor.eps}}
+  \subfloat[major]{
+    \label{fig:dragon-t-major}
+    \includegraphics[scale=0.35]{img-2-2/dragon-t-major.eps}}
+  \\
+  \subfloat[minor]{
+    \label{fig:feline-t-minor}
+    \includegraphics[scale=0.35]{img-2-2/feline-t-minor.eps}}
+  \subfloat[major]{
+    \label{fig:feline-t-major}
+    \includegraphics[scale=0.35]{img-2-2/feline-t-major.eps}}
+  \\
+  \subfloat[minor]{
+    \label{fig:torus-t-minor}
+    \includegraphics[scale=0.35]{img-2-2/torus-t-minor.eps}}
+  \subfloat[major]{
+    \label{fig:torus-t-major}
+    \includegraphics[scale=0.35]{img-2-2/torus-t-major.eps}}
+ \caption{Minor and Major principle directions of the curvature tensor}
+ \label{fig:curvature-tensor}
 \end{figure}
 
 % \bibliography{sources}
