@@ -1,0 +1,181 @@
+\documentclass[a4paper,10pt,notitlepage]{scrreprt}
+
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{setspace}
+\usepackage{subfig}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{fixltx2e}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{subfig}
+\usepackage{nomencl}
+\usepackage[pdfborder={0 0 0}]{hyperref}
+\usepackage{natbib}
+% \usepackage{makeidx}
+\usepackage{nicefrac}
+\usepackage{bbold}
+
+\captionsetup{labelfont=footnotesize,textfont=footnotesize}
+
+\newcolumntype{x}[1]{>{\begin{flushleft}$}p{#1}<{$\end{flushleft}}}
+\newcolumntype{y}[1]{>{\begin{center}$}p{#1}<{$\end{center}}}
+\newcolumntype{z}[1]{>{\begin{flushright}$}p{#1}<{$\end{flushright}}}
+\newcolumntype{m}{>{$}l<{$}}
+\newcolumntype{n}{>{$}c<{$}}
+\newcolumntype{o}{>{$}r<{$}}
+
+\bibliographystyle{plain}
+
+% Title Page
+\title{Scientific Visualization\\Project II}
+\author{Milian Wolff}
+
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Our second project in the scientific visualization class by Eugene Zhang gave
+us the opportunity to get acquainted with the algorithms behind ``pen-and-ink
+sketching'' of a 3D mesh surface. First we explore the steps required to
+visualize silhouettes of a geometry. Then we calculate the vertex-based
+curvature and curvature tensors. Finally we will combine the both to draw a
+sketch-like version of a given geometry.
+
+The source code of my exercise solutions can be found online under
+
+\begin{center}\url{https://github.com/milianw/scivi}\end{center}
+\end{abstract}
+
+\begingroup
+\let\clearpage\relax
+
+\tableofcontents
+\endgroup
+
+\chapter{Corner Table}
+
+As a foundation for the later tasks we first had to implement a corner table. I
+did this by following the steps outlined in class:
+
+\begin{itemize}
+ \item iterate over all triangles
+ \item add each corner in the triangle to a table
+ \item sort table by $min(c.prev.vertex, c.next.vertex)$ and
+$max(c.prev.vertex, c.next.vertex)$
+ \item iterate over sorted table and associate consecutive rows with equal
+$min$ and $max$ entries as opposite corners
+\end{itemize}
+
+The implementation can be found in \texttt{CornerTable.java}.
+
+The resulting corner table is essentially a linked list which is straight
+forward to use. I additionally added a \texttt{Corner[] vertexNeighbors()}
+method to my \texttt{Corner} object, which essentially returns the $N^1$-ring
+vertex neighbors.
+
+\section{Validation}
+
+To verify the correctness of my implementation of a corner table, I wrote
+\texttt{Ex2\_1.java}. When started, the user defines a geometry. Then the corner
+table for said geometry is computed. Now we iterate over each corner \texttt{c}
+and run a set of assertion-based tests in each step:
+
+\begin{itemize}
+ \item \texttt{c.next != null}
+ \item \texttt{c.prev != null}
+ \item \texttt{c.next.triangle != c.triangle}
+ \item \texttt{c.prev.triangle != c.triangle}
+\end{itemize}
+
+Furthermore, the correctness of the ``opposite''-association is validated by
+asserting the following tests:
+
+\begin{itemize}
+ \item \texttt{c.triangle != c.opposite.triangle}
+ \item \texttt{c.next.vertex == c.opposite.prev.vertex}
+ \item \texttt{c.prev.vertex == c.opposite.next.vertex}
+ \item \texttt{c == c.opposite.opposite}
+ \item \texttt{c.prev.opposite.next.vertex == c.next.vertex}
+ \item \texttt{c.prev.opposite != c.next}
+ \item \texttt{c.prev.opposite.prev.vertex == c.vertex}
+ \item \texttt{c.prev.opposite.prev != c}
+ \item \texttt{c.next.opposite.prev.vertex == c.prev.vertex}
+ \item \texttt{c.next.opposite.prev != c.prev}
+ \item \texttt{c.next.opposite.next.vertex == c.vertex}
+ \item \texttt{c.next.opposite.next != c}
+\end{itemize}
+
+Keep in mind though that in open surfaces like e.g. \texttt{Gauss\_3042.byu} not
+every corner can be associated to an opposite one. This is handled gracefully in
+my corner table implementation and unit tests.
+
+Another implicit verification of my implication lies in the extensive usage of
+the corner table in the following exercises. Since the solutions there seem to
+be visually correct, the corner table seems to yield correct results.
+
+\chapter{Silhouette}
+
+Now we want to find the silhouette of a 3D geometry using two different
+algorithsm. My solutions to both can be found in \texttt{Silhouette.java} and
+\texttt{Ex2\_2.java}.
+
+\section{Face-based approach}
+
+The first task was to find the silhouette by iterating over all edges and
+finding those, where only one of the adjacent triangles is ``visible''. Here, we
+consider a triangle $T$ to be visible when
+
+\begin{equation}
+ (\vec{c_T} - \vec{v}) \cdot \vec{n_T} < 0,
+\end{equation}
+
+with $\vec{c_F}$ being the center and $\vec{n_T}$ being the normal of the
+triangle respectively. $\vec{v}$ is the position of the viewer.
+
+Note that this approach yields undefined results for triangles that are
+exactly perpendicular to the view ray. There, the dot product will be zero and
+the triangle is either an invisible backside or a visible frontside. I ignore
+these edges, assuming that this case only happens for faces somewhere in the
+middle of the (in-)visible surface and are thus not part of the silhouette
+anyways.
+
+Now to actually find the silhouette, I first iterate over all triangles and
+store the associated index to a list $L$ when the triangle is visible. Then
+I iterate over the corner table and find corners $c$ within a visible triangle,
+i.e. $c.triangle$ is contained in $L$. Then the edge between $c.prev.vertex$
+and $c.next.vertex$ is part of the silhouette, if either $c.opposite$ is
+undefined, or alternatively $c.opposite.triangle$ is not contained in $L$.
+
+To actually draw the silhouette in JavaView, one has to add the edges to a
+\texttt{PgPolygonSet} using \texttt{addPolygon()}. Furthermore we must prevent
+painting of obscured parts of the silhouette, which can be achieved by
+keeping the original geometry in the display but coloring its elements
+completely white using
+\texttt{PgElementSet.setGlobalElementColor(Color.white)} and by disabling
+lightning via 
+\texttt{PvDisplayIf.setLightingModel(PvLightIf.MODEL\_SURFACE)}.
+
+My implementation of the above can be found in
+\texttt{Silhouette.createFaceBasedSilhouette()}.
+
+\chapter{Vertex-based approach / zero level set}
+
+createVertexBasedSilhouette
+
+\chapter{Curvature estimation}
+
+TODO: paper source
+
+
+
+\bibliography{sources}
+
+\end{document}
+
+% kate: replace-tabs on;
