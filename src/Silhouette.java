@@ -115,12 +115,14 @@ public class Silhouette {
 		// to find it we interpolate the dot products (cmp. barycentric coordinates)
 		CornerTable table = new CornerTable(geometry);
 		for(Corner corner : table.corners()) {
-			PdVector ray = PdVector.subNew(geometry.getVertex(corner.vertex), viewer);
 			// TODO: optimize: only compute visibility (i.e. dot product) once for each vertex
 			// but see whether this is actually noticeably faster
-			double a = ray.dot(geometry.getVertexNormal(corner.vertex));
-			double b = ray.dot(geometry.getVertexNormal(corner.next.vertex));
-			double c = ray.dot(geometry.getVertexNormal(corner.prev.vertex));
+			PdVector rayA = PdVector.subNew(geometry.getVertex(corner.vertex), viewer);
+			double a = rayA.dot(geometry.getVertexNormal(corner.vertex));
+			PdVector rayB = PdVector.subNew(geometry.getVertex(corner.next.vertex), viewer);
+			double b = rayB.dot(geometry.getVertexNormal(corner.next.vertex));
+			PdVector rayC = PdVector.subNew(geometry.getVertex(corner.prev.vertex), viewer);
+			double c = rayC.dot(geometry.getVertexNormal(corner.prev.vertex));
 			// we look for faces with one visible and two hidden vertices
 			// or vice versa, i.e. two invisible and one visible vertex
 			// via the corner table we look for the corner that is the
