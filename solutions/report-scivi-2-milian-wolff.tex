@@ -488,23 +488,23 @@ My implementation can be found in \texttt{Ex2\_3.java} and
 To compare the weighting types, see e.g. fig.
 \ref{fig:smooth-weights-curvature-tensor}.
 
-\subsection{Uniform}
+\subsubsection{Uniform}
 
 The uniform weighting is fast and gives reasonable results.
 
-\subsection{Cord}
+\subsubsection{Cord}
 
 Weighting the tensors by the reziproke edge distance turns out to give worse
 results compared to the uniform weighting.
 
-\subsection{Mean Value}
+\subsubsection{Mean Value}
 
 Weighting the tensors by mean value gives better results than the cord
 weighting, yet interestingly enough does not seem to be as effective as the
 uniform weighting. It is also noticeably slower for large geometries or number
 of steps.
 
-\subsection{Cotangent}
+\subsubsection{Cotangent}
 
 The cotangent weighting yields comparable results to the mean value approach.
 
@@ -528,6 +528,31 @@ The cotangent weighting yields comparable results to the mean value approach.
  \label{fig:smooth-weights-curvature-tensor}
 \end{figure}
 
+\subsection{Scheme Comparison}
+
+The forward-Euler smoothing-scheme works well for small step sizes and hence
+requires many steps to achieve reasonable results. This of course directly
+means that it is comparatively slow since the Gauss-Seidel scheme works well
+for large step sizes and hence does not require that many steps. See e.g.
+\ref{fig:smooth-scheme-curvature-tensor} for a comparison.
+
+\begin{figure}
+  \subfloat[raw]{
+    \label{fig:sphere-tensor-raw}
+\includegraphics[scale=0.35]{img-2-2/sphere-tensor-raw.eps}}
+  \subfloat[Gauss-Seidel, 10 steps, 1.0 step size]{
+    \label{fig:sphere-tensor-10-1-seidel}
+    \includegraphics[scale=0.35]{img-2-2/sphere-tensor-10-1-seidel.eps}}
+  \\
+  \subfloat[Forward-Euler, 10 steps, 0.1 step size]{
+    \label{fig:sphere-tensor-10-01-forward}
+    \includegraphics[scale=0.35]{img-2-2/sphere-tensor-10-01-forward.eps}}
+  \subfloat[Forward-Euler, 20 steps, 0.1 step size]{
+    \label{fig:sphere-tensor-20-01-forward}
+    \includegraphics[scale=0.35]{img-2-2/sphere-tensor-20-01-forward.eps}}
+ \caption{tensor field of the sphere before and after smoothing}
+ \label{fig:smooth-scheme-curvature-tensor}
+\end{figure}
 
 \end{document}
 
