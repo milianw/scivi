@@ -210,12 +210,18 @@ The code for my implementation can be found in
 \subsection{Comparison}
 
 The vertex-based silhouette yields mostly better results, as can be seen in
-e.g. figs. \ref{fig:silhouette-sphere} or \ref{fig:silhouette-dragon}.
+e.g. figs. \ref{fig:silhouette-sphere}, \ref{fig:silhouette-dragon},
+\ref{fig:face-silhouette-feline} or \ref{fig:face-silhouette-buddha}.
 
-Interestingly enough though, the face-based approach seems to yield a more
-detailed silhouette for the feline, see fig. \ref{fig:face-silhouette-feline}.
-Since we are looking for the actual silhouette though, the face-based approach
-seems to be more correct though.
+Personally I find the comparison between the two algorithms as
+applied to the dragon in fig. \ref{fig:silhouette-dragon} and the feline in fig.
+\ref{fig:face-silhouette-feline} the most interesting. While in both cases, the
+vertex-based approach yields subjectively more correct silhouettes, the
+face-based approach yields a visually more pleasing result for the silhouette
+in fig. \ref{fig:face-silhouette-feline}. Here the rendering artifacts, that
+look bad in the dragon, actually make the image more detailed and hence more
+similar to an actual ``pen-and-ink'' scetch. The same happens for the buddha in
+\ref{fig:face-silhouette-buddha}.
 
 \begin{figure}
   \subfloat[face-based]{
@@ -249,6 +255,32 @@ seems to be more correct though.
  \caption{Comparison of face- and vertex-based silhouette for the feline}
  \label{fig:silhouette-feline}
 \end{figure}
+
+\begin{figure}
+  \subfloat[face-based]{
+    \label{fig:face-silhouette-buddha}
+    \includegraphics[scale=0.4]{img-2-2/buddha-face.eps}}
+  \subfloat[vertex-based]{
+    \label{fig:vertex-silhouette-feline}
+    \includegraphics[scale=0.4]{img-2-2/buddha-vertex.eps}}
+ \caption{Comparison of face- and vertex-based silhouette for the buddha}
+ \label{fig:silhouette-buddha}
+\end{figure}
+
+\section{Features}
+
+As I just layed out, the silhouette is only one part of an actual painting,
+albeit a very important one. Generally though, an object has other important
+features, like e.g. the face of the buddha which is completely bare when viewed
+up-front in fig. \ref{fig:silhouette-buddha}. As we learned in class this can
+be handled by additionally taking ridges and valleys into account. Especially
+the apparent ridges algorithm shown in class should yield good results when
+applied to the buddha geometry.
+
+For feature-less objects though, like e.g. the sphere, the ridges and
+valleys approach will not yield any good results. Here we should rather apply
+an algorithm that takes lightning and curvature into account, like we do later
+on in the last exercise.
 
 \section{Silhouette in JavaView}
 
