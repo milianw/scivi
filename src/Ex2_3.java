@@ -525,6 +525,10 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		}
 		System.out.println("total gaussian curvature: " + totalGaussian);
 		System.out.println("divided by 2pi: " + (totalGaussian / (2.0d * Math.PI)));
+		System.out.println("vertices: " + geometry.getNumVertices());
+		System.out.println("faces: " + geometry.getNumElements());
+		System.out.println("edges: " + geometry.makeEdgeStars().length);
+		System.out.println(totalGaussian / (2.0d * Math.PI) - geometry.getNumVertices());
 
 		if (displayTensor) {
 			PgVectorField[] tensorField;
