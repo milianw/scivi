@@ -536,6 +536,10 @@ means that it is comparatively slow since the Gauss-Seidel scheme works well
 for large step sizes and hence does not require that many steps. See e.g.
 \ref{fig:smooth-scheme-curvature-tensor} for a comparison.
 
+Personally I see the reason for faster convergence to the smoothened field
+when applying Gauss-Seidel in the fact that it takes the potentially
+smoothened tensors, and not the results from the previous step.
+
 \begin{figure}
   \subfloat[raw]{
     \label{fig:sphere-tensor-raw}
