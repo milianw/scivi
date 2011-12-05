@@ -452,17 +452,21 @@ implementation can be found in
 
 \section{Total Angle Deficit}
 
-The total angle deficit, or the sum of the angles $\theta_{i,j}$, turns out to
-be always an integral multiple of $2 \pi$. It always lies in the magnitude of
-the number of vertices, but strangely enough does not give me the euler
-characteristic as expected. The hand e.g. has an euler characteristic of 0, yet
-the total angle deficit yields 4. For the bunny though, I get two for both.
+The sum of the angles $\theta_{i,j}$ turns out to always be an integral multiple
+of $2 \pi$. And indeed I find $N - \sum_{i,j} \theta_{i,j} = \chi$, with $N$
+being the total number of vertices in the geometry and $\chi$ the euler
+characteristic of the geometry.
 
-An issue I see are curvature singularities, which I simply skip. This could
-easily be responsible for the difference between euler characteristic and total
-angle deficit.
+This does not work for geometries with curvature singularities
+though, like e.g. the hand. There the angle deficit will be
+improperly calculated and hence does not map to the euler
+characteristic anylonger.
 
-% \bibliography{sources}
+To verify this, run \texttt{Ex2_3.java} on a selected geometry. The total angle
+deficit and euler characteristic will be outputted to the console.
+
+\section{Tensor Smoothing}
+
 
 \end{document}
 
