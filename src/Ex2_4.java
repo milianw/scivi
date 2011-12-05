@@ -393,7 +393,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			PdMatrix avg = new PdMatrix(3, 3);
 			for(int j : vertices.getEntries()) {
 				Curvature.VertexCurvature curve = curvatures[j];
-				if (curve == null) {
+				if (curve == null || curve.B == null) {
 					continue;
 				}
 				avg.add(curve.globalCurvature());
@@ -450,7 +450,10 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 				alphas[1] = alphas[0];
 				alphas[0] = tmp;
 			}
-			assert Math.abs(alphas[0]) <= Math.abs(alphas[1]);
+			if (Double.isNaN(alphas[0])) {
+				continue;
+			}
+			assert Math.abs(alphas[0]) <= Math.abs(alphas[1]) : alphas[0] + ", " + alphas[1];
 			assert Math.abs(alphas[1]) <= Math.abs(alphas[2]);
 
 			// calculate intersection points
