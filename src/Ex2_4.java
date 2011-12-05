@@ -84,6 +84,8 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	private DisplayImage m_img;
 	private PgPolygonSet m_lastMajor;
 	private PgPolygonSet m_lastMinor;
+	private PuInteger m_brightnessThreshold;
+	private PuInteger m_darknessThreshold;
 	public Ex2_4(String[] args)
 	{
 		super(args, "SciVis - Project 2 - Exercise 4 - Milian Wolff");
@@ -218,6 +220,22 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		c.gridx = 0;
 		c.gridwidth = 2;
 		c.fill = GridBagConstraints.HORIZONTAL;
+
+		// brightness threshold
+		m_brightnessThreshold = new PuInteger("Bright Above");
+		m_brightnessThreshold.init();
+		m_brightnessThreshold.setValue(230);
+		m_brightnessThreshold.setBounds(0, 255);
+		c.gridy++;
+		m_panel.add(m_brightnessThreshold.getInfoPanel(), c);
+
+		// darkness threshold
+		m_darknessThreshold = new PuInteger("Dark Below");
+		m_darknessThreshold.init();
+		m_darknessThreshold.setValue(80);
+		m_darknessThreshold.setBounds(0, 255);
+		c.gridy++;
+		m_panel.add(m_darknessThreshold.getInfoPanel(), c);
 
 		show();
 		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
@@ -474,8 +492,8 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			m_lastMinor = getTrace(m_lastCurvature, TensorType.Minor);
 		}
 
-		m_disp.setEnabledExternalRendering(true);
 		m_disp.setExternalRenderSize(m_disp.getSize().width, m_disp.getSize().height);
+		m_disp.setEnabledExternalRendering(true);
 
 		// disable lighting / unwanted settings that might temper with colors
 		boolean wasShowingVertices = geometry.isShowingVertices();
@@ -488,13 +506,10 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		geometry.setGlobalElementColor(Color.white);
 
 		m_disp.update(geometry);
-
 		Color oldBackgroundColor = m_disp.getBackgroundColor();
 		m_disp.setBackgroundColor(Color.WHITE);
 		boolean wasShowingBorder = m_disp.hasPaintTag(PvDisplayIf.PAINT_BORDER);
 		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, false);
-		boolean hadAntiAliasing = m_disp.hasPaintTag(PvDisplayIf.PAINT_ANTIALIAS);
-		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, false);
 		final long PAINT_FOCUS = 536870912;
 		boolean wasShowingFocus	= m_disp.hasPaintTag(PAINT_FOCUS);
 		m_disp.setPaintTag(PAINT_FOCUS, false);
@@ -511,19 +526,20 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		final int black = Color.black.getRGB();
 		for(int w = 0; w < compositedImage.getWidth(); ++w) {
 			for(int h = 0; h < compositedImage.getHeight(); ++h) {
-				if (silhouette.getRGB(w, h) == black) {
+				// note: don't compare exactly to black, due to anti-aliasing
+				if (grayScale(silhouette.getRGB(w, h)) < 20) {
 					// always paint silhouette
 					compositedImage.setRGB(w, h, black);
 					continue;
 				}
-				boolean isMajor = major.getRGB(w, h) == black;
-				boolean isMinor = minor.getRGB(w, h) == black;
+				boolean isMajor = major.getRGB(w, h) < 20;
+				boolean isMinor = minor.getRGB(w, h) < 20;
 				int grayness = grayScale(grayScale.getRGB(w, h));
 				boolean isBlack = false;
-				if (grayness > 170) {
+				if (grayness > m_brightnessThreshold.getValue()) {
 					// bright, paint white
 					isBlack = false;
-				} else if (grayness < 85) {
+				} else if (grayness > m_darknessThreshold.getValue()) {
 					// gray, paint selected
 					isBlack = m_tensorType == TensorType.Major ? isMajor : isMinor;
 				} else {
@@ -538,9 +554,9 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		// Restore stuff with border, do it after image has been used
 		m_disp.setEnabledExternalRendering(false);
+
 		m_disp.setPaintTag(PAINT_FOCUS, wasShowingFocus);
 		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, wasShowingBorder);
-		m_disp.setPaintTag(PvDisplayIf.PAINT_ANTIALIAS, hadAntiAliasing);
 		m_disp.setBackgroundColor(oldBackgroundColor);
 
 		geometry.showVertices(wasShowingVertices);
