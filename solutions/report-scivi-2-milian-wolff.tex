@@ -462,10 +462,71 @@ though, like e.g. the hand. There the angle deficit will be
 improperly calculated and hence does not map to the euler
 characteristic anylonger.
 
-To verify this, run \texttt{Ex2_3.java} on a selected geometry. The total angle
+To verify this, run \texttt{Ex2\_3.java} on a selected geometry. The total angle
 deficit and euler characteristic will be outputted to the console.
 
 \section{Tensor Smoothing}
+
+As seen in fig. \ref{fig:curvature-tensor}, the raw curvature tensor is rather
+noisy. For a more visually pleasing image, we must smoothen it.
+
+To do this we first scale the local $2x2$ curvature tensor into the global
+$3x3$ frame, following the steps outlined in class and in the recitation. The
+source code for this can be found in $VertexCurvature.globalCurvature()$.
+
+Now we can smoothen the tensors using either the explicit or forward-Euler
+scheme or the Gauss-Seidel scheme. Both can be run for a user-defined number of
+times with a user-defined step size. Furthermore we can apply different
+weights, either uniform, cord, cotangent or mean value based. See the slides to
+class 9 for details.
+
+My implementation can be found in \texttt{Ex2\_3.java} and
+\texttt{Curvature.smoothTensorField()}.
+
+\subsection{Weighting Comparison}
+
+To compare the weighting types, see e.g. fig.
+\ref{fig:smooth-weights-curvature-tensor}.
+
+\subsection{Uniform}
+
+The uniform weighting is fast and gives reasonable results.
+
+\subsection{Cord}
+
+Weighting the tensors by the reziproke edge distance turns out to give worse
+results compared to the uniform weighting.
+
+\subsection{Mean Value}
+
+Weighting the tensors by mean value gives better results than the cord
+weighting, yet interestingly enough does not seem to be as effective as the
+uniform weighting. It is also noticeably slower for large geometries or number
+of steps.
+
+\subsection{Cotangent}
+
+The cotangent weighting yields comparable results to the mean value approach.
+
+\begin{figure}
+  \subfloat[uniform]{
+    \label{fig:dragon-t-10-01-uniform}
+   
+\includegraphics[scale=0.35]{img-2-2/dragon-t-10-01-uniform-forwardeuler.eps}}
+  \subfloat[cord]{
+    \label{fig:dragon-t-10-01-cord}
+    \includegraphics[scale=0.35]{img-2-2/dragon-t-10-01-cord-forwardeuler.eps}}
+  \\
+  \subfloat[mean]{
+    \label{fig:dragon-t-10-01-mean}
+    \includegraphics[scale=0.35]{img-2-2/dragon-t-10-01-mean-forwardeuler.eps}}
+  \subfloat[cotangent]{
+    \label{fig:dragon-t-10-01-cotangent}
+    \includegraphics[scale=0.35]{img-2-2/dragon-t-10-01-cotan-forwardeuler.eps}}
+ \caption{smoothened tensor field of the dragon using different weights: steps:
+10, step size: $0.1$, scheme: forward-euler}
+ \label{fig:smooth-weights-curvature-tensor}
+\end{figure}
 
 
 \end{document}
