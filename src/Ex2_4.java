@@ -382,13 +382,17 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			// find triangle-plane vectors
 			PdVector x = PdVector.normalToVectorNew(normal);
 			PdVector y = PdVector.crossNew(normal, x);
+			assert Math.abs(normal.length() - 1) < 1E-10 : normal.length();
+			assert Math.abs(x.length() - 1) < 1E-10 : x.length();
+			assert Math.abs(y.length() - 1) < 1E-10 : y.length();
 			PdMatrix avgLocal = Curvature.toLocalTensor(avg, x, y);
 			// get principle directions of averaged tensor
 			PdMatrix dirs = Curvature.principleDirections2x2(avgLocal);
 			PdVector e1_local = dirs.getRow(direction == TensorType.Minor ? 1 : 0);
+			assert Math.abs(e1_local.length() - 1) < 1E-10 : e1_local.length();
 			// find nearest intersections
-			PdVector x_c_local = Curvature.toLocalVector(geometry.getCenterOfElement(null, i),
-					x, y);
+			PdVector x_c = geometry.getCenterOfElement(null, i);
+			PdVector x_c_local = Curvature.toLocalVector(x_c, x, y);
 			// coefficients to e1_local for intersections
 			double alphas[] = new double[3];
 			for(int j = 0; j < 3; ++j) {
@@ -428,17 +432,16 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			assert Math.abs(alphas[1]) <= Math.abs(alphas[2]);
 
 			// calculate intersection points
-			PdVector i1_local = PdVector.blendNew(1.0d, x_c_local, alphas[0], e1_local);
-			PdVector i2_local = PdVector.blendNew(1.0d, x_c_local, alphas[1], e1_local);
-			// map to 3d
-			PdVector i1 = Curvature.toGlobalVector(i1_local, x, y);
-			PdVector i2 = Curvature.toGlobalVector(i2_local, x, y);
+			PdVector e1 = Curvature.toGlobalVector(e1_local, x, y);
+			PdVector i1 = PdVector.blendNew(1.0d, x_c, alphas[0], e1);
+			PdVector i2 = PdVector.blendNew(1.0d, x_c, alphas[1], e1);
 
 			int v1 = ret.addVertex(i1);
 			int v2 = ret.addVertex(i2);
 			ret.addPolygon(new PiVector(v1, v2));
 		}
 		ret.showVertices(false);
+		ret.setGlobalPolygonSize(1.0);
 		return ret;
 	}
 	private int grayScale(int rgb)
