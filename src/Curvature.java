@@ -668,8 +668,8 @@ public class Curvature {
 			minor.normalize();
 		}
 		if (minor.equals(major) || singular
-				|| Double.isNaN(minor.length())
-				|| Double.isNaN(major.length())) {
+				|| Double.isNaN(minor.length()) || minor.length() == 0
+				|| Double.isNaN(major.length()) || major.length() == 0) {
 			// singular
 			major.setEntry(0, 1);
 			major.setEntry(1, 0);
