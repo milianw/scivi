@@ -232,7 +232,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// darkness threshold
 		m_darknessThreshold = new PuInteger("Dark Below");
 		m_darknessThreshold.init();
-		m_darknessThreshold.setValue(80);
+		m_darknessThreshold.setValue(180);
 		m_darknessThreshold.setBounds(0, 255);
 		c.gridy++;
 		m_panel.add(m_darknessThreshold.getInfoPanel(), c);
@@ -513,6 +513,8 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		final long PAINT_FOCUS = 536870912;
 		boolean wasShowingFocus	= m_disp.hasPaintTag(PAINT_FOCUS);
 		m_disp.setPaintTag(PAINT_FOCUS, false);
+		boolean hadAntiAlias = m_disp.isEnabledAntiAlias();
+		m_disp.setEnabledAntiAlias(false);
 
 		BufferedImage grayScale = getGrayScale(geometry);
 		BufferedImage silhouette = getSilhouette(geometry);
@@ -532,8 +534,8 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 					compositedImage.setRGB(w, h, black);
 					continue;
 				}
-				boolean isMajor = major.getRGB(w, h) < 20;
-				boolean isMinor = minor.getRGB(w, h) < 20;
+				boolean isMajor = major.getRGB(w, h) == black;
+				boolean isMinor = minor.getRGB(w, h) == black;
 				int grayness = grayScale(grayScale.getRGB(w, h));
 				boolean isBlack = false;
 				if (grayness > m_brightnessThreshold.getValue()) {
@@ -558,6 +560,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_disp.setPaintTag(PAINT_FOCUS, wasShowingFocus);
 		m_disp.setPaintTag(PvDisplayIf.PAINT_BORDER, wasShowingBorder);
 		m_disp.setBackgroundColor(oldBackgroundColor);
+		m_disp.setEnabledAntiAlias(hadAntiAlias);
 
 		geometry.showVertices(wasShowingVertices);
 		geometry.showEdges(wasShowingEdges);
