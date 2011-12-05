@@ -164,7 +164,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// step size (\Delta t)
 		m_smoothStepSize = new PuDouble("Step size");
 		m_smoothStepSize.init();
-		m_smoothStepSize.setValue(0.1);
+		m_smoothStepSize.setValue(1);
 		m_smoothStepSize.setBounds(0, 10);
 		c.gridy++;
 		m_panel.add(m_smoothStepSize.getInfoPanel(), c);
@@ -195,7 +195,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		m_smoothing.addItemListener(this);
 		m_smoothing.addItem(Curvature.SmoothingScheme.ForwardEuler);
 		m_smoothing.addItem(Curvature.SmoothingScheme.GaussSeidel);
-		m_smoothingScheme = Curvature.SmoothingScheme.ForwardEuler;
+		m_smoothingScheme = Curvature.SmoothingScheme.GaussSeidel;
 		m_smoothing.setSelectedItem(m_smoothingScheme);
 		m_panel.add(m_smoothing, c);
 		c.gridx = 0;
@@ -250,12 +250,16 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 			}
 			m_lastCurvature.smoothTensorField(m_smoothSteps.getValue(), m_smoothStepSize.getValue(),
 												m_weightingType, m_smoothingScheme);
+			m_lastMajor = getTrace(m_lastCurvature, TensorType.Major);
+			m_lastMinor = getTrace(m_lastCurvature, TensorType.Minor);
 			updateView();
 		} else if (source == m_resetTensor) {
 			if (m_lastCurvature == null) {
 				return;
 			}
 			m_lastCurvature.computeCurvatureTensor();
+			m_lastMajor = getTrace(m_lastCurvature, TensorType.Major);
+			m_lastMinor = getTrace(m_lastCurvature, TensorType.Minor);
 			updateView();
 		} else if (source == m_render) {
 			updateView();
@@ -464,9 +468,8 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		if (m_lastCurvature == null || m_lastCurvature.geometry() != geometry) {
 			m_lastCurvature = new Curvature(geometry);
 			m_lastCurvature.computeCurvatureTensor();
-			m_lastCurvature.smoothTensorField(10, 1, Curvature.WeightingType.MeanValue,
-												Curvature.SmoothingScheme.GaussSeidel);
-			//TODO: update
+			m_lastCurvature.smoothTensorField(m_smoothSteps.getValue(), m_smoothStepSize.getValue(),
+												m_weightingType, m_smoothingScheme);
 			m_lastMajor = getTrace(m_lastCurvature, TensorType.Major);
 			m_lastMinor = getTrace(m_lastCurvature, TensorType.Minor);
 		}
