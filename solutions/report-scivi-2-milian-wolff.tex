@@ -263,7 +263,7 @@ similar to an actual ``pen-and-ink'' scetch. The same happens for the buddha in
     \label{fig:face-silhouette-buddha}
     \includegraphics[scale=0.35]{img-2-2/buddha-face.eps}}
   \subfloat[vertex-based]{
-    \label{fig:vertex-silhouette-feline}
+    \label{fig:vertex-silhouette-buddha}
     \includegraphics[scale=0.35]{img-2-2/buddha-vertex.eps}}
  \caption{Comparison of face- and vertex-based silhouette for the buddha}
  \label{fig:silhouette-buddha}
@@ -321,7 +321,7 @@ curvature values using eqs. 10 and 11 from the paper by Meyer et al.
 \subsection{Color Schemes}
 
 To visualize the curvature estimations, I developed two simple color schemes.
-Both set vertex colors which are then propagated to the triangles using
+Both set vertex colors which are then propagated to the triangles using \\
 \texttt{geometry.showElementFromVertexColors(true)}.
 
 Both color schemes leverage the HSV color space with maximum saturation and
@@ -352,8 +352,7 @@ deviation interval $[\mu - 3 \sigma, \mu + 3 \sigma]$ to the hue range $[0,
 to the maximum hue values $0$ or $360$.
 
 This coloring scheme can be seen in e.g. \ref{fig:bunny-mean-dev} and
-\ref{fig:bunny-gauss-dev}. Since it gives more useable results, I will
-stick to it in the rest of this report.
+\ref{fig:bunny-gauss-dev}.
 
 \begin{figure}
   \subfloat[mean curvature, deviation color scheme]{
@@ -465,6 +464,8 @@ characteristic anylonger.
 To verify this, run \texttt{Ex2\_3.java} on a selected geometry. The total angle
 deficit and euler characteristic will be outputted to the console.
 
+\pagebreak
+
 \section{Tensor Smoothing}
 
 As seen in fig. \ref{fig:curvature-tensor}, the raw curvature tensor is rather
@@ -556,6 +557,82 @@ smoothened tensors, and not the results from the previous step.
     \includegraphics[scale=0.35]{img-2-2/sphere-tensor-20-01-forward.eps}}
  \caption{tensor field of the sphere before and after smoothing}
  \label{fig:smooth-scheme-curvature-tensor}
+\end{figure}
+
+\chapter{Pen-and-Ink}
+
+After hours of work we can now finally plug it all together to create a
+``pen-and-ink'' sketch image of a 3D geometry. \texttt{Ex2\_4.java} does just
+that: First we compute the smoothened tensor field of a geometry, then trace
+the original geometry in the direction of either the minor or major principle
+direction. We then render the scene four times, once to obtain a grayscale
+image, once to find the silhouette and then once for the major and once for the
+minor principle direction trace. These four images are then combined such that:
+
+\begin{itemize}
+ \item the silhouette is always painted
+ \item bright areas stay white
+ \item greyish areas copy either the major or minor trace image
+ \item dark areas copy both, the major and minor trace images
+\end{itemize}
+
+\section{Tracing}
+
+I sadly do not have the time to persue this task in-depth, and thus only
+created a proof-of-concept trace. My implementation in
+\texttt{Ex2\_4.getTrace()} iterates over the triangles in the geometry and
+averages the global curvature tensors of its vertices. This is then considered
+to be an estimation of the curvature tensor at the center of the triangle.
+
+We then scale the tensor down into the local $2x2$ frame of the triangle and
+compute the intersection points with the edges of the triangle. This we then
+scale up into the global $3x3$ frame again and draw a line between the points
+using \texttt{PgPolygonSet} similar to the silhouette drawing.
+
+\section{Greyness Segmentation}
+
+To decide whether a region is bright or dark, we compute the greyness integer
+value at a given pixel position of the grayscale image, using the perceived
+greyness formula:
+
+\begin{equation}
+ greyness = 0.212671 red + 0.715160 green + 0.072169 blue
+\end{equation}
+
+This gives us a value in the range of $[0, 255]$. The user can then define a
+threshold below which a pixel is considered to be in a ``dark'' area, and
+another threshold above with the pixel is considered to be in a ``bright''
+area. Between these two lies the greyish area.
+
+\section{Results}
+
+A few of my results can be seen in fig. \ref{fig:pen-and-ink}. It is apparent
+that even my proof-of-concept tracing already gives interesting results.
+Considering that it only paints one line per vertex, it already produces
+quite noisy images for surfaces with a fine mesh. I am interested to see how
+the algorithms described in the exercise turn out, and whether they are less
+noisy - which I severly doubt since they seed every element but paint the trace
+lines into adjacent vertices. Most probably the only real improvement will be a
+trace algorithm using geodesics to get equidistant, non-overlapping trace lines.
+
+\begin{figure}
+  \centering
+  \subfloat[hand]{ \label{fig:hand-pai}
+    \includegraphics[width=5cm]{img-2-2/hand-pai.png}}
+  \subfloat[sphere]{ \label{fig:sphere-pai}
+    \includegraphics[width=5cm]{img-2-2/sphere-pai.png}}
+  \subfloat[feline]{ \label{fig:feline-pai}
+    \includegraphics[width=5cm]{img-2-2/feline-pai.png}}
+    \\
+  \subfloat[dragon]{ \label{fig:dragon-pai}
+    \includegraphics[width=5cm]{img-2-2/dragon-pai.png}}
+  \subfloat[bunny]{ \label{fig:bunny-pai}
+    \includegraphics[width=5cm]{img-2-2/bunny-pai.png}}
+  \subfloat[buddha]{ \label{fig:buddha-pai}
+    \includegraphics[width=2.5cm]{img-2-2/buddha-pai.png}}
+ \caption{pen-and-ink scetches of different 3D geometries, traces in minor
+direction}
+ \label{fig:pen-and-ink}
 \end{figure}
 
 \end{document}
