@@ -132,10 +132,10 @@ finding those, where only one of the adjacent triangles is ``visible''. Here, we
 consider a triangle $T$ to be visible when
 
 \begin{equation}
- (\vec{c_T} - \vec{v}) \cdot \vec{n_T} < 0,
+ (\vec{c}_T - \vec{v}) \cdot \vec{n}_T < 0,
 \end{equation}
 
-with $\vec{c_F}$ being the center and $\vec{n_T}$ being the normal of the
+with $\vec{c}_T$ being the center and $\vec{n}_T$ being the normal of the
 triangle respectively. $\vec{v}$ is the position of the viewer.
 
 Note that this approach yields undefined results for triangles that are
@@ -152,21 +152,113 @@ i.e. $c.triangle$ is contained in $L$. Then the edge between $c.prev.vertex$
 and $c.next.vertex$ is part of the silhouette, if either $c.opposite$ is
 undefined, or alternatively $c.opposite.triangle$ is not contained in $L$.
 
+My implementation of the above can be found in
+\texttt{Silhouette.createFaceBasedSilhouette()}.
+
+\subsection{Problems}
+
+The silhouette is view dependendend and \texttt{Ex2\_2} hence recalculates the
+silhouette whenever the view point changes. Now when rotating a given geometry,
+the main problem of this approach becomes apparent: Gradual changes in the view
+can have a big difference one the silhouette. Comparing e.g. fig.
+\ref{fig:face-silhouette-bunny-1} and \ref{fig:face-silhouette-bunny-2} shows
+this issue at the right ear. Additionally we also see three artifacts, two on
+the body and one at the left eye.
+
+The same issue is also responsible for the jagged edge of the sphere silhouette
+as visible in fig. \ref{fig:face-silhouette-sphere}. 
+
+\begin{figure}
+  \subfloat[]{
+    \label{fig:face-silhouette-bunny-1}
+    \includegraphics[scale=0.4]{img-2-2/bunny-1.eps}}
+  \subfloat[]{
+    \label{fig:face-silhouette-bunny-2}
+    \includegraphics[scale=0.4]{img-2-2/bunny-2.eps}}
+ \caption{Face-based silhouette of the bunny under slight rotation}
+ \label{fig:face-silhouette-bunny}
+\end{figure}
+
+\section{Vertex-based approach / zero level set}
+
+In an attempt to fix the issues of our first approach, we now apply a different
+scheme that computes the so called zero level set. That is the curve on the
+surface where the dot product between the curve normal and the view ray is
+always zero.
+
+To compute this curve we iterate over the corner table and calculate the dot
+product between the view ray and the normal at the corner vertex $c$ and its
+previous and next vertex $p$ and $n$:
+
+\begin{eqnarray}
+ d_{c} = a = (\vec{c} - \vec{v}) \cdot \vec{n}_c \\
+ d_{p} = b = (\vec{p} - \vec{v}) \cdot \vec{n}_p \\
+ d_{n} = c = (\vec{n} - \vec{v}) \cdot \vec{n}_n
+\end{eqnarray}
+
+If we then encounter a triangle where either $a \leq 0$, $b \geq 0$ and $c \geq
+0$ or $a \geq 0$, $b \leq 0$ and $c \leq 0$, then a zero level set line goes
+through this triangle. We assume it can be approximated
+linearly interpolating $a$ and $b$ onto the edge between $c$ and $p$ and
+analogously for $a$ and $c$ and then connecting the two points for which the
+interpolated dot product should yield zero.
+
+The code for my implementation can be found in
+\texttt{Silhouette.createVertexBasedSilhouette()} and
+\texttt{Silhouette.findZeroLevel()}.
+
+\subsection{Comparison}
+
+The vertex-based silhouette yields mostly better results, as can be seen in
+e.g. figs. \ref{fig:silhouette-sphere} or \ref{fig:silhouette-dragon}.
+
+Interestingly enough though, the face-based approach seems to yield a more
+detailed silhouette for the feline, see fig. \ref{fig:face-silhouette-feline}.
+Since we are looking for the actual silhouette though, the face-based approach
+seems to be more correct though.
+
+\begin{figure}
+  \subfloat[face-based]{
+    \label{fig:face-silhouette-sphere}
+    \includegraphics[scale=0.4]{img-2-2/sphere-face.eps}}
+  \subfloat[vertex-based]{
+    \label{fig:vertex-silhouette-sphere}
+    \includegraphics[scale=0.4]{img-2-2/sphere-vertex.eps}}
+ \caption{Comparison of face- and vertex-based silhouette for the sphere}
+ \label{fig:silhouette-sphere}
+\end{figure}
+
+\begin{figure}
+  \subfloat[face-based]{
+    \label{fig:face-silhouette-dragon}
+    \includegraphics[scale=0.4]{img-2-2/dragon-face.eps}}
+  \subfloat[vertex-based]{
+    \label{fig:vertex-silhouette-dragon}
+    \includegraphics[scale=0.4]{img-2-2/dragon-vertex.eps}}
+ \caption{Comparison of face- and vertex-based silhouette for the dragon}
+ \label{fig:silhouette-dragon}
+\end{figure}
+
+\begin{figure}
+  \subfloat[face-based]{
+    \label{fig:face-silhouette-feline}
+    \includegraphics[scale=0.4]{img-2-2/feline-face.eps}}
+  \subfloat[vertex-based]{
+    \label{fig:vertex-silhouette-feline}
+    \includegraphics[scale=0.4]{img-2-2/feline-vertex.eps}}
+ \caption{Comparison of face- and vertex-based silhouette for the feline}
+ \label{fig:silhouette-feline}
+\end{figure}
+
+\section{Silhouette in JavaView}
+
 To actually draw the silhouette in JavaView, one has to add the edges to a
 \texttt{PgPolygonSet} using \texttt{addPolygon()}. Furthermore we must prevent
 painting of obscured parts of the silhouette, which can be achieved by
 keeping the original geometry in the display but coloring its elements
-completely white using
-\texttt{PgElementSet.setGlobalElementColor(Color.white)} and by disabling
-lightning via 
+completely white using \texttt{PgElementSet.setGlobalElementColor(Color.white)}
+and by disabling lightning via
 \texttt{PvDisplayIf.setLightingModel(PvLightIf.MODEL\_SURFACE)}.
-
-My implementation of the above can be found in
-\texttt{Silhouette.createFaceBasedSilhouette()}.
-
-\chapter{Vertex-based approach / zero level set}
-
-createVertexBasedSilhouette
 
 \chapter{Curvature estimation}
 
@@ -174,7 +266,7 @@ TODO: paper source
 
 
 
-\bibliography{sources}
+% \bibliography{sources}
 
 \end{document}
 
