@@ -20,8 +20,11 @@ import java.awt.Rectangle;
 
 import jv.geom.PgVectorField;
 import jv.object.PsUpdateIf;
+import jv.project.PgGeometryIf;
 import jv.project.PvCameraIf;
 import jv.project.PvGeometryListenerIf;
+import jv.project.PvPickEvent;
+import jv.project.PvPickListenerIf;
 import jv.vecmath.PdVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
@@ -33,11 +36,14 @@ import jvx.vector.PwLIC;
  * @author		Milian Wolff
  * @version		10.01.2012, 1.00 created
  */
-public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf, PsUpdateIf
+public class Ex3_1
+	extends ProjectBase
+	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf
 {
 	private PwLIC m_lic;
 	private PgDomain m_domain;
 	private PgVectorField m_vec;
+	private VectorField m_field;
 
 	public static void main(String[] args)
 	{
@@ -47,6 +53,9 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf, PsUpdate
 	public Ex3_1(String[] args)
 	{
 		super(args, "SciVis - Project 3 - Exercise 1 - Milian Wolff");
+
+		m_field = new VectorField();
+		m_field.addTerm(new ConstantTerm(new PdVector(1, 1)));
 
 		// listener
 		m_disp.addGeometryListener(this);
@@ -59,7 +68,7 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf, PsUpdate
 		
 		PgDomainDescr descr = m_domain.getDescr();
 //		descr.setMaxSize(-10., -10., 10., 10.);
-		descr.setSize( -5., -5., 5., 5.);
+		descr.setSize( -10., -10., 10., 10.);
 //		descr.setDiscrBounds(2, 2, 50, 50);
 		descr.setDiscr(10, 10);
 		m_domain.compute();
@@ -69,7 +78,6 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf, PsUpdate
 		m_vec.setNumVectors(m_domain.getNumVertices());
 		m_vec.setGeometry(m_domain);
 		m_vec.setGlobalVectorColor(Color.BLACK);
-		PdVector.setConstant(m_vec.getVectors(), 1);
 		m_domain.addVectorField(m_vec);
 		
 		m_lic = new PwLIC();
@@ -82,6 +90,7 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf, PsUpdate
 		m_disp.selectCamera(PvCameraIf.CAMERA_ORTHO_XY);
 		m_disp.addGeometry(m_domain);
 		m_disp.update(m_domain);
+		m_disp.addPickListener(this);
 		m_disp.fit();
 
 		updateVectorField();
@@ -95,8 +104,9 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf, PsUpdate
 	 */
 	public void updateVectorField() {
 		//compute ramdom vector field
-		for (PdVector vec : m_vec.getVectors()) {
-			vec.set(-1, -1, -1);
+		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
+			PdVector pos = m_domain.getVertex(i);
+			m_vec.setVector(i, m_field.evaluate(pos));
 		}
 		m_vec.update(m_vec);
 		m_lic.startLIC();
@@ -120,4 +130,49 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf, PsUpdate
 		// TODO Auto-generated method stub
 		System.err.println("set parent: " + parent);
 	}
+
+	@Override
+	public void dragDisplay(PvPickEvent pos) {
+		// ignore this
+	}
+
+	@Override
+	public void dragInitial(PvPickEvent pos) {
+		// ignored
+	}
+
+	@Override
+	public void dragVertex(PgGeometryIf geom, int index, PdVector vertex) {
+		// ignored
+	}
+
+	@Override
+	public void markVertices(PvPickEvent pos) {
+		// ignored
+	}
+
+	@Override
+	public void pickDisplay(PvPickEvent pos) {
+		// ignored
+	}
+
+	@Override
+	public void pickInitial(PvPickEvent pos) {
+		// ignored
+		System.out.println("pick initial:");
+		System.out.println(pos.getVertex());
+		m_field.addTerm(new SinkTerm(pos.getVertex()));
+		updateVectorField();
+	}
+
+	@Override
+	public void pickVertex(PgGeometryIf geom, int index, PdVector vertex) {
+		// ignored
+	}
+
+	@Override
+	public void unmarkVertices(PvPickEvent pos) {
+		// ignored
+	}
+
 }
