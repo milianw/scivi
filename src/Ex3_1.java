@@ -19,6 +19,7 @@ import java.awt.Color;
 import java.awt.Rectangle;
 
 import jv.geom.PgVectorField;
+import jv.object.PsUpdateIf;
 import jv.project.PvCameraIf;
 import jv.project.PvGeometryListenerIf;
 import jv.vecmath.PdVector;
@@ -32,7 +33,7 @@ import jvx.vector.PwLIC;
  * @author		Milian Wolff
  * @version		10.01.2012, 1.00 created
  */
-public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf
+public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf, PsUpdateIf
 {
 	private PwLIC m_lic;
 	private PgDomain m_domain;
@@ -42,6 +43,7 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf
 	{
 		new Ex3_1(args);
 	}
+
 	public Ex3_1(String[] args)
 	{
 		super(args, "SciVis - Project 3 - Exercise 1 - Milian Wolff");
@@ -52,11 +54,13 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf
 		m_domain = new PgDomain(2);
 		m_domain.setName("Domain for Vector Field");
 		m_domain.setDimOfElements(3);
+		m_domain.showVectorFields(false);
+		m_domain.showEdges(false);
 		
 		PgDomainDescr descr = m_domain.getDescr();
-		descr.setMaxSize(-10., -10., 10., 10.);
+//		descr.setMaxSize(-10., -10., 10., 10.);
 		descr.setSize( -5., -5., 5., 5.);
-		descr.setDiscrBounds(2, 2, 50, 50);
+//		descr.setDiscrBounds(2, 2, 50, 50);
 		descr.setDiscr(10, 10);
 		m_domain.compute();
 		
@@ -73,14 +77,15 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf
 		m_lic.setStandalone(false);
 		m_lic.setFast(true);
 		m_lic.setLICSize(50);
+		m_lic.setParent(this);
 
 		m_disp.selectCamera(PvCameraIf.CAMERA_ORTHO_XY);
 		m_disp.addGeometry(m_domain);
 		m_disp.update(m_domain);
 		m_disp.fit();
 
-//		updateVectorField();
-		
+		updateVectorField();
+
 		show();
 		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
 	}
@@ -91,11 +96,28 @@ public class Ex3_1 extends ProjectBase implements PvGeometryListenerIf
 	public void updateVectorField() {
 		//compute ramdom vector field
 		for (PdVector vec : m_vec.getVectors()) {
-			vec.m_data[0] = 2*Math.random()-1;
-			vec.m_data[1] = 2*Math.random()-1;
-			vec.m_data[2] = 2*Math.random()-1;
+			vec.set(-1, -1, -1);
 		}
 		m_vec.update(m_vec);
 		m_lic.startLIC();
+	}
+	@Override
+	public boolean update(Object event) {
+		if (event == m_lic) {
+			m_disp.update(m_domain);
+			return true;
+		}
+
+		System.err.println("update: " + event);
+		return false;
+	}
+	@Override
+	public PsUpdateIf getFather() {
+		return null;
+	}
+	@Override
+	public void setParent(PsUpdateIf parent) {
+		// TODO Auto-generated method stub
+		System.err.println("set parent: " + parent);
 	}
 }
