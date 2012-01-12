@@ -55,6 +55,12 @@ public class VectorField
 		m_points.update(m_points);
 		m_terms.add(term);
 	}
+	public void removeLast()
+	{
+		m_points.removeVertex(m_points.getNumVertices() - 1);
+		m_points.update(m_points);
+		m_terms.remove(m_terms.size() - 1);
+	}
 }
 
 abstract class Term

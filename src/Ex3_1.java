@@ -18,7 +18,6 @@
 import java.awt.Button;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -53,6 +52,7 @@ public class Ex3_1
 	private VectorField m_field;
 	private Button m_add;
 	private SingularityPanel m_singularityPanel;
+	private Button m_remove;
 
 	public static void main(String[] args)
 	{
@@ -117,6 +117,11 @@ public class Ex3_1
 		m_panel.add(m_add, c);
 		c.gridy++;
 
+		m_remove = new Button("Remove Last");
+		m_remove.addActionListener(this);
+		m_panel.add(m_remove, c);
+		c.gridy++;
+
 		m_singularityPanel = new SingularityPanel();
 		m_panel.add(m_singularityPanel, c);
 		c.gridy++;
@@ -139,6 +144,9 @@ public class Ex3_1
 				System.out.println("click onto point where you want to add a singularity");
 				m_disp.setMajorMode(PvDisplayIf.MODE_DISPLAY_PICK);
 			}
+		} else if (source == m_remove) {
+			m_field.removeLast();
+			updateVectorField();
 		} else {
 			assert false : "Unhandled action sender: " + source;
 		}
