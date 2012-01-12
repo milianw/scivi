@@ -123,3 +123,34 @@ class GenericTerm extends Term
 		return m_color;
 	}
 }
+
+class ConvergingElementTerm extends Term
+{
+	private double m_strength;
+	private double m_decay;
+	private Color m_color;
+	private PdVector m_n;
+	private PdVector m_e;
+	public ConvergingElementTerm(PdVector base, double strength, double decay, double theta, Color color)
+	{
+		super(base);
+		m_strength = strength;
+		m_decay = decay;
+		m_color = color;
+		m_n = new PdVector(-Math.sin(theta), Math.cos(theta));
+		m_e = new PdVector(Math.cos(theta), Math.sin(theta));
+	}
+	@Override
+	public PdVector evaluate(PdVector pos) {
+		PdVector sub = PdVector.subNew(pos, m_base);
+		PdVector ret = PdVector.copyNew(m_n);
+		ret.multScalar(sub.dot(m_n));
+		ret.add(m_e);
+		ret.multScalar(m_strength * Math.exp(-m_decay * sub.length()));
+		return ret;
+	}
+	@Override
+	public Color vertexColor() {
+		return m_color;
+	}
+}

@@ -86,6 +86,8 @@ abstract class AbstractUIItem
 		Saddle,
 		Center,
 		Focus,
+		ConvergingElement,
+		DivergingElement,
 		Generic,
 	}
 	protected PuDouble m_strength;
@@ -118,6 +120,10 @@ abstract class AbstractUIItem
 			return new CenterUIItem(panel);
 		case Focus:
 			return new FocusUIItem(panel);
+		case ConvergingElement:
+			return new ConvergingElementUIItem(panel);
+		case DivergingElement:
+			return new DivergingElementUIItem(panel);
 		case Generic:
 			return new GenericUIItem(panel);
 		}
@@ -129,24 +135,31 @@ abstract class AbstractUIItem
 abstract class AbstractAngleUIItem extends AbstractUIItem
 {
 	protected PuDouble m_angle;
-	public AbstractAngleUIItem(Panel panel) {
+	public AbstractAngleUIItem(Panel panel)
+	{
 		super(panel);
 		m_angle = new PuDouble("Angle");
 		m_angle.setBounds(0, 360);
 		m_angle.setValue(0);
 		panel.add(m_angle.getInfoPanel());
 	}
+	double angle()
+	{
+		return Math.toRadians(m_angle.getValue());
+	}
 }
 
 class ConstantUIItem extends AbstractAngleUIItem
 {
-	public ConstantUIItem(Panel panel) {
+	public ConstantUIItem(Panel panel)
+	{
 		super(panel);
 	}
 
 	@Override
-	public Term createTerm(PdVector base) {
-		double theta = Math.toRadians(m_angle.getValue());
+	public Term createTerm(PdVector base)
+	{
+		double theta = angle();
 		PdVector vec = new PdVector(Math.cos(theta), Math.sin(theta));
 		vec.multScalar(m_strength.getValue());
 		return new ConstantTerm(base, vec);
@@ -156,7 +169,8 @@ class ConstantUIItem extends AbstractAngleUIItem
 class GenericUIItem extends AbstractUIItem
 {
 	protected PuDouble[] m_a;
-	public GenericUIItem(Panel panel) {
+	public GenericUIItem(Panel panel)
+	{
 		super(panel);
 		m_a = new PuDouble[4];
 		for(int i = 0; i < 4; ++i) {
@@ -170,7 +184,8 @@ class GenericUIItem extends AbstractUIItem
 		}
 	}
 	@Override
-	public Term createTerm(PdVector base) {
+	public Term createTerm(PdVector base)
+	{
 		PdMatrix A = new PdMatrix(2, 2);
 		for(int i = 0; i < 4; ++i) {
 			int x = i % 2;
@@ -183,11 +198,13 @@ class GenericUIItem extends AbstractUIItem
 
 class SinkUIItem extends AbstractUIItem
 {
-	public SinkUIItem(Panel panel) {
+	public SinkUIItem(Panel panel)
+	{
 		super(panel);
 	}
 	@Override
-	public Term createTerm(PdVector base) {
+	public Term createTerm(PdVector base)
+	{
 		PdMatrix A = new PdMatrix(2, 2);
 		A.setConstant(0);
 		A.setEntry(0, 0, -1);
@@ -198,11 +215,13 @@ class SinkUIItem extends AbstractUIItem
 
 class SourceUIItem extends AbstractUIItem
 {
-	public SourceUIItem(Panel panel) {
+	public SourceUIItem(Panel panel)
+	{
 		super(panel);
 	}
 	@Override
-	public Term createTerm(PdVector base) {
+	public Term createTerm(PdVector base)
+	{
 		PdMatrix A = new PdMatrix(2, 2);
 		A.setConstant(0);
 		A.setEntry(0, 0, 1);
@@ -213,11 +232,13 @@ class SourceUIItem extends AbstractUIItem
 
 class SaddleUIItem extends AbstractUIItem
 {
-	public SaddleUIItem(Panel panel) {
+	public SaddleUIItem(Panel panel)
+	{
 		super(panel);
 	}
 	@Override
-	public Term createTerm(PdVector base) {
+	public Term createTerm(PdVector base)
+	{
 		PdMatrix A = new PdMatrix(2, 2);
 		A.setConstant(0);
 		A.setEntry(0, 0, 1);
@@ -229,13 +250,15 @@ class SaddleUIItem extends AbstractUIItem
 class CenterUIItem extends AbstractUIItem
 {
 	Checkbox m_clockwise;
-	public CenterUIItem(Panel panel) {
+	public CenterUIItem(Panel panel)
+	{
 		super(panel);
 		m_clockwise = new Checkbox("Clockwise");
 		panel.add(m_clockwise);
 	}
 	@Override
-	public Term createTerm(PdVector base) {
+	public Term createTerm(PdVector base)
+	{
 		PdMatrix A = new PdMatrix(2, 2);
 		A.setConstant(0);
 		int direction = m_clockwise.getState() ? -1 : 1;
@@ -247,17 +270,43 @@ class CenterUIItem extends AbstractUIItem
 
 class FocusUIItem extends AbstractAngleUIItem
 {
-	public FocusUIItem(Panel panel) {
+	public FocusUIItem(Panel panel)
+	{
 		super(panel);
 	}
 	@Override
-	public Term createTerm(PdVector base) {
+	public Term createTerm(PdVector base)
+	{
 		PdMatrix A = new PdMatrix(2, 2);
-		double theta = Math.toRadians(m_angle.getValue());
+		double theta = angle();
 		A.setEntry(0, 0, Math.cos(theta));
 		A.setEntry(0, 1, -Math.sin(theta));
 		A.setEntry(1, 0, Math.sin(theta));
 		A.setEntry(1, 1, Math.cos(theta));
 		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.green);
+	}
+}
+
+class ConvergingElementUIItem extends AbstractAngleUIItem
+{
+	public ConvergingElementUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public Term createTerm(PdVector base) {
+		return new ConvergingElementTerm(base, m_strength.getValue(), m_decay.getValue(),
+										angle(), Color.green);
+	}
+}
+
+class DivergingElementUIItem extends AbstractAngleUIItem
+{
+	public DivergingElementUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public Term createTerm(PdVector base) {
+		return new ConvergingElementTerm(base, -m_strength.getValue(), m_decay.getValue(),
+										angle(), Color.red);
 	}
 }
