@@ -22,6 +22,8 @@ import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.Box;
+
 import jv.geom.PgVectorField;
 import jv.object.PsUpdateIf;
 import jv.project.PgGeometryIf;
@@ -50,6 +52,7 @@ public class Ex3_1
 	private PgVectorField m_vec;
 	private VectorField m_field;
 	private Button m_add;
+	private SingularityPanel m_singularityPanel;
 
 	public static void main(String[] args)
 	{
@@ -107,14 +110,23 @@ public class Ex3_1
 		c.gridwidth = 2;
 		c.gridx = 0;
 		c.gridy = 0;
+		c.weighty = 0;
 
-		// reset/recalculate tensor
 		m_add = new Button("Add Singularity");
 		m_add.addActionListener(this);
 		m_panel.add(m_add, c);
+		c.gridy++;
 
-		show();
-		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
+		m_singularityPanel = new SingularityPanel();
+		m_panel.add(m_singularityPanel, c);
+		c.gridy++;
+
+		c.weighty = 1;
+		m_panel.add(Box.createVerticalBox(), c);
+		m_disp.fit();
+
+		m_frame.setSize(1000, 800);
+		m_frame.setVisible(true);
 	}
 
 	@Override
@@ -189,10 +201,7 @@ public class Ex3_1
 		// reset mode
 		m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
 
-		SingularityDialog dlg = new SingularityDialog(m_frame, pos.getVertex());
-		dlg.setModal(true);
-		dlg.setVisible(true);
-		Term singularity = dlg.getSingularity();
+		Term singularity = m_singularityPanel.createTerm(pos.getVertex());
 		if (singularity != null) {
 			m_field.addTerm(singularity);
 			updateVectorField();

@@ -35,6 +35,9 @@ public class ProjectBase implements PvGeometryListenerIf {
 		m_panel = new Panel();
 		m_panel.setLayout(new GridBagLayout());
 		m_frame.add(m_panel, BorderLayout.EAST);
+
+		// Position of left upper corner and size of m_frame when run as application.
+		m_frame.setBounds(new Rectangle(420, 5, 640, 550));
 	}
 	/**
 	 * call this at the end of your constructor
@@ -42,8 +45,6 @@ public class ProjectBase implements PvGeometryListenerIf {
 	protected void show()
 	{
 		m_frame.pack();
-		// Position of left upper corner and size of m_frame when run as application.
-		m_frame.setBounds(new Rectangle(420, 5, 640, 550));
 		m_frame.setVisible(true);
 	}
 
