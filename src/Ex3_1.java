@@ -63,7 +63,6 @@ public class Ex3_1
 		m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
 
 		m_field = new VectorField();
-		m_field.addTerm(new ConstantTerm(new PdVector(1, 1)));
 
 		// listener
 		m_disp.addGeometryListener(this);
@@ -121,8 +120,12 @@ public class Ex3_1
 	public void actionPerformed(ActionEvent e) {
 		Object source = e.getSource();
 		if (source == m_add) {
-			System.out.println("click onto point where you want to add a singularity");
-			m_disp.setMajorMode(PvDisplayIf.MODE_DISPLAY_PICK);
+			if (m_disp.getMajorMode() == PvDisplayIf.MODE_DISPLAY_PICK) {
+				m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
+			} else {
+				System.out.println("click onto point where you want to add a singularity");
+				m_disp.setMajorMode(PvDisplayIf.MODE_DISPLAY_PICK);
+			}
 		} else {
 			assert false : "Unhandled action sender: " + source;
 		}
@@ -182,11 +185,17 @@ public class Ex3_1
 
 	@Override
 	public void pickDisplay(PvPickEvent pos) {
+		// reset mode
 		m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
-		System.out.println("picked point for singularity:");
-		System.out.println(pos.getVertex());
-		m_field.addTerm(new SinkTerm(pos.getVertex()));
-		updateVectorField();
+
+		SingularityDialog dlg = new SingularityDialog(m_frame, pos.getVertex());
+		dlg.setModal(true);
+		dlg.setVisible(true);
+		Term singularity = dlg.getSingularity();
+		if (singularity != null) {
+			m_field.addTerm(singularity);
+			updateVectorField();
+		}
 	}
 
 	@Override
