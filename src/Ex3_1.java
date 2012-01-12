@@ -15,13 +15,18 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import java.awt.Button;
 import java.awt.Color;
+import java.awt.GridBagConstraints;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import jv.geom.PgVectorField;
 import jv.object.PsUpdateIf;
 import jv.project.PgGeometryIf;
 import jv.project.PvCameraIf;
+import jv.project.PvDisplayIf;
 import jv.project.PvGeometryListenerIf;
 import jv.project.PvPickEvent;
 import jv.project.PvPickListenerIf;
@@ -38,12 +43,13 @@ import jvx.vector.PwLIC;
  */
 public class Ex3_1
 	extends ProjectBase
-	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf
+	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf, ActionListener
 {
 	private PwLIC m_lic;
 	private PgDomain m_domain;
 	private PgVectorField m_vec;
 	private VectorField m_field;
+	private Button m_add;
 
 	public static void main(String[] args)
 	{
@@ -53,6 +59,8 @@ public class Ex3_1
 	public Ex3_1(String[] args)
 	{
 		super(args, "SciVis - Project 3 - Exercise 1 - Milian Wolff");
+
+		m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
 
 		m_field = new VectorField();
 		m_field.addTerm(new ConstantTerm(new PdVector(1, 1)));
@@ -95,8 +103,29 @@ public class Ex3_1
 
 		updateVectorField();
 
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridwidth = 2;
+		c.gridx = 0;
+		c.gridy = 0;
+
+		// reset/recalculate tensor
+		m_add = new Button("Add Singularity");
+		m_add.addActionListener(this);
+		m_panel.add(m_add, c);
+
 		show();
 		m_frame.setBounds(new Rectangle(420, 5, 1024, 550));
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		Object source = e.getSource();
+		if (source == m_add) {
+			System.out.println("click onto point where you want to add a singularity");
+			m_disp.setMajorMode(PvDisplayIf.MODE_DISPLAY_PICK);
+		} else {
+			assert false : "Unhandled action sender: " + source;
+		}
 	}
 
 	/**
@@ -153,16 +182,16 @@ public class Ex3_1
 
 	@Override
 	public void pickDisplay(PvPickEvent pos) {
-		// ignored
+		m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
+		System.out.println("picked point for singularity:");
+		System.out.println(pos.getVertex());
+		m_field.addTerm(new SinkTerm(pos.getVertex()));
+		updateVectorField();
 	}
 
 	@Override
 	public void pickInitial(PvPickEvent pos) {
 		// ignored
-		System.out.println("pick initial:");
-		System.out.println(pos.getVertex());
-		m_field.addTerm(new SinkTerm(pos.getVertex()));
-		updateVectorField();
 	}
 
 	@Override
@@ -174,5 +203,5 @@ public class Ex3_1
 	public void unmarkVertices(PvPickEvent pos) {
 		// ignored
 	}
-
+	
 }
