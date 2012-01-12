@@ -51,7 +51,7 @@ public class Ex3_1
 	private PgVectorField m_vec;
 	private VectorField m_field;
 	private Button m_add;
-	private SingularityPanel m_singularityPanel;
+	private VectorFieldPanel m_singularityPanel;
 	private Button m_remove;
 
 	public static void main(String[] args)
@@ -112,7 +112,7 @@ public class Ex3_1
 		c.gridy = 0;
 		c.weighty = 0;
 
-		m_add = new Button("Add Singularity");
+		m_add = new Button("Add New");
 		m_add.addActionListener(this);
 		m_panel.add(m_add, c);
 		c.gridy++;
@@ -122,7 +122,7 @@ public class Ex3_1
 		m_panel.add(m_remove, c);
 		c.gridy++;
 
-		m_singularityPanel = new SingularityPanel();
+		m_singularityPanel = new VectorFieldPanel();
 		m_panel.add(m_singularityPanel, c);
 		c.gridy++;
 
