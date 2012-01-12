@@ -17,6 +17,7 @@
 
 import java.util.ArrayList;
 
+import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 
 /**
@@ -62,17 +63,24 @@ class ConstantTerm implements Term
 	PdVector m_val;
 }
 
-class SinkTerm implements Term
+class GenericTerm implements Term
 {
-	public SinkTerm(PdVector pos)
+	PdVector m_pos;
+	PdMatrix m_a;
+	double m_strength;
+	double m_decay;
+	public GenericTerm(PdVector pos, PdMatrix A, double strength, double decay)
 	{
 		m_pos = PdVector.copyNew(pos);
+		m_a = PdMatrix.copyNew(A);
+		m_strength = strength;
+		m_decay = decay;
 	}
 	@Override
 	public PdVector evaluate(PdVector pos) {
 		PdVector ret = PdVector.subNew(pos, m_pos);
-		ret.multScalar(5 * Math.exp(-0.5 * ret.length()));
+		ret.leftMultMatrix(m_a);
+		ret.multScalar(m_strength * Math.exp(-m_decay * ret.length()));
 		return ret;
 	}
-	PdVector m_pos;
 }

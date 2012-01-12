@@ -15,52 +15,214 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import java.awt.BorderLayout;
-import java.awt.Font;
 import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Label;
 import java.awt.Panel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
+import jv.number.PuDouble;
+import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 
+abstract class AbstractUIItem
+{
+	public enum Type {
+		Constant,
+		Sink,
+		Source,
+		Saddle,
+		Center,
+		Generic,
+	}
+	protected PuDouble m_strength;
+	protected PuDouble m_decay;
+	AbstractUIItem(Panel panel)
+	{
+		m_strength = new PuDouble("Strength");
+		m_strength.setBounds(0, 10, 0.1, 1);
+		m_strength.setValue(1);
+		panel.add(m_strength.getInfoPanel());
+		m_decay = new PuDouble("Decay");
+		m_decay.setBounds(0, 10, 0.1, 1);
+		m_decay.setValue(0.5);
+		panel.add(m_decay.getInfoPanel());
+	}
+	abstract public Term createTerm(PdVector base);
+	
+	public static AbstractUIItem createItem(Type t, Panel panel)
+	{
+		switch(t) {
+		case Constant:
+			return new ConstantUIItem(panel);
+		case Sink:
+			return new SinkUIItem(panel);
+		case Source:
+			return new SourceUIItem(panel);
+		case Saddle:
+			return new SaddleUIItem(panel);
+		case Center:
+			return new CenterUIItem(panel);
+		case Generic:
+			return new GenericUIItem(panel);
+		}
+		return new ConstantUIItem(panel);
+	}
+}
+
+class ConstantUIItem extends AbstractUIItem
+{
+	private PuDouble m_theta;
+	public ConstantUIItem(Panel panel) {
+		super(panel);
+		m_theta = new PuDouble("Angle");
+		m_theta.setBounds(0, 360);
+		m_theta.setValue(0);
+		panel.add(m_theta.getInfoPanel());
+	}
+
+	@Override
+	public Term createTerm(PdVector base) {
+		double theta = Math.toRadians(m_theta.getValue());
+		PdVector vec = new PdVector(Math.cos(theta), Math.sin(theta));
+		vec.multScalar(m_strength.getValue());
+		return new ConstantTerm(vec);
+	}
+}
+
+class GenericUIItem extends AbstractUIItem
+{
+	protected PuDouble[] m_a;
+	public GenericUIItem(Panel panel) {
+		super(panel);
+		m_a = new PuDouble[4];
+		for(int i = 0; i < 4; ++i) {
+			int x = i % 2;
+			int y = i/2 % 2;
+			PuDouble a = new PuDouble("A[" + x + ", " + y + "]");
+			a.setBounds(-1, 1, 0.1, 0.2);
+			a.setValue(x == y ? 1 : 0);
+			panel.add(a.getInfoPanel());
+			m_a[i] = a;
+		}
+	}
+	@Override
+	public Term createTerm(PdVector base) {
+		PdMatrix A = new PdMatrix(2, 2);
+		for(int i = 0; i < 4; ++i) {
+			int x = i % 2;
+			int y = i/2 % 2;
+			A.setEntry(x, y, m_a[i].getValue());
+		}
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+	}
+}
+
+class SinkUIItem extends AbstractUIItem
+{
+	public SinkUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public Term createTerm(PdVector base) {
+		PdMatrix A = new PdMatrix(2, 2);
+		A.setConstant(0);
+		A.setEntry(0, 0, -1);
+		A.setEntry(1, 1, -1);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+	}
+}
+
+class SourceUIItem extends AbstractUIItem
+{
+	public SourceUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public Term createTerm(PdVector base) {
+		PdMatrix A = new PdMatrix(2, 2);
+		A.setConstant(0);
+		A.setEntry(0, 0, 1);
+		A.setEntry(1, 1, 1);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+	}
+}
+
+class SaddleUIItem extends AbstractUIItem
+{
+	public SaddleUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public Term createTerm(PdVector base) {
+		PdMatrix A = new PdMatrix(2, 2);
+		A.setConstant(0);
+		A.setEntry(0, 0, 1);
+		A.setEntry(1, 1, -1);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+	}
+}
+class CenterUIItem extends AbstractUIItem
+{
+	public CenterUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public Term createTerm(PdVector base) {
+		PdMatrix A = new PdMatrix(2, 2);
+		A.setConstant(0);
+		A.setEntry(0, 1, -1);
+		A.setEntry(1, 0, 1);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+	}
+}
+
 @SuppressWarnings("serial")
-public class SingularityDialog extends JDialog implements ActionListener
+public class SingularityDialog extends JDialog implements ActionListener, ItemListener
 {
 	private PdVector m_pos;
 	private Term m_term;
 	private JButton m_okButton;
 	private JButton m_cancelButton;
-
+	private JComboBox m_typeCombo;
+	private Panel[] m_panels;
+	private AbstractUIItem[] m_items;
+	
 	public SingularityDialog(Frame owner, PdVector point)
 	{
 		super(owner);
 		m_pos = point;
 
-		Panel panel = new Panel();
-		panel.setLayout(new GridBagLayout());
+		getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
+		
+		setTitle("Add Singularity at: " + m_pos.toShortString());
 
-		GridBagConstraints c = new GridBagConstraints();
-		c.gridwidth = 2;
-		c.gridx = 0;
-		c.gridy = 0;
+		m_panels = new Panel[AbstractUIItem.Type.values().length];
+		m_items = new AbstractUIItem[AbstractUIItem.Type.values().length];
 
-		Font boldFont = new Font("Dialog", Font.BOLD, 12);
+		m_typeCombo = new JComboBox();
+		getContentPane().add(m_typeCombo);
+		for(AbstractUIItem.Type t : AbstractUIItem.Type.values()) {
+			Panel panel = new Panel();
+			panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-		c.fill = GridBagConstraints.CENTER;
-		Label l = new Label("Add Singularity at: " + m_pos.toShortString());
-		l.setFont(boldFont);
-		panel.add(l, c);
-		c.fill = GridBagConstraints.HORIZONTAL;
+			m_panels[t.ordinal()] = panel;
+			AbstractUIItem item = AbstractUIItem.createItem(t, panel);
+			m_items[t.ordinal()] = item;
+			m_typeCombo.addItem(t);
 
-		getContentPane().add(panel);
+			getContentPane().add(panel);
+			panel.setVisible(false);
+		}
+		m_panels[m_typeCombo.getSelectedIndex()].setVisible(true);
+		m_typeCombo.addItemListener(this);
 
 		JPanel buttonPane = new JPanel();
 
@@ -72,7 +234,7 @@ public class SingularityDialog extends JDialog implements ActionListener
 		m_cancelButton.addActionListener(this);
 		buttonPane.add(m_cancelButton);
 
-		getContentPane().add(buttonPane, BorderLayout.SOUTH);
+		getContentPane().add(buttonPane);
 
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		pack();
@@ -82,13 +244,25 @@ public class SingularityDialog extends JDialog implements ActionListener
 		return m_term;
 	}
 	@Override
-	public void actionPerformed(ActionEvent e) {
+	public void actionPerformed(ActionEvent e)
+	{
 		Object source = e.getSource();
 		if (source == m_okButton) {
-			m_term = new SinkTerm(m_pos);
+			m_term = m_items[m_typeCombo.getSelectedIndex()].createTerm(m_pos);
 			setVisible(false);
 		} else if (source == m_cancelButton) {
 			setVisible(false);
+		}
+	}
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		if (e.getSource() == m_typeCombo) {
+			System.out.println(m_typeCombo.getSelectedIndex());
+			for(int i = 0; i < m_panels.length; ++i) {
+				m_panels[i].setVisible(i == m_typeCombo.getSelectedIndex());
+				System.out.println(i + " visible: " + (i == m_typeCombo.getSelectedIndex()));
+			}
+			pack();
 		}
 	}
 }
