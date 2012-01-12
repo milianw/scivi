@@ -85,6 +85,7 @@ abstract class AbstractUIItem
 		Source,
 		Saddle,
 		Center,
+		Focus,
 		Generic,
 	}
 	protected PuDouble m_strength;
@@ -115,27 +116,37 @@ abstract class AbstractUIItem
 			return new SaddleUIItem(panel);
 		case Center:
 			return new CenterUIItem(panel);
+		case Focus:
+			return new FocusUIItem(panel);
 		case Generic:
 			return new GenericUIItem(panel);
 		}
-		return new ConstantUIItem(panel);
+		assert false : "Unhandled type: " + t;
+		return null;
 	}
 }
 
-class ConstantUIItem extends AbstractUIItem
+abstract class AbstractAngleUIItem extends AbstractUIItem
 {
-	private PuDouble m_theta;
+	protected PuDouble m_angle;
+	public AbstractAngleUIItem(Panel panel) {
+		super(panel);
+		m_angle = new PuDouble("Angle");
+		m_angle.setBounds(0, 360);
+		m_angle.setValue(0);
+		panel.add(m_angle.getInfoPanel());
+	}
+}
+
+class ConstantUIItem extends AbstractAngleUIItem
+{
 	public ConstantUIItem(Panel panel) {
 		super(panel);
-		m_theta = new PuDouble("Angle");
-		m_theta.setBounds(0, 360);
-		m_theta.setValue(0);
-		panel.add(m_theta.getInfoPanel());
 	}
 
 	@Override
 	public Term createTerm(PdVector base) {
-		double theta = Math.toRadians(m_theta.getValue());
+		double theta = Math.toRadians(m_angle.getValue());
 		PdVector vec = new PdVector(Math.cos(theta), Math.sin(theta));
 		vec.multScalar(m_strength.getValue());
 		return new ConstantTerm(base, vec);
@@ -234,3 +245,19 @@ class CenterUIItem extends AbstractUIItem
 	}
 }
 
+class FocusUIItem extends AbstractAngleUIItem
+{
+	public FocusUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public Term createTerm(PdVector base) {
+		PdMatrix A = new PdMatrix(2, 2);
+		double theta = Math.toRadians(m_angle.getValue());
+		A.setEntry(0, 0, Math.cos(theta));
+		A.setEntry(0, 1, -Math.sin(theta));
+		A.setEntry(1, 0, Math.sin(theta));
+		A.setEntry(1, 1, Math.cos(theta));
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.green);
+	}
+}
