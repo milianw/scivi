@@ -63,6 +63,7 @@ public class Ex3_1
 		m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
 
 		m_field = new VectorField();
+		m_disp.addGeometry(m_field.pointSet());
 
 		// listener
 		m_disp.addGeometryListener(this);

@@ -15,6 +15,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import java.awt.Color;
 import java.awt.Frame;
 import java.awt.Panel;
 import java.awt.event.ActionEvent;
@@ -93,7 +94,7 @@ class ConstantUIItem extends AbstractUIItem
 		double theta = Math.toRadians(m_theta.getValue());
 		PdVector vec = new PdVector(Math.cos(theta), Math.sin(theta));
 		vec.multScalar(m_strength.getValue());
-		return new ConstantTerm(vec);
+		return new ConstantTerm(base, vec);
 	}
 }
 
@@ -121,7 +122,7 @@ class GenericUIItem extends AbstractUIItem
 			int y = i/2 % 2;
 			A.setEntry(x, y, m_a[i].getValue());
 		}
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.black);
 	}
 }
 
@@ -136,7 +137,7 @@ class SinkUIItem extends AbstractUIItem
 		A.setConstant(0);
 		A.setEntry(0, 0, -1);
 		A.setEntry(1, 1, -1);
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.red);
 	}
 }
 
@@ -151,7 +152,7 @@ class SourceUIItem extends AbstractUIItem
 		A.setConstant(0);
 		A.setEntry(0, 0, 1);
 		A.setEntry(1, 1, 1);
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.green);
 	}
 }
 
@@ -166,7 +167,7 @@ class SaddleUIItem extends AbstractUIItem
 		A.setConstant(0);
 		A.setEntry(0, 0, 1);
 		A.setEntry(1, 1, -1);
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.blue);
 	}
 }
 class CenterUIItem extends AbstractUIItem
@@ -180,7 +181,7 @@ class CenterUIItem extends AbstractUIItem
 		A.setConstant(0);
 		A.setEntry(0, 1, -1);
 		A.setEntry(1, 0, 1);
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue());
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.yellow);
 	}
 }
 
@@ -260,7 +261,6 @@ public class SingularityDialog extends JDialog implements ActionListener, ItemLi
 			System.out.println(m_typeCombo.getSelectedIndex());
 			for(int i = 0; i < m_panels.length; ++i) {
 				m_panels[i].setVisible(i == m_typeCombo.getSelectedIndex());
-				System.out.println(i + " visible: " + (i == m_typeCombo.getSelectedIndex()));
 			}
 			pack();
 		}

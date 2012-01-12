@@ -15,8 +15,10 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import java.awt.Color;
 import java.util.ArrayList;
 
+import jv.geom.PgPointSet;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 
@@ -25,9 +27,18 @@ import jv.vecmath.PdVector;
  */
 public class VectorField
 {
+	private ArrayList<Term> m_terms;
+	private PgPointSet m_points;
 	public VectorField()
 	{
 		m_terms = new ArrayList<Term>(10);
+		m_points = new PgPointSet(2);
+		m_points.showVertices(true);
+		m_points.showVertexColors(true);
+	}
+	public PgPointSet pointSet()
+	{
+		return m_points;
 	}
 	public PdVector evaluate(PdVector pos)
 	{
@@ -39,20 +50,34 @@ public class VectorField
 	}
 	public void addTerm(Term term)
 	{
+		m_points.addVertex(term.base());
+		m_points.setVertexColor(m_points.getNumVertices() - 1, term.vertexColor());
+		m_points.update(m_points);
 		m_terms.add(term);
 	}
-	private ArrayList<Term> m_terms;
 }
 
-interface Term
+abstract class Term
 {
-	public PdVector evaluate(PdVector pos);
-}
-
-class ConstantTerm implements Term
-{
-	public ConstantTerm(PdVector value)
+	protected PdVector m_base;
+	Term(PdVector base)
 	{
+		m_base = PdVector.copyNew(base);
+	}
+	public PdVector base()
+	{
+		return m_base;
+	}
+	abstract public PdVector evaluate(PdVector pos);
+	abstract public Color vertexColor();
+}
+
+class ConstantTerm extends Term
+{
+	protected PdVector m_val;
+	public ConstantTerm(PdVector base, PdVector value)
+	{
+		super(base);
 		m_val = PdVector.copyNew(value);
 	}
 	@Override
@@ -60,27 +85,35 @@ class ConstantTerm implements Term
 	{
 		return m_val;
 	}
-	PdVector m_val;
+	@Override
+	public Color vertexColor() {
+		return Color.white;
+	}
 }
 
-class GenericTerm implements Term
+class GenericTerm extends Term
 {
-	PdVector m_pos;
 	PdMatrix m_a;
 	double m_strength;
 	double m_decay;
-	public GenericTerm(PdVector pos, PdMatrix A, double strength, double decay)
+	Color m_color;
+	public GenericTerm(PdVector base, PdMatrix A, double strength, double decay, Color color)
 	{
-		m_pos = PdVector.copyNew(pos);
+		super(base);
 		m_a = PdMatrix.copyNew(A);
 		m_strength = strength;
 		m_decay = decay;
+		m_color = color;
 	}
 	@Override
 	public PdVector evaluate(PdVector pos) {
-		PdVector ret = PdVector.subNew(pos, m_pos);
+		PdVector ret = PdVector.subNew(pos, m_base);
 		ret.leftMultMatrix(m_a);
 		ret.multScalar(m_strength * Math.exp(-m_decay * ret.length()));
 		return ret;
+	}
+	@Override
+	public Color vertexColor() {
+		return m_color;
 	}
 }
