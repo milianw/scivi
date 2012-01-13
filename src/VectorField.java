@@ -25,7 +25,7 @@ import jv.vecmath.PdVector;
 /**
  * Two-Dimensional vector field
  */
-public class VectorField
+public class VectorField extends BasicUpdateIf
 {
 	private ArrayList<Term> m_terms;
 	private PgPointSet m_points;
@@ -53,90 +53,202 @@ public class VectorField
 		m_points.addVertex(term.base());
 		m_points.setVertexColor(m_points.getNumVertices() - 1, term.vertexColor());
 		m_points.update(m_points);
+		term.setParent(this);
 		m_terms.add(term);
+		update(this);
 	}
 	public void removeLast()
 	{
 		m_points.removeVertex(m_points.getNumVertices() - 1);
 		m_points.update(m_points);
 		m_terms.remove(m_terms.size() - 1);
+		update(this);
+	}
+	public void removeTerm(int index)
+	{
+		m_points.removeVertex(index);
+		m_points.update(m_points);
+		m_terms.remove(index);
+		update(this);
+	}
+	public Term getTerm(int index)
+	{
+		return m_terms.get(index);
+	}
+	@Override
+	public boolean update(Object event) {
+		if (m_terms.contains(event)) {
+			update(this);
+			return true;
+		}
+		return super.update(event);
 	}
 }
 
-abstract class Term
+abstract class Term extends BasicUpdateIf
 {
 	protected PdVector m_base;
-	Term(PdVector base)
+	protected double m_strength;
+	protected double m_decay;
+	Term(PdVector base, double strength, double decay)
 	{
 		m_base = PdVector.copyNew(base);
+		m_strength = strength;
+		m_decay = decay;
 	}
 	public PdVector base()
 	{
 		return m_base;
 	}
+	public void setBase(PdVector base)
+	{
+		m_base = base;
+		update(this);
+	}
+	public double strength()
+	{
+		return m_strength;
+	}
+	public void setStrength(double strength)
+	{
+		m_strength = strength;
+		update(this);
+	}
+	public double decay()
+	{
+		return m_decay;
+	}
+	public void setDecay(double decay)
+	{
+		m_decay = decay;
+		update(this);
+	}
+	public double scaleFactor(PdVector pos)
+	{
+		return m_strength * Math.exp(- m_decay * PdVector.subNew(m_base, pos).sqrLength());
+	}
 	abstract public PdVector evaluate(PdVector pos);
 	abstract public Color vertexColor();
+	abstract public FeatureType type();
 }
 
-class ConstantTerm extends Term
+abstract class AngleTerm extends Term
+{
+	protected double m_angle;
+	public AngleTerm(PdVector base, double strength, double decay, double angle)
+	{
+		super(base, strength, decay);
+		m_angle = angle;
+	}
+	public double angle()
+	{
+		return m_angle;
+	}
+	public void setAngle(double angle)
+	{
+		m_angle = angle;
+		update(this);
+	}
+}
+
+enum FeatureType {
+	Constant,
+	Sink,
+	Source,
+	Saddle,
+	Center,
+	Focus,
+	ConvergingElement,
+	DivergingElement,
+	Generic,
+}
+
+class ConstantTerm extends AngleTerm
 {
 	protected PdVector m_val;
-	public ConstantTerm(PdVector base, PdVector value)
+	public ConstantTerm(PdVector base, double strength, double decay, double theta)
 	{
-		super(base);
-		m_val = PdVector.copyNew(value);
+		super(base, strength, decay, theta);
+		m_val = new PdVector(Math.cos(theta), Math.sin(theta));
 	}
 	@Override
 	public PdVector evaluate(PdVector pos)
 	{
-		return m_val;
+		PdVector ret = PdVector.copyNew(m_val);
+		ret.multScalar(scaleFactor(pos));
+		return ret;
 	}
 	@Override
 	public Color vertexColor() {
 		return Color.white;
 	}
+	@Override
+	public FeatureType type() {
+		return FeatureType.Constant;
+	}
 }
 
 class GenericTerm extends Term
 {
-	PdMatrix m_a;
-	double m_strength;
-	double m_decay;
-	Color m_color;
-	public GenericTerm(PdVector base, PdMatrix A, double strength, double decay, Color color)
+	protected PdMatrix m_a;
+	protected FeatureType m_type;
+	public GenericTerm(PdVector base, PdMatrix A,
+						double strength, double decay,
+						FeatureType type)
 	{
-		super(base);
+		super(base, strength, decay);
+
+		assert type == FeatureType.Saddle || type == FeatureType.Sink
+				|| type == FeatureType.Source || type == FeatureType.Center
+				|| type == FeatureType.Focus;
+
 		m_a = PdMatrix.copyNew(A);
-		m_strength = strength;
-		m_decay = decay;
-		m_color = color;
+		m_type = type;
 	}
 	@Override
 	public PdVector evaluate(PdVector pos) {
 		PdVector ret = PdVector.subNew(pos, m_base);
 		ret.leftMultMatrix(m_a);
-		ret.multScalar(m_strength * Math.exp(-m_decay * ret.length()));
+		ret.multScalar(scaleFactor(pos));
 		return ret;
 	}
 	@Override
 	public Color vertexColor() {
-		return m_color;
+		switch(m_type) {
+		case Focus:
+		case Center:
+		case Source:
+			return Color.green;
+		case Sink:
+			return Color.red;
+		case Saddle:
+			return Color.blue;
+		default:
+			return Color.black;
+		}
+	}
+	@Override
+	public FeatureType type() {
+		return m_type;
+	}
+	public PdMatrix coeffs()
+	{
+		return m_a;
+	}
+	public void setCoeffs(PdMatrix A)
+	{
+		m_a = A;
+		update(this);
 	}
 }
 
-class ConvergingElementTerm extends Term
+class ConvergingElementTerm extends AngleTerm
 {
-	private double m_strength;
-	private double m_decay;
-	private Color m_color;
 	private PdVector m_n;
 	private PdVector m_e;
-	public ConvergingElementTerm(PdVector base, double strength, double decay, double theta, Color color)
+	public ConvergingElementTerm(PdVector base, double strength, double decay, double theta)
 	{
-		super(base);
-		m_strength = strength;
-		m_decay = decay;
-		m_color = color;
+		super(base, strength, decay, theta);
 		m_n = new PdVector(-Math.sin(theta), Math.cos(theta));
 		m_e = new PdVector(Math.cos(theta), Math.sin(theta));
 	}
@@ -151,6 +263,10 @@ class ConvergingElementTerm extends Term
 	}
 	@Override
 	public Color vertexColor() {
-		return m_color;
+		return m_strength < 0 ? Color.red : Color.green;
+	}
+	@Override
+	public FeatureType type() {
+		return m_strength < 0 ? FeatureType.ConvergingElement : FeatureType.DivergingElement;
 	}
 }

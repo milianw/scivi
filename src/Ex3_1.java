@@ -15,11 +15,12 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import java.awt.Button;
+import java.awt.Checkbox;
+import java.awt.CheckboxGroup;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 
 import javax.swing.Box;
 
@@ -44,15 +45,16 @@ import jvx.vector.PwLIC;
  */
 public class Ex3_1
 	extends ProjectBase
-	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf, ActionListener
+	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf, ItemListener
 {
 	private PwLIC m_lic;
 	private PgDomain m_domain;
 	private PgVectorField m_vec;
 	private VectorField m_field;
-	private Button m_add;
 	private VectorFieldPanel m_singularityPanel;
-	private Button m_remove;
+	private Checkbox m_add;
+	private Checkbox m_remove;
+	private Checkbox m_select;
 
 	public static void main(String[] args)
 	{
@@ -63,9 +65,10 @@ public class Ex3_1
 	{
 		super(args, "SciVis - Project 3 - Exercise 1 - Milian Wolff");
 
-		m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
+		m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
 
 		m_field = new VectorField();
+		m_field.setParent(this);
 		m_disp.addGeometry(m_field.pointSet());
 
 		// listener
@@ -107,19 +110,25 @@ public class Ex3_1
 		updateVectorField();
 
 		GridBagConstraints c = new GridBagConstraints();
-		c.gridwidth = 2;
+		c.gridwidth = 3;
 		c.gridx = 0;
 		c.gridy = 0;
 		c.weighty = 0;
 
-		m_add = new Button("Add New");
-		m_add.addActionListener(this);
+		CheckboxGroup group = new CheckboxGroup();
+		m_add = new Checkbox("Add", group, true);
+		m_add.addItemListener(this);
 		m_panel.add(m_add, c);
 		c.gridy++;
 
-		m_remove = new Button("Remove Last");
-		m_remove.addActionListener(this);
+		m_remove = new Checkbox("Remove", group, false);
+		m_remove.addItemListener(this);
 		m_panel.add(m_remove, c);
+		c.gridy++;
+
+		m_select = new Checkbox("Select", group, false);
+		m_select.addItemListener(this);
+		m_panel.add(m_select, c);
 		c.gridy++;
 
 		m_singularityPanel = new VectorFieldPanel();
@@ -135,20 +144,19 @@ public class Ex3_1
 	}
 
 	@Override
-	public void actionPerformed(ActionEvent e) {
+	public void itemStateChanged(ItemEvent e) {
 		Object source = e.getSource();
 		if (source == m_add) {
-			if (m_disp.getMajorMode() == PvDisplayIf.MODE_DISPLAY_PICK) {
-				m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
-			} else {
-				System.out.println("click onto point where you want to add a singularity");
-				m_disp.setMajorMode(PvDisplayIf.MODE_DISPLAY_PICK);
-			}
+			m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
+			System.out.println("click into the display to add a feature");
 		} else if (source == m_remove) {
-			m_field.removeLast();
-			updateVectorField();
+			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
+			System.out.println("click near a feature to remove it");
+		} else if (source == m_select) {
+			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
+			System.out.println("click near a feature to select it");
 		} else {
-			assert false : "Unhandled action sender: " + source;
+			assert false : "Unhandled item changed: " + source;
 		}
 	}
 
@@ -169,9 +177,10 @@ public class Ex3_1
 		if (event == m_lic) {
 			m_disp.update(m_domain);
 			return true;
+		} else if (event == m_field) {
+			updateVectorField();
+			return true;
 		}
-
-		System.err.println("update: " + event);
 		return false;
 	}
 	@Override
@@ -206,29 +215,31 @@ public class Ex3_1
 
 	@Override
 	public void pickDisplay(PvPickEvent pos) {
-		// reset mode
-		m_disp.setMajorMode(PvDisplayIf.MODE_SCALE);
-
-		Term singularity = m_singularityPanel.createTerm(pos.getVertex());
-		if (singularity != null) {
-			m_field.addTerm(singularity);
-			updateVectorField();
-		}
+		// ignored
 	}
 
 	@Override
 	public void pickInitial(PvPickEvent pos) {
-		// ignored
+		Term term = m_singularityPanel.createTerm(pos.getVertex());
+		m_field.addTerm(term);
+		m_singularityPanel.setTerm(term);
 	}
 
 	@Override
 	public void pickVertex(PgGeometryIf geom, int index, PdVector vertex) {
-		// ignored
+		if (geom == m_field.pointSet()) {
+			if (m_remove.getState()) {
+				m_field.removeTerm(index);
+				m_singularityPanel.setTerm(null);
+			} else {
+				assert m_select.getState();
+				m_singularityPanel.setTerm(m_field.getTerm(index));
+			}
+		}
 	}
 
 	@Override
 	public void unmarkVertices(PvPickEvent pos) {
 		// ignored
 	}
-	
 }

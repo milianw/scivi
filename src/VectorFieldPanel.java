@@ -16,7 +16,6 @@
 */
 
 import java.awt.Checkbox;
-import java.awt.Color;
 import java.awt.Panel;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -40,12 +39,12 @@ public class VectorFieldPanel extends JPanel implements ItemListener
 	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-		m_panels = new Panel[AbstractUIItem.Type.values().length];
-		m_items = new AbstractUIItem[AbstractUIItem.Type.values().length];
+		m_panels = new Panel[FeatureType.values().length];
+		m_items = new AbstractUIItem[FeatureType.values().length];
 
 		m_typeCombo = new JComboBox();
 		add(m_typeCombo);
-		for(AbstractUIItem.Type t : AbstractUIItem.Type.values()) {
+		for(FeatureType t : FeatureType.values()) {
 			Panel panel = new Panel();
 			panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
@@ -72,40 +71,62 @@ public class VectorFieldPanel extends JPanel implements ItemListener
 	}
 	public Term createTerm(PdVector base)
 	{
+		if (base.getSize() == 3) {
+			base.setSize(2);
+		}
+		assert base.getSize() == 2;
 		return m_items[m_typeCombo.getSelectedIndex()].createTerm(base);
+	}
+	public void setTerm(Term term)
+	{
+		if (term != null) {
+			m_typeCombo.setSelectedIndex(term.type().ordinal());
+		}
+		m_items[m_typeCombo.getSelectedIndex()].setTerm(term);
 	}
 }
 
-
-abstract class AbstractUIItem
+abstract class AbstractUIItem extends BasicUpdateIf
 {
-	public enum Type {
-		Constant,
-		Sink,
-		Source,
-		Saddle,
-		Center,
-		Focus,
-		ConvergingElement,
-		DivergingElement,
-		Generic,
-	}
 	protected PuDouble m_strength;
 	protected PuDouble m_decay;
+	protected Term m_term;
 	AbstractUIItem(Panel panel)
 	{
 		m_strength = new PuDouble("Strength");
 		m_strength.setBounds(0, 10, 0.1, 1);
 		m_strength.setValue(1);
+		m_strength.addUpdateListener(this);
 		panel.add(m_strength.getInfoPanel());
 		m_decay = new PuDouble("Decay");
-		m_decay.setBounds(0, 10, 0.1, 1);
+		m_decay.setBounds(0, 1, 0.01, 0.1);
 		m_decay.setValue(0.5);
+		m_decay.addUpdateListener(this);
 		panel.add(m_decay.getInfoPanel());
 	}
 	abstract public Term createTerm(PdVector base);
-	
-	public static AbstractUIItem createItem(Type t, Panel panel)
+	public void setTerm(Term term)
+	{
+		m_term = term;
+		if (term != null) {
+			m_strength.setValue(term.strength());
+			m_decay.setValue(term.decay());
+		}
+	}
+	@Override
+	public boolean update(Object event) {
+		if (m_term != null) {
+			if (event == m_strength) {
+				m_term.setStrength(m_strength.getValue());
+				return true;
+			} else if (event == m_decay) {
+				m_term.setDecay(m_decay.getValue());
+				return true;
+			}
+		}
+		return super.update(event);
+	}
+	public static AbstractUIItem createItem(FeatureType t, Panel panel)
 	{
 		switch(t) {
 		case Constant:
@@ -141,11 +162,28 @@ abstract class AbstractAngleUIItem extends AbstractUIItem
 		m_angle = new PuDouble("Angle");
 		m_angle.setBounds(0, 360);
 		m_angle.setValue(0);
+		m_angle.addUpdateListener(this);
 		panel.add(m_angle.getInfoPanel());
 	}
 	double angle()
 	{
 		return Math.toRadians(m_angle.getValue());
+	}
+	@Override
+	public void setTerm(Term term) {
+		super.setTerm(term);
+		if (term != null) {
+			AngleTerm t = (AngleTerm) term;
+			m_angle.setValue(Math.toDegrees(t.angle()));
+		}
+	}
+	@Override
+	public boolean update(Object event) {
+		if (event == m_angle && m_term != null) {
+			((AngleTerm) m_term).setAngle(angle());
+			return true;
+		}
+		return super.update(event);
 	}
 }
 
@@ -159,10 +197,7 @@ class ConstantUIItem extends AbstractAngleUIItem
 	@Override
 	public Term createTerm(PdVector base)
 	{
-		double theta = angle();
-		PdVector vec = new PdVector(Math.cos(theta), Math.sin(theta));
-		vec.multScalar(m_strength.getValue());
-		return new ConstantTerm(base, vec);
+		return new ConstantTerm(base, m_strength.getValue(), m_decay.getValue(), angle());
 	}
 }
 
@@ -179,6 +214,7 @@ class GenericUIItem extends AbstractUIItem
 			PuDouble a = new PuDouble("A[" + x + ", " + y + "]");
 			a.setBounds(-1, 1, 0.1, 0.2);
 			a.setValue(x == y ? 1 : 0);
+			a.addUpdateListener(this);
 			panel.add(a.getInfoPanel());
 			m_a[i] = a;
 		}
@@ -192,7 +228,36 @@ class GenericUIItem extends AbstractUIItem
 			int y = i/2 % 2;
 			A.setEntry(x, y, m_a[i].getValue());
 		}
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.black);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(),
+				FeatureType.Generic);
+	}
+	@Override
+	public void setTerm(Term term) {
+		super.setTerm(term);
+		if (term != null) {
+			GenericTerm t = (GenericTerm) term;
+			PdMatrix A = t.coeffs();
+			for(int i = 0; i < 4; ++i) {
+				int x = i % 2;
+				int y = i/2 % 2;
+				m_a[i].setValue(A.getEntry(x, y));
+			}
+		}
+	}
+	@Override
+	public boolean update(Object event) {
+		if (m_term != null) {
+			for(int i = 0; i < 4; ++i) {
+				if (event == m_a[i]) {
+					int x = i % 2;
+					int y = i/2 % 2;
+					((GenericTerm) m_term).coeffs().setEntry(x, y, m_a[i].getValue());
+					m_term.update(this);
+					return true;
+				}
+			}
+		}
+		return super.update(event);
 	}
 }
 
@@ -209,7 +274,7 @@ class SinkUIItem extends AbstractUIItem
 		A.setConstant(0);
 		A.setEntry(0, 0, -1);
 		A.setEntry(1, 1, -1);
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.red);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), FeatureType.Sink);
 	}
 }
 
@@ -226,7 +291,7 @@ class SourceUIItem extends AbstractUIItem
 		A.setConstant(0);
 		A.setEntry(0, 0, 1);
 		A.setEntry(1, 1, 1);
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.green);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), FeatureType.Source);
 	}
 }
 
@@ -243,17 +308,18 @@ class SaddleUIItem extends AbstractUIItem
 		A.setConstant(0);
 		A.setEntry(0, 0, 1);
 		A.setEntry(1, 1, -1);
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.blue);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), FeatureType.Saddle);
 	}
 }
 
-class CenterUIItem extends AbstractUIItem
+class CenterUIItem extends AbstractUIItem implements ItemListener
 {
 	Checkbox m_clockwise;
 	public CenterUIItem(Panel panel)
 	{
 		super(panel);
 		m_clockwise = new Checkbox("Clockwise");
+		m_clockwise.addItemListener(this);
 		panel.add(m_clockwise);
 	}
 	@Override
@@ -264,7 +330,23 @@ class CenterUIItem extends AbstractUIItem
 		int direction = m_clockwise.getState() ? -1 : 1;
 		A.setEntry(0, 1, -1 * direction);
 		A.setEntry(1, 0, 1 * direction);
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.yellow);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), FeatureType.Center);
+	}
+	@Override
+	public void setTerm(Term term) {
+		super.setTerm(term);
+		if (term != null) {
+			m_clockwise.setState(((GenericTerm) term).coeffs().getEntry(0, 1) == 1);
+		}
+	}
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		assert e.getSource() == m_clockwise;
+		if (m_term != null) {
+			GenericTerm t = (GenericTerm) m_term;
+			t.coeffs().multScalar(-1);
+			m_term.update(this);
+		}
 	}
 }
 
@@ -283,7 +365,7 @@ class FocusUIItem extends AbstractAngleUIItem
 		A.setEntry(0, 1, -Math.sin(theta));
 		A.setEntry(1, 0, Math.sin(theta));
 		A.setEntry(1, 1, Math.cos(theta));
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), Color.green);
+		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), FeatureType.Focus);
 	}
 }
 
@@ -294,8 +376,7 @@ class ConvergingElementUIItem extends AbstractAngleUIItem
 	}
 	@Override
 	public Term createTerm(PdVector base) {
-		return new ConvergingElementTerm(base, m_strength.getValue(), m_decay.getValue(),
-										angle(), Color.green);
+		return new ConvergingElementTerm(base, -m_strength.getValue(), m_decay.getValue(), angle());
 	}
 }
 
@@ -306,7 +387,6 @@ class DivergingElementUIItem extends AbstractAngleUIItem
 	}
 	@Override
 	public Term createTerm(PdVector base) {
-		return new ConvergingElementTerm(base, -m_strength.getValue(), m_decay.getValue(),
-										angle(), Color.red);
+		return new ConvergingElementTerm(base, m_strength.getValue(), m_decay.getValue(), angle());
 	}
 }
