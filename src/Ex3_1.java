@@ -25,6 +25,7 @@ import java.awt.event.ItemListener;
 import javax.swing.Box;
 
 import jv.geom.PgVectorField;
+import jv.number.PuDouble;
 import jv.object.PsUpdateIf;
 import jv.project.PgGeometryIf;
 import jv.project.PvCameraIf;
@@ -32,6 +33,7 @@ import jv.project.PvDisplayIf;
 import jv.project.PvGeometryListenerIf;
 import jv.project.PvPickEvent;
 import jv.project.PvPickListenerIf;
+import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
@@ -55,6 +57,8 @@ public class Ex3_1
 	private Checkbox m_add;
 	private Checkbox m_remove;
 	private Checkbox m_select;
+	private PuDouble m_flowRotate;
+	private Checkbox m_flowReflect;
 
 	public static void main(String[] args)
 	{
@@ -107,29 +111,42 @@ public class Ex3_1
 		m_disp.addPickListener(this);
 		m_disp.fit();
 
-		updateVectorField();
-
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridwidth = 3;
 		c.gridx = 0;
 		c.gridy = 0;
 		c.weighty = 0;
 
+		m_flowReflect = new Checkbox("Reflect Flow", false);
+		m_flowReflect.addItemListener(this);
+		m_panel.add(m_flowReflect, c);
+		c.gridy++;
+
+		m_flowRotate = new PuDouble("Rotate Flow", this);
+		m_flowRotate.setBounds(0, 360);
+		m_panel.add(m_flowRotate.getInfoPanel(), c);
+		c.gridy++;
+
 		CheckboxGroup group = new CheckboxGroup();
+		c.gridwidth = 1;
 		m_add = new Checkbox("Add", group, true);
 		m_add.addItemListener(this);
 		m_panel.add(m_add, c);
-		c.gridy++;
+		c.gridx++;
 
 		m_remove = new Checkbox("Remove", group, false);
 		m_remove.addItemListener(this);
 		m_panel.add(m_remove, c);
-		c.gridy++;
+		c.gridx++;
 
 		m_select = new Checkbox("Select", group, false);
 		m_select.addItemListener(this);
 		m_panel.add(m_select, c);
+		c.gridx++;
+
 		c.gridy++;
+		c.gridx = 0;
+		c.gridwidth = 3;
 
 		m_singularityPanel = new VectorFieldPanel();
 		m_panel.add(m_singularityPanel, c);
@@ -138,6 +155,8 @@ public class Ex3_1
 		c.weighty = 1;
 		m_panel.add(Box.createVerticalBox(), c);
 		m_disp.fit();
+
+		updateVectorField();
 
 		m_frame.setSize(1000, 800);
 		m_frame.setVisible(true);
@@ -155,6 +174,10 @@ public class Ex3_1
 		} else if (source == m_select) {
 			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
 			System.out.println("click near a feature to select it");
+		} else if (source == m_flowReflect) {
+			updateVectorField();
+		} else if (source == m_flowRotate) {
+
 		} else {
 			assert false : "Unhandled item changed: " + source;
 		}
@@ -164,10 +187,22 @@ public class Ex3_1
 	 * (Re)Compute vector field.
 	 */
 	public void updateVectorField() {
-		//compute ramdom vector field
+		PdMatrix A = new PdMatrix(2, 2);
+		double theta = Math.toRadians(m_flowRotate.getValue());
+		A.setEntry(0, 0, Math.cos(theta));
+		A.setEntry(0, 1, -Math.sin(theta));
+		A.setEntry(1, 0, Math.sin(theta));
+		A.setEntry(1, 1, Math.cos(theta));
+		if (m_flowReflect.getState()) {
+			A.setEntry(0, 1, A.getEntry(0, 1) * -1);
+			A.setEntry(1, 1, A.getEntry(1, 1) * -1);
+		}
+
 		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
 			PdVector pos = m_domain.getVertex(i);
-			m_vec.setVector(i, m_field.evaluate(pos));
+			PdVector vec = m_field.evaluate(pos);
+			vec.leftMultMatrix(A);
+			m_vec.setVector(i, vec);
 			assert m_vec.getVector(i).getSize() == 2 : m_vec.getVector(i).getSize();
 		}
 		m_vec.update(m_vec);
@@ -179,6 +214,9 @@ public class Ex3_1
 			m_disp.update(m_domain);
 			return true;
 		} else if (event == m_field) {
+			updateVectorField();
+			return true;
+		} else if (event == m_flowRotate) {
 			updateVectorField();
 			return true;
 		}
