@@ -262,7 +262,7 @@ class ConvergingElementTerm extends AngleTerm
 		PdVector ret = PdVector.copyNew(m_n);
 		ret.multScalar(sub.dot(m_n));
 		ret.add(m_e);
-		ret.multScalar(m_strength * Math.exp(-m_decay * sub.length()));
+		ret.multScalar(scaleFactor(pos));
 		return ret;
 	}
 	@Override

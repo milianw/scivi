@@ -95,12 +95,12 @@ abstract class AbstractUIItem extends BasicUpdateIf
 	{
 		m_strength = new PuDouble("Strength");
 		m_strength.setBounds(0, 10, 0.1, 1);
-		m_strength.setValue(1);
+		m_strength.setValue(5);
 		m_strength.addUpdateListener(this);
 		panel.add(m_strength.getInfoPanel());
 		m_decay = new PuDouble("Decay");
 		m_decay.setBounds(0, 1, 0.01, 0.1);
-		m_decay.setValue(0.5);
+		m_decay.setValue(0.1);
 		m_decay.addUpdateListener(this);
 		panel.add(m_decay.getInfoPanel());
 	}
@@ -161,7 +161,7 @@ abstract class AbstractAngleUIItem extends AbstractUIItem
 		super(panel);
 		m_angle = new PuDouble("Angle");
 		m_angle.setBounds(0, 360);
-		m_angle.setValue(0);
+		m_angle.setValue(45);
 		m_angle.addUpdateListener(this);
 		panel.add(m_angle.getInfoPanel());
 	}
