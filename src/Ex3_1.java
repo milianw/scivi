@@ -87,7 +87,7 @@ public class Ex3_1
 		descr.setDiscr(10, 10);
 		m_domain.compute();
 		
-		m_vec = new PgVectorField(3);
+		m_vec = new PgVectorField(2);
 		m_vec.setBasedOn(PgVectorField.VERTEX_BASED);
 		m_vec.setNumVectors(m_domain.getNumVertices());
 		m_vec.setGeometry(m_domain);
@@ -168,6 +168,7 @@ public class Ex3_1
 		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
 			PdVector pos = m_domain.getVertex(i);
 			m_vec.setVector(i, m_field.evaluate(pos));
+			assert m_vec.getVector(i).getSize() == 2 : m_vec.getVector(i).getSize();
 		}
 		m_vec.update(m_vec);
 		m_lic.startLIC();

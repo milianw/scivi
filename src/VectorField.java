@@ -43,9 +43,11 @@ public class VectorField extends BasicUpdateIf
 	public PdVector evaluate(PdVector pos)
 	{
 		PdVector ret = new PdVector(0, 0);
+		assert ret.getSize() == 2;
 		for(Term t : m_terms) {
 			ret.add(t.evaluate(pos));
 		}
+		assert ret.getSize() == 2;
 		return ret;
 	}
 	public void addTerm(Term term)
@@ -93,6 +95,7 @@ abstract class Term extends BasicUpdateIf
 	Term(PdVector base, double strength, double decay)
 	{
 		m_base = PdVector.copyNew(base);
+		assert m_base.getSize() == 2;
 		m_strength = strength;
 		m_decay = decay;
 	}
@@ -102,6 +105,7 @@ abstract class Term extends BasicUpdateIf
 	}
 	public void setBase(PdVector base)
 	{
+		assert base.getSize() == 2;
 		m_base = base;
 		update(this);
 	}

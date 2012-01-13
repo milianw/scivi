@@ -173,15 +173,23 @@ abstract class AbstractAngleUIItem extends AbstractUIItem
 	public void setTerm(Term term) {
 		super.setTerm(term);
 		if (term != null) {
-			AngleTerm t = (AngleTerm) term;
-			m_angle.setValue(Math.toDegrees(t.angle()));
+			try {
+				AngleTerm t = (AngleTerm) term;
+				m_angle.setValue(Math.toDegrees(t.angle()));
+			} catch(Exception e) {
+				
+			}
 		}
 	}
 	@Override
 	public boolean update(Object event) {
 		if (event == m_angle && m_term != null) {
+			try {
 			((AngleTerm) m_term).setAngle(angle());
 			return true;
+			} catch(Exception e) {
+				
+			}
 		}
 		return super.update(event);
 	}
@@ -359,13 +367,33 @@ class FocusUIItem extends AbstractAngleUIItem
 	@Override
 	public Term createTerm(PdVector base)
 	{
+		return new GenericTerm(base, getCoeffs(), m_strength.getValue(),
+				m_decay.getValue(), FeatureType.Focus);
+	}
+	public PdMatrix getCoeffs()
+	{
 		PdMatrix A = new PdMatrix(2, 2);
 		double theta = angle();
 		A.setEntry(0, 0, Math.cos(theta));
 		A.setEntry(0, 1, -Math.sin(theta));
 		A.setEntry(1, 0, Math.sin(theta));
 		A.setEntry(1, 1, Math.cos(theta));
-		return new GenericTerm(base, A, m_strength.getValue(), m_decay.getValue(), FeatureType.Focus);
+		return A;
+	}
+	@Override
+	public void setTerm(Term term) {
+		if (term != null) {
+			m_angle.setValue(Math.toDegrees(Math.acos(((GenericTerm) term).coeffs().getEntry(0, 0))));
+		}
+		super.setTerm(term);
+	}
+	@Override
+	public boolean update(Object event) {
+		if (m_term != null && event == m_angle) {
+			((GenericTerm) m_term).setCoeffs(getCoeffs());
+			return true;
+		}
+		return super.update(event);
 	}
 }
 
