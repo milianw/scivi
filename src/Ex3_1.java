@@ -14,51 +14,38 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-import java.awt.Checkbox;
-import java.awt.CheckboxGroup;
-import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
-import javax.swing.Box;
+import javax.swing.JComboBox;
 
+import jv.geom.PgElementSet;
 import jv.geom.PgVectorField;
-import jv.number.PuDouble;
-import jv.object.PsUpdateIf;
-import jv.project.PgGeometryIf;
-import jv.project.PvCameraIf;
-import jv.project.PvDisplayIf;
-import jv.project.PvGeometryListenerIf;
-import jv.project.PvPickEvent;
-import jv.project.PvPickListenerIf;
-import jv.vecmath.PdMatrix;
+import jv.number.PuInteger;
 import jv.vecmath.PdVector;
-import jvx.surface.PgDomain;
-import jvx.surface.PgDomainDescr;
-import jvx.vector.PwLIC;
 
-/**
- * Solution to fourth exercise of the second project
+/*
  * 
  * @author		Milian Wolff
  * @version		10.01.2012, 1.00 created
  */
 public class Ex3_1
 	extends ProjectBase
-	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf, ItemListener
+	implements ItemListener
 {
-	private PwLIC m_lic;
-	private PgDomain m_domain;
-	private PgVectorField m_vec;
-	private VectorField m_field;
-	private VectorFieldPanel m_singularityPanel;
-	private Checkbox m_add;
-	private Checkbox m_remove;
-	private Checkbox m_select;
-	private PuDouble m_flowRotate;
-	private Checkbox m_flowReflect;
+	private JComboBox m_fieldCombo;
+	private PgElementSet m_geometry;
+	private PgVectorField m_field;
+	private PuInteger m_N;
+	private enum Fields {
+		A,
+		B,
+		C,
+		D,
+		E,
+		F
+	}
 
 	public static void main(String[] args)
 	{
@@ -69,216 +56,92 @@ public class Ex3_1
 	{
 		super(args, "SciVis - Project 3 - Exercise 1 - Milian Wolff");
 
-		m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
-
-		m_field = new VectorField();
-		m_field.setParent(this);
-		m_disp.addGeometry(m_field.pointSet());
-
-		// listener
-		m_disp.addGeometryListener(this);
-
-		m_domain = new PgDomain(2);
-		m_domain.setName("Domain for Vector Field");
-		m_domain.setDimOfElements(3);
-		m_domain.showVectorFields(false);
-		m_domain.showEdges(false);
-		
-		PgDomainDescr descr = m_domain.getDescr();
-//		descr.setMaxSize(-10., -10., 10., 10.);
-		descr.setSize( -10., -10., 10., 10.);
-//		descr.setDiscrBounds(2, 2, 50, 50);
-		descr.setDiscr(10, 10);
-		m_domain.compute();
-		
-		m_vec = new PgVectorField(2);
-		m_vec.setBasedOn(PgVectorField.VERTEX_BASED);
-		m_vec.setNumVectors(m_domain.getNumVertices());
-		m_vec.setGeometry(m_domain);
-		m_vec.setGlobalVectorColor(Color.BLACK);
-		m_domain.addVectorField(m_vec);
-		
-		m_lic = new PwLIC();
-		m_lic.setGeometry(m_domain);
-		m_lic.setStandalone(false);
-		m_lic.setFast(true);
-		m_lic.setLICSize(50);
-		m_lic.setParent(this);
-
-		m_disp.selectCamera(PvCameraIf.CAMERA_ORTHO_XY);
-		m_disp.addGeometry(m_domain);
-		m_disp.update(m_domain);
-		m_disp.addPickListener(this);
-		m_disp.fit();
-
 		GridBagConstraints c = new GridBagConstraints();
-		c.gridwidth = 3;
+		c.gridwidth = 1;
 		c.gridx = 0;
 		c.gridy = 0;
 		c.weighty = 0;
 
-		m_flowReflect = new Checkbox("Reflect Flow", false);
-		m_flowReflect.addItemListener(this);
-		m_panel.add(m_flowReflect, c);
+		m_fieldCombo = new JComboBox();
+		for(Fields f : Fields.values()) {
+			m_fieldCombo.addItem(f);
+		}
+		m_fieldCombo.addItemListener(this);
+		m_panel.add(m_fieldCombo, c);
 		c.gridy++;
+		
+		m_geometry = new PgElementSet(3);
+		m_geometry.computeSphere(50, 50, 1);
+		m_geometry.showEdges(false);
+		m_geometry.showTransparency(true);
+		m_disp.showAxes(true);
+		m_disp.addGeometry(m_geometry);
+		m_disp.update(m_geometry);
 
-		m_flowRotate = new PuDouble("Rotate Flow", this);
-		m_flowRotate.setBounds(0, 360);
-		m_panel.add(m_flowRotate.getInfoPanel(), c);
-		c.gridy++;
-
-		CheckboxGroup group = new CheckboxGroup();
-		c.gridwidth = 1;
-		m_add = new Checkbox("Add", group, true);
-		m_add.addItemListener(this);
-		m_panel.add(m_add, c);
-		c.gridx++;
-
-		m_remove = new Checkbox("Remove", group, false);
-		m_remove.addItemListener(this);
-		m_panel.add(m_remove, c);
-		c.gridx++;
-
-		m_select = new Checkbox("Select", group, false);
-		m_select.addItemListener(this);
-		m_panel.add(m_select, c);
-		c.gridx++;
-
-		c.gridy++;
-		c.gridx = 0;
-		c.gridwidth = 3;
-
-		m_singularityPanel = new VectorFieldPanel();
-		m_panel.add(m_singularityPanel, c);
-		c.gridy++;
-
-		c.weighty = 1;
-		m_panel.add(Box.createVerticalBox(), c);
-		m_disp.fit();
-
+		m_field = new PgVectorField(3);
+		m_field.setBasedOn(PgVectorField.VERTEX_BASED);
+		m_field.setNumVectors(m_geometry.getNumVertices());
+		m_field.setGeometry(m_geometry);
+		m_field.showVectorArrows(true);
+		m_geometry.addVectorField(m_field);
+		m_geometry.showVectorFields(true);
 		updateVectorField();
 
-		m_frame.setSize(1000, 800);
-		m_frame.setVisible(true);
+		m_N = new PuInteger("N (for e)");
+		m_N.setBounds(1, 10);
+		m_panel.add(m_N.getInfoPanel(), c);
+		c.gridy++;
+		
+		m_disp.fit();
+
+		show();
 	}
 
 	@Override
-	public void itemStateChanged(ItemEvent e) {
-		Object source = e.getSource();
-		if (source == m_add) {
-			m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
-			System.out.println("click into the display to add a feature");
-		} else if (source == m_remove) {
-			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
-			System.out.println("click near a feature to remove it");
-		} else if (source == m_select) {
-			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
-			System.out.println("click near a feature to select it");
-		} else if (source == m_flowReflect) {
-			updateVectorField();
-		} else if (source == m_flowRotate) {
-
-		} else {
-			assert false : "Unhandled item changed: " + source;
+	public void itemStateChanged(ItemEvent e)
+	{
+		assert e.getSource() == m_fieldCombo;
+		updateVectorField();
+	}
+	
+	protected void updateVectorField()
+	{
+		for(int i = 0; i < m_geometry.getNumVertices(); ++i) {
+			PdVector pos = m_geometry.getVertex(i);
+			double theta = Math.acos(pos.getEntry(2));
+			double phi = Math.atan2(pos.getEntry(1), pos.getEntry(0));
+			m_field.setVector(i, getVector(theta, phi, (Fields) m_fieldCombo.getSelectedItem()));
 		}
+		m_disp.update(m_geometry);
 	}
 
-	/**
-	 * (Re)Compute vector field.
-	 */
-	public void updateVectorField() {
-		PdMatrix A = new PdMatrix(2, 2);
-		double theta = Math.toRadians(m_flowRotate.getValue());
-		A.setEntry(0, 0, Math.cos(theta));
-		A.setEntry(0, 1, -Math.sin(theta));
-		A.setEntry(1, 0, Math.sin(theta));
-		A.setEntry(1, 1, Math.cos(theta));
-		if (m_flowReflect.getState()) {
-			A.setEntry(0, 1, A.getEntry(0, 1) * -1);
-			A.setEntry(1, 1, A.getEntry(1, 1) * -1);
+	private PdVector getVector(double theta, double phi, Fields type)
+	{
+		PdVector e_theta = new PdVector(Math.cos(theta) * Math.cos(phi),
+										Math.cos(theta) * Math.sin(phi),
+										-Math.sin(theta));
+		PdVector e_phi = new PdVector(-Math.sin(phi),
+										Math.cos(phi),
+										0);
+		switch(type) {
+		case A:
+			return new PdVector(0, 0, 0);
+		case B:
+			e_theta.multScalar(Math.cos(theta) * Math.cos(phi));
+			e_phi.multScalar(-Math.sin(phi));
+			e_theta.add(e_phi);
+			return e_theta;
+		case C:
+			e_theta.multScalar(Math.sin(theta/2) * Math.cos(phi));
+			e_phi.multScalar(-Math.sin(phi/2) * Math.sin(theta));
+			e_theta.add(e_phi);
+			return e_theta;
+		case D:
+			e_theta.multScalar(2*Math.sin(theta)*Math.cos(theta)*(1-2*Math.sin(phi) * Math.sin(phi)));
+			e_phi.multScalar(-2*Math.sin(theta) * Math.sin(phi/2));
+			e_theta.add(e_phi);
+			return e_theta;
 		}
-
-		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
-			PdVector pos = m_domain.getVertex(i);
-			PdVector vec = m_field.evaluate(pos);
-			vec.leftMultMatrix(A);
-			m_vec.setVector(i, vec);
-			assert m_vec.getVector(i).getSize() == 2 : m_vec.getVector(i).getSize();
-		}
-		m_vec.update(m_vec);
-		m_lic.startLIC();
-	}
-	@Override
-	public boolean update(Object event) {
-		if (event == m_lic) {
-			m_disp.update(m_domain);
-			return true;
-		} else if (event == m_field) {
-			updateVectorField();
-			return true;
-		} else if (event == m_flowRotate) {
-			updateVectorField();
-			return true;
-		}
-		return false;
-	}
-	@Override
-	public PsUpdateIf getFather() {
 		return null;
-	}
-	@Override
-	public void setParent(PsUpdateIf parent) {
-		// TODO Auto-generated method stub
-		System.err.println("set parent: " + parent);
-	}
-
-	@Override
-	public void dragDisplay(PvPickEvent pos) {
-		// ignore this
-	}
-
-	@Override
-	public void dragInitial(PvPickEvent pos) {
-		// ignored
-	}
-
-	@Override
-	public void dragVertex(PgGeometryIf geom, int index, PdVector vertex) {
-		// ignored
-	}
-
-	@Override
-	public void markVertices(PvPickEvent pos) {
-		// ignored
-	}
-
-	@Override
-	public void pickDisplay(PvPickEvent pos) {
-		// ignored
-	}
-
-	@Override
-	public void pickInitial(PvPickEvent pos) {
-		Term term = m_singularityPanel.createTerm(pos.getVertex());
-		m_field.addTerm(term);
-		m_singularityPanel.setTerm(term);
-	}
-
-	@Override
-	public void pickVertex(PgGeometryIf geom, int index, PdVector vertex) {
-		if (geom == m_field.pointSet()) {
-			if (m_remove.getState()) {
-				m_field.removeTerm(index);
-				m_singularityPanel.setTerm(null);
-			} else {
-				assert m_select.getState();
-				m_singularityPanel.setTerm(m_field.getTerm(index));
-			}
-		}
-	}
-
-	@Override
-	public void unmarkVertices(PvPickEvent pos) {
-		// ignored
 	}
 }
