@@ -204,7 +204,7 @@ class GenericTerm extends Term
 
 		assert type == FeatureType.Saddle || type == FeatureType.Sink
 				|| type == FeatureType.Source || type == FeatureType.Center
-				|| type == FeatureType.Focus;
+				|| type == FeatureType.Focus || type == FeatureType.Generic;
 
 		m_a = PdMatrix.copyNew(A);
 		m_type = type;

@@ -19,10 +19,13 @@ import java.awt.Checkbox;
 import java.awt.CheckboxGroup;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
 import javax.swing.Box;
+import javax.swing.Timer;
 
 import jv.geom.PgVectorField;
 import jv.number.PuDouble;
@@ -47,7 +50,7 @@ import jvx.vector.PwLIC;
  */
 public class Ex3_2
 	extends ProjectBase
-	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf, ItemListener
+	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf, ItemListener, ActionListener
 {
 	private PwLIC m_lic;
 	private PgDomain m_domain;
@@ -59,6 +62,7 @@ public class Ex3_2
 	private Checkbox m_select;
 	private PuDouble m_flowRotate;
 	private Checkbox m_flowReflect;
+	private Timer m_timer;
 
 	public static void main(String[] args)
 	{
@@ -68,6 +72,8 @@ public class Ex3_2
 	public Ex3_2(String[] args)
 	{
 		super(args, "SciVis - Project 3 - Exercise 2 - Milian Wolff");
+
+		m_timer = new Timer(250, this);
 
 		m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
 
@@ -198,7 +204,15 @@ public class Ex3_2
 			assert false : "Unhandled item changed: " + source;
 		}
 	}
-
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		assert e.getSource() == m_timer;
+		m_timer.stop();
+		for(int i = 0; i < m_field.pointSet().getNumVertices(); ++i) {
+			m_field.getTerm(i).setBase(m_field.pointSet().getVertex(i));
+		}
+		updateVectorField();
+	}
 	/**
 	 * (Re)Compute vector field.
 	 */
@@ -261,6 +275,9 @@ public class Ex3_2
 	@Override
 	public void dragVertex(PgGeometryIf geom, int index, PdVector vertex) {
 		// ignored
+		if (geom == m_field.pointSet()) {
+			m_timer.restart();
+		}
 	}
 
 	@Override
