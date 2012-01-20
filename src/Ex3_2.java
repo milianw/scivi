@@ -117,6 +117,11 @@ public class Ex3_2
 		c.gridy = 0;
 		c.weighty = 0;
 
+		c.fill = GridBagConstraints.CENTER;
+		m_panel.add(boldLabel("Flow Direction"), c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridy++;
+
 		m_flowReflect = new Checkbox("Reflect Flow", false);
 		m_flowReflect.addItemListener(this);
 		m_panel.add(m_flowReflect, c);
@@ -127,26 +132,39 @@ public class Ex3_2
 		m_panel.add(m_flowRotate.getInfoPanel(), c);
 		c.gridy++;
 
+		c.fill = GridBagConstraints.CENTER;
+		m_panel.add(boldLabel("Action"), c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridy++;
+
 		CheckboxGroup group = new CheckboxGroup();
-		c.gridwidth = 1;
+//		c.gridwidth = 3;
 		m_add = new Checkbox("Add", group, true);
 		m_add.addItemListener(this);
 		m_panel.add(m_add, c);
-		c.gridx++;
+//		c.gridx++;
+		c.gridy++;
 
 		m_remove = new Checkbox("Remove", group, false);
 		m_remove.addItemListener(this);
 		m_panel.add(m_remove, c);
-		c.gridx++;
+//		c.gridx++;
+		c.gridy++;
 
 		m_select = new Checkbox("Select", group, false);
 		m_select.addItemListener(this);
 		m_panel.add(m_select, c);
-		c.gridx++;
+//		c.gridx++;
+//		c.gridy++;
 
 		c.gridy++;
 		c.gridx = 0;
 		c.gridwidth = 3;
+
+		c.fill = GridBagConstraints.CENTER;
+		m_panel.add(boldLabel("Singularity"), c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridy++;
 
 		m_singularityPanel = new VectorFieldPanel();
 		m_panel.add(m_singularityPanel, c);
@@ -176,8 +194,6 @@ public class Ex3_2
 			System.out.println("click near a feature to select it");
 		} else if (source == m_flowReflect) {
 			updateVectorField();
-		} else if (source == m_flowRotate) {
-			
 		} else {
 			assert false : "Unhandled item changed: " + source;
 		}

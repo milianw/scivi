@@ -16,6 +16,9 @@
 */
 
 import java.awt.Checkbox;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Label;
 import java.awt.Panel;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -37,13 +40,23 @@ public class VectorFieldPanel extends JPanel implements ItemListener
 
 	public VectorFieldPanel()
 	{
-		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+		setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridwidth = 1;
+		c.gridy = 0;
+		c.gridx = 0;
+		c.anchor = GridBagConstraints.NORTH;
 
 		m_panels = new Panel[FeatureType.values().length];
 		m_items = new AbstractUIItem[FeatureType.values().length];
 
+		add(new Label("Type:"), c);
+		c.gridx++;
 		m_typeCombo = new JComboBox();
-		add(m_typeCombo);
+		add(m_typeCombo, c);
+		c.gridy++;
+		c.gridx = 0;
+		c.gridwidth = 2;
 		for(FeatureType t : FeatureType.values()) {
 			Panel panel = new Panel();
 			panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -54,8 +67,9 @@ public class VectorFieldPanel extends JPanel implements ItemListener
 			m_typeCombo.addItem(t);
 
 			panel.setVisible(false);
-			add(panel);
+			add(panel, c);
 		}
+		m_typeCombo.setSelectedIndex(FeatureType.Generic.ordinal());
 		m_panels[m_typeCombo.getSelectedIndex()].setVisible(true);
 		m_typeCombo.addItemListener(this);
 	}

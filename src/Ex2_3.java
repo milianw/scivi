@@ -18,7 +18,6 @@
 import java.awt.Button;
 import java.awt.Checkbox;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.Label;
 import java.awt.Rectangle;
@@ -87,8 +86,6 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	{
 		super(args, "SciVis - Project 2 - Exercise 3 - Milian Wolff");
 
-		Font boldFont = new Font("Dialog", Font.BOLD, 12);
-
 		// listener
 		m_disp.addGeometryListener(this);
 		GridBagConstraints c = new GridBagConstraints();
@@ -98,9 +95,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		Label l = new Label("Curvature");
-		l.setFont(boldFont);
-		m_panel.add(l, c);
+		m_panel.add(boldLabel("Curvature"), c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// curvature method choice
@@ -139,9 +134,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// curvature tensor
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		l = new Label("Tensor");
-		l.setFont(boldFont);
-		m_panel.add(l, c);
+		m_panel.add(boldLabel("Tensor"), c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// display or hide
@@ -176,9 +169,7 @@ public class Ex2_3 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// smoothening
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		l = new Label("Smoothening");
-		l.setFont(boldFont);
-		m_panel.add(l, c);
+		m_panel.add(boldLabel("Smoothening"), c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// number of steps for smoothing

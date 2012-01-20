@@ -1,6 +1,8 @@
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.GridBagLayout;
+import java.awt.Label;
 import java.awt.Panel;
 import java.awt.Rectangle;
 
@@ -15,6 +17,7 @@ public class ProjectBase implements PvGeometryListenerIf {
 	protected PsMainFrame m_frame;
 	protected PvDisplay m_disp;
 	protected Panel m_panel;
+	protected static Font m_boldFont = new Font("Dialog", Font.BOLD, 12);
 	public ProjectBase(String[] args, String title)
 	{
 		// Create toplevel window of application containing the applet
@@ -80,5 +83,15 @@ public class ProjectBase implements PvGeometryListenerIf {
 		} catch (Exception e) {
 			return null;
 		}
+	}
+	public static Font boldFont()
+	{
+		return m_boldFont;
+	}
+	public static Label boldLabel(String label)
+	{
+		Label l = new Label(label);
+		l.setFont(m_boldFont);
+		return l;
 	}
 }

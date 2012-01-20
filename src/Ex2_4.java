@@ -17,7 +17,6 @@
 
 import java.awt.Button;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.Label;
@@ -90,8 +89,6 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 	{
 		super(args, "SciVis - Project 2 - Exercise 4 - Milian Wolff");
 
-		Font boldFont = new Font("Dialog", Font.BOLD, 12);
-
 		m_rendering = false;
 
 		m_img = new DisplayImage();
@@ -112,9 +109,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		Label l = new Label("Streamlines");
-		l.setFont(boldFont);
-		m_panel.add(l, c);
+		m_panel.add(boldLabel("Streamlines"), c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// curvature method choice
@@ -150,9 +145,7 @@ public class Ex2_4 extends ProjectBase implements PvGeometryListenerIf, ItemList
 		// smoothening
 		c.gridy++;
 		c.fill = GridBagConstraints.CENTER;
-		l = new Label("Smoothening");
-		l.setFont(boldFont);
-		m_panel.add(l, c);
+		m_panel.add(boldLabel("Smoothening"), c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// number of steps for smoothing
