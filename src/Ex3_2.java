@@ -23,10 +23,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.util.ArrayList;
 
 import javax.swing.Box;
 import javax.swing.Timer;
 
+import jv.geom.PgElementSet;
 import jv.geom.PgVectorField;
 import jv.number.PuDouble;
 import jv.object.PsUpdateIf;
@@ -38,9 +40,82 @@ import jv.project.PvPickEvent;
 import jv.project.PvPickListenerIf;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
+import jv.vecmath.PiVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
 import jvx.vector.PwLIC;
+
+class InterpolatedField
+{
+	private PgElementSet m_geometry;
+	private PgVectorField m_field;
+	public InterpolatedField(PgElementSet geometry, PgVectorField field)
+	{
+		m_geometry = geometry;
+		m_field = field;
+		interpolate();
+		findSingularities();
+	}
+
+	class ElementField
+	{
+		PdMatrix a;
+		PdVector b;
+	}
+	private ArrayList<ElementField> m_interpolated;
+	private void interpolate()
+	{
+		m_interpolated = new ArrayList<ElementField>(m_geometry.getNumElements());
+		for(int i = 0; i < m_geometry.getNumElements(); ++i) {
+			PiVector vertices = m_geometry.getElement(i);
+			assert vertices.getSize() == 3;
+			PdMatrix A = new PdMatrix(3, 3);
+			for(int j = 0; j < 3; ++j) {
+				PdVector v = m_field.getVector(vertices.getEntry(j));
+				A.setEntry(j, 0, v.getEntry(0));
+				A.setEntry(j, 1, v.getEntry(1));
+				A.setEntry(j, 2, 1);
+			}
+			PdVector b_x = PdVector.copyNew(A.getColumn(0));
+			PdVector b_y = PdVector.copyNew(A.getColumn(1));
+			PdVector solvedX = Curvature.solveCramer(A, b_x);
+			PdVector solvedY = Curvature.solveCramer(A, b_y);
+			ElementField elementField = new ElementField();
+			elementField.a = new PdMatrix(2, 2);
+			elementField.b = new PdVector(2);
+			for(int j = 0; j < 3; ++j) {
+				if (j == 2) {
+					elementField.b.setEntry(0, solvedX.getEntry(2));
+					elementField.b.setEntry(1, solvedY.getEntry(2));
+				} else {
+					elementField.a.setEntry(0, j, solvedX.getEntry(j));
+					elementField.a.setEntry(1, j, solvedY.getEntry(j));
+				}
+			}
+			m_interpolated.add(i, elementField);
+		}
+	}
+
+	enum SingularityType {
+		Source,
+		Sink,
+		Saddle
+	}
+	class Singularity
+	{
+		SingularityType type;
+		PdVector position;
+		PdMatrix jacobian;
+		double maxEigenValue;
+		PdVector maxEigenDirection;
+		double minEigenValue;
+		double minEigenDirection;
+	}
+	private void findSingularities()
+	{
+		
+	}
+}
 
 /**
  * Solution to fourth exercise of the second project
@@ -240,6 +315,9 @@ public class Ex3_2
 		}
 		m_vec.update(m_vec);
 		m_lic.startLIC();
+		assert m_vec != null;
+		assert m_domain != null;
+		InterpolatedField field = new InterpolatedField(m_domain, m_vec);
 	}
 	@Override
 	public boolean update(Object event) {
