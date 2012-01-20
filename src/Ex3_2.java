@@ -73,13 +73,13 @@ public class Ex3_2
 	{
 		super(args, "SciVis - Project 3 - Exercise 2 - Milian Wolff");
 
-		m_timer = new Timer(250, this);
+		m_timer = new Timer(100, this);
 
 		m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
 
 		m_field = new VectorField();
 		m_field.setParent(this);
-		m_disp.addGeometry(m_field.pointSet());
+		m_disp.addGeometry(m_field.termBasePoints());
 
 		// listener
 		m_disp.addGeometryListener(this);
@@ -180,7 +180,7 @@ public class Ex3_2
 		m_panel.add(Box.createVerticalBox(), c);
 		m_disp.fit();
 
-		updateVectorField();
+		updateVectorField_internal();
 
 		m_frame.setSize(1000, 800);
 		m_frame.setVisible(true);
@@ -208,15 +208,18 @@ public class Ex3_2
 	public void actionPerformed(ActionEvent e) {
 		assert e.getSource() == m_timer;
 		m_timer.stop();
-		for(int i = 0; i < m_field.pointSet().getNumVertices(); ++i) {
-			m_field.getTerm(i).setBase(m_field.pointSet().getVertex(i));
-		}
-		updateVectorField();
+		updateVectorField_internal();
+	}
+	/**
+	 * delay actual recomputation
+	 */
+	public void updateVectorField() {
+		m_timer.restart();
 	}
 	/**
 	 * (Re)Compute vector field.
 	 */
-	public void updateVectorField() {
+	public void updateVectorField_internal() {
 		PdMatrix A = new PdMatrix(2, 2);
 		double theta = Math.toRadians(m_flowRotate.getValue());
 		A.setEntry(0, 0, Math.cos(theta));
@@ -275,8 +278,8 @@ public class Ex3_2
 	@Override
 	public void dragVertex(PgGeometryIf geom, int index, PdVector vertex) {
 		// ignored
-		if (geom == m_field.pointSet()) {
-			m_timer.restart();
+		if (geom == m_field.termBasePoints()) {
+			m_field.getTerm(index).setBase(geom.getVertex(index));
 		}
 	}
 
@@ -299,7 +302,7 @@ public class Ex3_2
 
 	@Override
 	public void pickVertex(PgGeometryIf geom, int index, PdVector vertex) {
-		if (geom == m_field.pointSet()) {
+		if (geom == m_field.termBasePoints()) {
 			if (m_remove.getState()) {
 				m_field.removeTerm(index);
 				m_singularityPanel.setTerm(null);

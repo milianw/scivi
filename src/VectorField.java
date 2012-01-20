@@ -28,17 +28,17 @@ import jv.vecmath.PdVector;
 public class VectorField extends BasicUpdateIf
 {
 	private ArrayList<Term> m_terms;
-	private PgPointSet m_points;
+	private PgPointSet m_termBasePoints;
 	public VectorField()
 	{
 		m_terms = new ArrayList<Term>(10);
-		m_points = new PgPointSet(2);
-		m_points.showVertices(true);
-		m_points.showVertexColors(true);
+		m_termBasePoints = new PgPointSet(2);
+		m_termBasePoints.showVertices(true);
+		m_termBasePoints.showVertexColors(true);
 	}
-	public PgPointSet pointSet()
+	public PgPointSet termBasePoints()
 	{
-		return m_points;
+		return m_termBasePoints;
 	}
 	public PdVector evaluate(PdVector pos)
 	{
@@ -52,24 +52,24 @@ public class VectorField extends BasicUpdateIf
 	}
 	public void addTerm(Term term)
 	{
-		m_points.addVertex(term.base());
-		m_points.setVertexColor(m_points.getNumVertices() - 1, term.vertexColor());
-		m_points.update(m_points);
+		m_termBasePoints.addVertex(term.base());
+		m_termBasePoints.setVertexColor(m_termBasePoints.getNumVertices() - 1, term.vertexColor());
+		m_termBasePoints.update(m_termBasePoints);
 		term.setParent(this);
 		m_terms.add(term);
 		update(this);
 	}
 	public void removeLast()
 	{
-		m_points.removeVertex(m_points.getNumVertices() - 1);
-		m_points.update(m_points);
+		m_termBasePoints.removeVertex(m_termBasePoints.getNumVertices() - 1);
+		m_termBasePoints.update(m_termBasePoints);
 		m_terms.remove(m_terms.size() - 1);
 		update(this);
 	}
 	public void removeTerm(int index)
 	{
-		m_points.removeVertex(index);
-		m_points.update(m_points);
+		m_termBasePoints.removeVertex(index);
+		m_termBasePoints.update(m_termBasePoints);
 		m_terms.remove(index);
 		update(this);
 	}
