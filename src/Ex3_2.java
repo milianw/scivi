@@ -54,32 +54,53 @@ class InterpolatedField
 		m_geometry = geometry;
 		m_field = field;
 		interpolate();
-		findSingularities();
 	}
 
 	class ElementField
 	{
 		PdMatrix a;
 		PdVector b;
+		public PdVector evaluate(PdVector pos)
+		{
+			PdVector ret = new PdVector(2);
+			a.leftMultMatrix(ret, pos);
+			ret.add(b);
+			return ret;
+		}
 	}
-	private ArrayList<ElementField> m_interpolated;
+	private ElementField[] m_interpolated;
 	private void interpolate()
 	{
-		m_interpolated = new ArrayList<ElementField>(m_geometry.getNumElements());
+		m_interpolated = new ElementField[m_geometry.getNumElements()];
 		for(int i = 0; i < m_geometry.getNumElements(); ++i) {
 			PiVector vertices = m_geometry.getElement(i);
 			assert vertices.getSize() == 3;
 			PdMatrix A = new PdMatrix(3, 3);
+			PdVector b_x = new PdVector(3);
+			PdVector b_y = new PdVector(3);
+			// build coefficient matrix A (from position of vertices)
+			// and expected results b_x, b_y (from vector field)
 			for(int j = 0; j < 3; ++j) {
-				PdVector v = m_field.getVector(vertices.getEntry(j));
+				// A gets the vertex positions in a row, and last column entry = 1
+				PdVector v = m_geometry.getVertex(vertices.getEntry(j));
+				assert v.getSize() == 2;
 				A.setEntry(j, 0, v.getEntry(0));
 				A.setEntry(j, 1, v.getEntry(1));
 				A.setEntry(j, 2, 1);
+				// result b_x, b_y get the x and y values of the field
+				PdVector f = m_field.getVector(vertices.getEntry(j));
+				assert f.getSize() == 2;
+				b_x.setEntry(j, f.getEntry(0));
+				b_y.setEntry(j, f.getEntry(1));
 			}
-			PdVector b_x = PdVector.copyNew(A.getColumn(0));
-			PdVector b_y = PdVector.copyNew(A.getColumn(1));
+			// interpolate
 			PdVector solvedX = Curvature.solveCramer(A, b_x);
 			PdVector solvedY = Curvature.solveCramer(A, b_y);
+			// filter out bad stuff, field might be zero e.g....
+			if (Double.isNaN(solvedX.length()) || Double.isNaN(solvedY.length())) {
+				continue;
+			}
+			// store result as 2x2 matrix and 2dim vector
 			ElementField elementField = new ElementField();
 			elementField.a = new PdMatrix(2, 2);
 			elementField.b = new PdVector(2);
@@ -92,7 +113,7 @@ class InterpolatedField
 					elementField.a.setEntry(1, j, solvedY.getEntry(j));
 				}
 			}
-			m_interpolated.add(i, elementField);
+			m_interpolated[i] = elementField;
 		}
 	}
 
@@ -105,15 +126,54 @@ class InterpolatedField
 	{
 		SingularityType type;
 		PdVector position;
+		int element;
 		PdMatrix jacobian;
 		double maxEigenValue;
 		PdVector maxEigenDirection;
 		double minEigenValue;
 		double minEigenDirection;
 	}
-	private void findSingularities()
+	ArrayList<Singularity> m_singularities;
+	public ArrayList<Singularity> findSingularities()
 	{
-		
+		if (m_singularities == null) {
+			m_singularities = new ArrayList<Singularity>(10);
+			for(int i = 0; i < m_interpolated.length; ++i) {
+				ElementField field = m_interpolated[i];
+				if (field == null) {
+					continue;
+				}
+				PdVector b = PdVector.copyNew(field.b);
+				b.multScalar(-1);
+				PdVector pos = Curvature.solveCramer(field.a, b);
+				if (pos.length() == 0) {
+					continue;
+				}
+				if (inTriangle(i, pos)) {
+					Singularity singularity = new Singularity();
+					singularity.position = pos;
+					m_singularities.add(singularity);
+					System.out.println("sing at: " + pos.toShortString());
+				}
+			}
+			m_singularities.trimToSize();
+		}
+		return m_singularities;
+	}
+	private boolean onSameSide(PdVector p1, PdVector a, PdVector b, PdVector c)
+	{
+		PdVector c_min_b = PdVector.subNew(c, b);
+		PdVector cp1 = PdVector.crossNew(c_min_b, PdVector.subNew(p1, b));
+		PdVector cp2 = PdVector.crossNew(c_min_b, PdVector.subNew(a, b));
+		return cp1.dot(cp2) >= 0;
+	}
+	private boolean inTriangle(int i, PdVector p)
+	{
+		PdVector[] vertices = m_geometry.getElementVertices(i);
+		PdVector a = vertices[0];
+		PdVector b = vertices[1];
+		PdVector c = vertices[2];
+		return onSameSide(p, a, b, c) && onSameSide(p, b, a, c) && onSameSide(p, c, a, b);
 	}
 }
 
@@ -318,6 +378,10 @@ public class Ex3_2
 		assert m_vec != null;
 		assert m_domain != null;
 		InterpolatedField field = new InterpolatedField(m_domain, m_vec);
+		System.out.println("singularities: " + field.findSingularities().size());
+		for(int i = 0; i < field.findSingularities().size(); ++i) {
+			
+		}
 	}
 	@Override
 	public boolean update(Object event) {
