@@ -153,7 +153,6 @@ class InterpolatedField
 					Singularity singularity = new Singularity();
 					singularity.position = pos;
 					m_singularities.add(singularity);
-					System.out.println("sing at: " + pos.toShortString());
 				}
 			}
 			m_singularities.trimToSize();
@@ -226,9 +225,7 @@ public class Ex3_2
 		m_domain.showEdges(false);
 		
 		PgDomainDescr descr = m_domain.getDescr();
-//		descr.setMaxSize(-10., -10., 10., 10.);
 		descr.setSize( -10., -10., 10., 10.);
-//		descr.setDiscrBounds(2, 2, 50, 50);
 		descr.setDiscr(10, 10);
 		m_domain.compute();
 		
@@ -279,28 +276,20 @@ public class Ex3_2
 		c.gridy++;
 
 		CheckboxGroup group = new CheckboxGroup();
-//		c.gridwidth = 3;
 		m_add = new Checkbox("Add", group, true);
 		m_add.addItemListener(this);
 		m_panel.add(m_add, c);
-//		c.gridx++;
 		c.gridy++;
 
 		m_remove = new Checkbox("Remove", group, false);
 		m_remove.addItemListener(this);
 		m_panel.add(m_remove, c);
-//		c.gridx++;
 		c.gridy++;
 
 		m_select = new Checkbox("Select", group, false);
 		m_select.addItemListener(this);
 		m_panel.add(m_select, c);
-//		c.gridx++;
-//		c.gridy++;
-
 		c.gridy++;
-		c.gridx = 0;
-		c.gridwidth = 3;
 
 		c.fill = GridBagConstraints.CENTER;
 		m_panel.add(boldLabel("Singularity"), c);
