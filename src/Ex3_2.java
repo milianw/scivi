@@ -58,10 +58,8 @@ class Singularity
 	PdVector position;
 	int element;
 	PdMatrix jacobian;
-	double maxEigenValue;
-	PdVector maxEigenDirection;
-	double minEigenValue;
-	double minEigenDirection;
+	PdMatrix eigenVectors;
+	PdVector eigenValues;
 }
 
 class InterpolatedField
@@ -157,7 +155,18 @@ class InterpolatedField
 					singularity.position = pos;
 					singularity.element = i;
 					singularity.jacobian = field.a;
-					
+					singularity.eigenValues = new PdVector(2);
+					singularity.eigenVectors = Utils.solveEigen2x2(singularity.jacobian,
+																	singularity.eigenValues);
+					double se1 = Math.signum(singularity.eigenValues.getEntry(0));
+					double se2 = Math.signum(singularity.eigenValues.getEntry(1));
+					if (se1 != se2) {
+						singularity.type = Singularity.Type.Saddle;
+					} else if (se1 < 0) {
+						singularity.type = Singularity.Type.Sink;
+					} else {
+						singularity.type = Singularity.Type.Source;
+					}
 					m_singularities.add(singularity);
 				}
 			}
@@ -389,10 +398,25 @@ public class Ex3_2
 		m_singularities.setName("Calculated Singularities");
 		m_singularities.showVertices(true);
 		m_singularities.setGlobalVertexSize(3.0);
+		m_singularities.showVertexColors(true);
 
+		int i = 0;
 		for(Singularity singularity : field.findSingularities()) {
 			m_singularities.addVertex(singularity.position);
-			System.out.println(singularity.element + " : " + singularity.position.toShortString());
+			Color c = null;
+			switch(singularity.type) {
+			case Saddle:
+				c = Color.blue;
+				break;
+			case Sink:
+				c = Color.red;
+				break;
+			case Source:
+				c = Color.green;
+				break;
+			}
+			m_singularities.setVertexColor(i, c);
+			++i;
 		}
 		assert m_singularities.getNumVertices() == field.findSingularities().size();
 		System.out.println("singularities found: " + m_singularities.getNumVertices());
