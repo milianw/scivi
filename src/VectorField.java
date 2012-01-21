@@ -143,7 +143,7 @@ abstract class AngleTerm extends Term
 	public AngleTerm(PdVector base, double strength, double decay, double angle)
 	{
 		super(base, strength, decay);
-		m_angle = angle;
+		setAngle(angle);
 	}
 	public double angle()
 	{
@@ -254,8 +254,12 @@ class ConvergingElementTerm extends AngleTerm
 	public ConvergingElementTerm(PdVector base, double strength, double decay, double theta)
 	{
 		super(base, strength, decay, theta);
-		m_n = new PdVector(-Math.sin(theta), Math.cos(theta));
-		m_e = new PdVector(Math.cos(theta), Math.sin(theta));
+	}
+	@Override
+	public void setAngle(double angle) {
+		super.setAngle(angle);
+		m_n = new PdVector(-Math.sin(angle), Math.cos(angle));
+		m_e = new PdVector(Math.cos(angle), Math.sin(angle));
 	}
 	@Override
 	public PdVector evaluate(PdVector pos) {
