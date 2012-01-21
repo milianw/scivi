@@ -237,6 +237,7 @@ public class Ex3_2
 		m_domain.compute();
 		
 		m_vec = new PgVectorField(2);
+		m_vec.setName("Vector Field");
 		m_vec.setBasedOn(PgVectorField.VERTEX_BASED);
 		m_vec.setNumVectors(m_domain.getNumVertices());
 		m_vec.setGeometry(m_domain);
@@ -253,9 +254,6 @@ public class Ex3_2
 		m_disp.selectCamera(PvCameraIf.CAMERA_ORTHO_XY);
 		m_disp.addGeometry(m_domain);
 		m_disp.update(m_domain);
-
-		m_singularities = new PgPolygonSet(2);
-		m_disp.addGeometry(m_singularities);
 
 		m_disp.addPickListener(this);
 		m_disp.fit();
@@ -379,16 +377,24 @@ public class Ex3_2
 		assert m_vec != null;
 		assert m_domain != null;
 		InterpolatedField field = new InterpolatedField(m_domain, m_vec);
-		for(int i = 0; i < m_singularities.getNumVertices(); ++i) {
-			m_singularities.removeVertex(i);
+
+		if (m_singularities != null) {
+			m_disp.removeGeometry(m_singularities);
 		}
-		for(Singularity singularity : field.findSingularities()) {
-			m_singularities.addVertex(singularity.position);
-		}
-		System.out.println("singularities found: " + m_singularities.getNumVertices());
+
+		m_singularities = new PgPolygonSet(2);
+		m_singularities.setName("Calculated Singularities");
 		m_singularities.showVertices(true);
 		m_singularities.setGlobalVertexSize(3.0);
+
+		for(Singularity singularity : field.findSingularities()) {
+			m_singularities.addVertex(singularity.position);
+			System.out.println(singularity.element + " : " + singularity.position.toShortString());
+		}
+		assert m_singularities.getNumVertices() == field.findSingularities().size();
+		System.out.println("singularities found: " + m_singularities.getNumVertices());
 		m_disp.update(m_singularities);
+		m_disp.addGeometry(m_singularities);
 	}
 	@Override
 	public boolean update(Object event) {

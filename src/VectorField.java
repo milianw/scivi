@@ -33,6 +33,7 @@ public class VectorField extends BasicUpdateIf
 	{
 		m_terms = new ArrayList<Term>(10);
 		m_termBasePoints = new PgPointSet(2);
+		m_termBasePoints.setName("Vector Field Term Base Points");
 		m_termBasePoints.showVertices(true);
 		m_termBasePoints.showVertexColors(true);
 		m_termBasePoints.setGlobalVertexSize(5.0);
