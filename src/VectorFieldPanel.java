@@ -74,6 +74,10 @@ public class VectorFieldPanel extends JPanel implements ItemListener
 		m_typeCombo.addItemListener(this);
 	}
 
+	public void setTypeChangeEnabled(boolean enabled)
+	{
+		m_typeCombo.setEnabled(enabled);
+	}
 	@Override
 	public void itemStateChanged(ItemEvent e) {
 		if (e.getSource() == m_typeCombo) {

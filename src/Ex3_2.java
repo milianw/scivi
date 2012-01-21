@@ -324,12 +324,15 @@ public class Ex3_2
 	public void itemStateChanged(ItemEvent e) {
 		Object source = e.getSource();
 		if (source == m_add) {
+			m_singularityPanel.setTypeChangeEnabled(true);
 			m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
 			System.out.println("click into the display to add a feature");
 		} else if (source == m_remove) {
+			m_singularityPanel.setTypeChangeEnabled(false);
 			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
 			System.out.println("click near a feature to remove it");
 		} else if (source == m_select) {
+			m_singularityPanel.setTypeChangeEnabled(false);
 			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
 			System.out.println("click near a feature to select it");
 		} else if (source == m_flowReflect) {
