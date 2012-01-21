@@ -632,74 +632,10 @@ public class Curvature {
 	}
 	public static PdMatrix principleDirections2x2(PdMatrix matrix2x2)
 	{
-		assert matrix2x2.getNumCols() == 2;
-		assert matrix2x2.getNumRows() == 2;
-
-		double D = matrix2x2.det();
-		double a = matrix2x2.getEntry(0, 0);
-		double b = matrix2x2.getEntry(0, 1);
-		double c = matrix2x2.getEntry(1, 0);
-		double d = matrix2x2.getEntry(1, 1);
-		///TODO: this hits, with quite high differences :-/
-//		assert b == c : Math.abs(b-c);
-
-		double T_half = 0.5d * (a + d);
-		double root = Math.sqrt(T_half * T_half - D);
-		double L_1 = T_half + root;
-		double L_2 = T_half - root;
-		boolean singular = Double.isNaN(L_1) || Double.isNaN(L_2);
-		assert L_2 <= L_1 || singular : "L_1: " + L_1 + ", L_2: " + L_2;
-
-		PdVector major = new PdVector(2);
-		PdVector minor = new PdVector(2);
-		if (c != 0 && !singular) {
-			major.setEntry(0, L_1 - d);
-			major.setEntry(1, c);
-			minor.setEntry(0, L_2 - d);
-			minor.setEntry(1, c);
-			major.normalize();
-			minor.normalize();
-		} else if (b != 0 && !singular) {
-			major.setEntry(0, b);
-			major.setEntry(1, L_1 - a);
-			minor.setEntry(0, b);
-			minor.setEntry(1, L_2 - a);
-			major.normalize();
-			minor.normalize();
-		}
-		if (minor.equals(major) || singular
-				|| Double.isNaN(minor.length()) || minor.length() == 0
-				|| Double.isNaN(major.length()) || major.length() == 0) {
-			// singular
-			major.setEntry(0, 1);
-			major.setEntry(1, 0);
-			minor.setEntry(0, 0);
-			minor.setEntry(1, 1);
-		}
-		if (minor.dot(major) > 1E-10) {
-			System.err.println("Non-Orthogonal principle directions computed:");
-			System.err.println("Minor: " + minor.toShortString());
-			System.err.println("Major: "+ major.toShortString());
-			System.err.println("Dot: " + minor.dot(major));
-		}
-		PdMatrix ret = new PdMatrix(2, 2);
-		ret.setRow(0, major);
-		ret.setRow(1, minor);
-		return ret;
+		return Utils.principleDirections2x2(matrix2x2);
 	}
 	public static PdVector solveCramer(PdMatrix A, PdVector b)
 	{
-		// see e.g.: http://en.wikipedia.org/wiki/Cramer%27s_rule
-		assert A.isSquare();
-		assert b.getSize() == A.getSize() : b.getSize() + " VS " + A.getSize();
-		double det = A.det();
-		// x is vector of [l, m, n]
-		PdVector x = new PdVector(A.getSize());
-		for(int k = 0; k < A.getSize(); ++k) {
-			PdMatrix A2 = PdMatrix.copyNew(A);
-			A2.setColumn(k, b);
-			x.setEntry(k, A2.det() / det);
-		}
-		return x;
+		return Utils.solveCramer(A, b);
 	}
 }

@@ -29,6 +29,8 @@ import javax.swing.Box;
 import javax.swing.Timer;
 
 import jv.geom.PgElementSet;
+import jv.geom.PgPointSet;
+import jv.geom.PgPolygonSet;
 import jv.geom.PgVectorField;
 import jv.number.PuDouble;
 import jv.object.PsUpdateIf;
@@ -44,6 +46,23 @@ import jv.vecmath.PiVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
 import jvx.vector.PwLIC;
+
+class Singularity
+{
+	enum Type {
+		Source,
+		Sink,
+		Saddle
+	}
+	Type type;
+	PdVector position;
+	int element;
+	PdMatrix jacobian;
+	double maxEigenValue;
+	PdVector maxEigenDirection;
+	double minEigenValue;
+	double minEigenDirection;
+}
 
 class InterpolatedField
 {
@@ -94,8 +113,8 @@ class InterpolatedField
 				b_y.setEntry(j, f.getEntry(1));
 			}
 			// interpolate
-			PdVector solvedX = Curvature.solveCramer(A, b_x);
-			PdVector solvedY = Curvature.solveCramer(A, b_y);
+			PdVector solvedX = Utils.solveCramer(A, b_x);
+			PdVector solvedY = Utils.solveCramer(A, b_y);
 			// filter out bad stuff, field might be zero e.g....
 			if (Double.isNaN(solvedX.length()) || Double.isNaN(solvedY.length())) {
 				continue;
@@ -117,22 +136,6 @@ class InterpolatedField
 		}
 	}
 
-	enum SingularityType {
-		Source,
-		Sink,
-		Saddle
-	}
-	class Singularity
-	{
-		SingularityType type;
-		PdVector position;
-		int element;
-		PdMatrix jacobian;
-		double maxEigenValue;
-		PdVector maxEigenDirection;
-		double minEigenValue;
-		double minEigenDirection;
-	}
 	ArrayList<Singularity> m_singularities;
 	public ArrayList<Singularity> findSingularities()
 	{
@@ -145,13 +148,16 @@ class InterpolatedField
 				}
 				PdVector b = PdVector.copyNew(field.b);
 				b.multScalar(-1);
-				PdVector pos = Curvature.solveCramer(field.a, b);
+				PdVector pos = Utils.solveCramer(field.a, b);
 				if (pos.length() == 0) {
 					continue;
 				}
 				if (inTriangle(i, pos)) {
 					Singularity singularity = new Singularity();
 					singularity.position = pos;
+					singularity.element = i;
+					singularity.jacobian = field.a;
+					
 					m_singularities.add(singularity);
 				}
 			}
@@ -197,6 +203,7 @@ public class Ex3_2
 	private PuDouble m_flowRotate;
 	private Checkbox m_flowReflect;
 	private Timer m_timer;
+	private PgPointSet m_singularities;
 
 	public static void main(String[] args)
 	{
@@ -246,6 +253,10 @@ public class Ex3_2
 		m_disp.selectCamera(PvCameraIf.CAMERA_ORTHO_XY);
 		m_disp.addGeometry(m_domain);
 		m_disp.update(m_domain);
+
+		m_singularities = new PgPolygonSet(2);
+		m_disp.addGeometry(m_singularities);
+
 		m_disp.addPickListener(this);
 		m_disp.fit();
 
@@ -367,10 +378,16 @@ public class Ex3_2
 		assert m_vec != null;
 		assert m_domain != null;
 		InterpolatedField field = new InterpolatedField(m_domain, m_vec);
-		System.out.println("singularities: " + field.findSingularities().size());
-		for(int i = 0; i < field.findSingularities().size(); ++i) {
-			
+		for(int i = 0; i < m_singularities.getNumVertices(); ++i) {
+			m_singularities.removeVertex(i);
 		}
+		for(Singularity singularity : field.findSingularities()) {
+			m_singularities.addVertex(singularity.position);
+		}
+		System.out.println("singularities found: " + m_singularities.getNumVertices());
+		m_singularities.showVertices(true);
+		m_singularities.setGlobalVertexSize(3.0);
+		m_disp.update(m_singularities);
 	}
 	@Override
 	public boolean update(Object event) {
