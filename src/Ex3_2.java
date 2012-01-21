@@ -313,6 +313,7 @@ public class Ex3_2
 
 		c.weighty = 1;
 		m_panel.add(Box.createVerticalBox(), c);
+		m_disp.selectGeometry(m_field.termBasePoints());
 		m_disp.fit();
 
 		updateVectorField_internal();
