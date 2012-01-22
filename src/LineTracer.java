@@ -37,16 +37,15 @@ abstract class LineTracer
 		output.addVertex(seed);
 		PdVector cur = seed;
 		for(int s = 1; s <= steps; ++s) {
-			PdVector f = m_function.evaluate(cur);
-			if (f == null) {
+			cur = next(cur, stepSize);
+			if (cur == null) {
 				break;
 			}
-			cur = next(cur, stepSize, f);
 			int v = output.addVertex(cur);
 			output.addPolygon(new PiVector(v-1, v));
 		}
 	}
-	abstract PdVector next(PdVector y_i, double h, PdVector yPrime);
+	protected abstract PdVector next(PdVector y_i, double h);
 }
 
 class ExplicitEulerTracer extends LineTracer
@@ -55,7 +54,47 @@ class ExplicitEulerTracer extends LineTracer
 		super(function);
 	}
 	@Override
-	PdVector next(PdVector y_i, double h, PdVector yPrime) {
-		return PdVector.blendNew(1.0, y_i, h, yPrime);
+	protected PdVector next(PdVector y_i, double h) {
+		PdVector f = m_function.evaluate(y_i);
+		if (f == null) {
+			return null;
+		}
+		return PdVector.blendNew(1.0, y_i, h, f);
+	}
+}
+
+class ClassicalRungeKuttaTracer extends LineTracer
+{
+	public ClassicalRungeKuttaTracer(Functor function) {
+		super(function);
+	}
+	@Override
+	protected PdVector next(PdVector y_i, double h) {
+		PdVector ret = PdVector.copyNew(y_i);
+		PdVector k_1 = m_function.evaluate(y_i);
+		if (k_1 == null) {
+			return null;
+		}
+		k_1.multScalar(h);
+		PdVector k_2 = m_function.evaluate(PdVector.blendNew(1.0, y_i, 0.5, k_1));
+		if (k_2 == null) {
+			return null;
+		}
+		k_2.multScalar(h);
+		PdVector k_3 = m_function.evaluate(PdVector.blendNew(1.0, y_i, 0.5, k_2));
+		if (k_3 == null) {
+			return null;
+		}
+		k_3.multScalar(h);
+		PdVector k_4 = m_function.evaluate(PdVector.blendNew(1.0, y_i, 1.0, k_3));
+		if (k_4 == null) {
+			return null;
+		}
+		k_4.multScalar(h);
+		ret.add(1.0/6.0, k_1);
+		ret.add(1.0/3.0, k_2);
+		ret.add(1.0/3.0, k_3);
+		ret.add(1.0/6.0, k_4);
+		return ret;
 	}
 }

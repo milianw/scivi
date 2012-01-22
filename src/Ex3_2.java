@@ -311,7 +311,7 @@ public class Ex3_2
 		m_minorSeparatrices.setGlobalVertexColor(Color.orange);
 		m_minorSeparatrices.setGlobalPolygonColor(Color.orange);
 
-		LineTracer trace = new ExplicitEulerTracer(field);
+		LineTracer trace = new ClassicalRungeKuttaTracer(field);
 
 		int i = 0;
 		for(Singularity singularity : field.findSingularities()) {
