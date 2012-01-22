@@ -19,6 +19,7 @@ import java.util.ArrayList;
 
 import jv.geom.PgElementSet;
 import jv.geom.PgVectorField;
+import jv.project.PvPickEvent;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 import jv.vecmath.PiVector;
@@ -110,7 +111,7 @@ class InterpolatedField
 		}
 	}
 
-	ArrayList<Singularity> m_singularities;
+	private ArrayList<Singularity> m_singularities;
 	public ArrayList<Singularity> findSingularities()
 	{
 		if (m_singularities == null) {
@@ -130,6 +131,8 @@ class InterpolatedField
 					Singularity singularity = new Singularity();
 					singularity.position = pos;
 					singularity.element = i;
+					assert elementAt(pos) == i;
+					assert evaluate(pos).length() < 1E-10;
 					singularity.jacobian = field.a;
 					singularity.eigenValues = new PdVector(2);
 					singularity.eigenVectors = Utils.solveEigen2x2(singularity.jacobian,
@@ -164,5 +167,27 @@ class InterpolatedField
 		PdVector b = vertices[1];
 		PdVector c = vertices[2];
 		return onSameSide(p, a, b, c) && onSameSide(p, b, a, c) && onSameSide(p, c, a, b);
+	}
+	private int elementAt(PdVector pos)
+	{
+		assert pos.getSize() == 2;
+
+		// TODO: optimize?
+		PdVector up = new PdVector(pos.getEntry(0), pos.getEntry(1), +1);
+		PdVector down = new PdVector(0, 0, -1);
+		PvPickEvent i = m_geometry.intersectionWithLine(up, down);
+		assert i != null;
+		assert inTriangle(i.getElementInd(), pos);
+
+		return i.getElementInd();
+	}
+	public PdVector evaluate(PdVector pos)
+	{
+		ElementField field = m_interpolated[elementAt(pos)];
+
+		PdVector ret = PdVector.copyNew(pos);
+		ret.leftMultMatrix(field.a);
+		ret.add(field.b);
+		return ret;
 	}
 }
