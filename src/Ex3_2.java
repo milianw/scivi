@@ -262,6 +262,7 @@ public class Ex3_2
 		m_separatrices = new PgPolygonSet(2);
 		m_separatrices.setName("Separatrices");
 		m_separatrices.showVertices(true);
+		m_separatrices.setGlobalVertexColor(Color.cyan);
 		
 		int i = 0;
 		for(Singularity singularity : field.findSingularities()) {
@@ -298,7 +299,7 @@ public class Ex3_2
 										0.01, singularity.eigenVectors.getRow(0));
 		output.addVertex(y0);
 		PdVector cur = y0;
-		for(int i = 1; i <= 10; ++i) {
+		for(int i = 1; i <= 1000; ++i) {
 			PdVector f = field.evaluate(cur);
 			if (f == null) {
 				break;

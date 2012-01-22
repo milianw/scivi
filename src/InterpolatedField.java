@@ -131,8 +131,8 @@ class InterpolatedField
 					Singularity singularity = new Singularity();
 					singularity.position = pos;
 					singularity.element = i;
-					assert elementAt(pos) == i;
-					assert evaluate(pos).length() < 1E-10;
+					assert elementAt(pos) == i : pos.toShortString();
+					assert evaluate(pos).length() < 1E-10 : pos.toShortString();
 					singularity.jacobian = field.a;
 					singularity.eigenValues = new PdVector(2);
 					singularity.eigenVectors = Utils.solveEigen2x2(singularity.jacobian,
@@ -176,11 +176,11 @@ class InterpolatedField
 		PdVector up = new PdVector(pos.getEntry(0), pos.getEntry(1), +1);
 		PdVector down = new PdVector(0, 0, -1);
 		PvPickEvent event = m_geometry.intersectionWithLine(up, down);
-		assert PdVector.subNew(event.getVertex(), pos).length() < 1E-10;
 		if (event == null || event.getElementInd() == -1) {
 			// out of bounds
 			return -1;
 		}
+		assert PdVector.subNew(event.getVertex(), pos).length() < 1E-10;
 		int element = event.getElementInd();
 		if (!inTriangle(element, pos)) {
 			// bah wth happens here? fallback to linear search :-/
