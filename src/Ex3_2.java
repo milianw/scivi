@@ -221,7 +221,11 @@ public class Ex3_2
 		} else {
 			assert e.getSource() == m_timer;
 			m_timer.stop();
-			updateVectorField_internal();
+			if (!m_lic.isComputingLIC()) {
+				updateVectorField_internal();
+			} else {
+				updateVectorField();
+			}
 		}
 	}
 	/**
