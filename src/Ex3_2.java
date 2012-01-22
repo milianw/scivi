@@ -15,6 +15,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import java.awt.Button;
 import java.awt.Checkbox;
 import java.awt.CheckboxGroup;
 import java.awt.Color;
@@ -68,6 +69,7 @@ public class Ex3_2
 	private Timer m_timer;
 	private PgPointSet m_singularities;
 	private PgPolygonSet m_separatrices;
+	private Button m_clear;
 
 	public static void main(String[] args)
 	{
@@ -164,6 +166,11 @@ public class Ex3_2
 		m_panel.add(m_select, c);
 		c.gridy++;
 
+		m_clear = new Button("Clear");
+		m_clear.addActionListener(this);
+		m_panel.add(m_clear, c);
+		c.gridy++;
+
 		c.fill = GridBagConstraints.CENTER;
 		m_panel.add(boldLabel("Singularity"), c);
 		c.fill = GridBagConstraints.HORIZONTAL;
@@ -207,9 +214,15 @@ public class Ex3_2
 	}
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		assert e.getSource() == m_timer;
-		m_timer.stop();
-		updateVectorField_internal();
+		Object source = e.getSource();
+		if (source == m_clear) {
+			m_field.clear();
+			updateVectorField_internal();
+		} else {
+			assert e.getSource() == m_timer;
+			m_timer.stop();
+			updateVectorField_internal();
+		}
 	}
 	/**
 	 * delay actual recomputation

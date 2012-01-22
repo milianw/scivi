@@ -87,6 +87,15 @@ public class VectorField extends BasicUpdateIf
 		}
 		return super.update(event);
 	}
+	public void clear()
+	{
+		for(int i = m_termBasePoints.getNumVertices(); i > 0; --i) {
+			m_termBasePoints.removeVertex(i - 1);
+		}
+		m_terms.clear();
+		m_termBasePoints.update(m_termBasePoints);
+		update(this);
+	}
 }
 
 abstract class Term extends BasicUpdateIf
