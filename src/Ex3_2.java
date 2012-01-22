@@ -23,12 +23,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.util.ArrayList;
 
 import javax.swing.Box;
 import javax.swing.Timer;
 
-import jv.geom.PgElementSet;
 import jv.geom.PgPointSet;
 import jv.geom.PgPolygonSet;
 import jv.geom.PgVectorField;
@@ -42,154 +40,9 @@ import jv.project.PvPickEvent;
 import jv.project.PvPickListenerIf;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
-import jv.vecmath.PiVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
 import jvx.vector.PwLIC;
-
-class Singularity
-{
-	enum Type {
-		Source,
-		Sink,
-		Saddle
-	}
-	Type type;
-	PdVector position;
-	int element;
-	PdMatrix jacobian;
-	PdMatrix eigenVectors;
-	PdVector eigenValues;
-}
-
-class InterpolatedField
-{
-	private PgElementSet m_geometry;
-	private PgVectorField m_field;
-	public InterpolatedField(PgElementSet geometry, PgVectorField field)
-	{
-		m_geometry = geometry;
-		m_field = field;
-		interpolate();
-	}
-
-	class ElementField
-	{
-		PdMatrix a;
-		PdVector b;
-		public PdVector evaluate(PdVector pos)
-		{
-			PdVector ret = new PdVector(2);
-			a.leftMultMatrix(ret, pos);
-			ret.add(b);
-			return ret;
-		}
-	}
-	private ElementField[] m_interpolated;
-	private void interpolate()
-	{
-		m_interpolated = new ElementField[m_geometry.getNumElements()];
-		for(int i = 0; i < m_geometry.getNumElements(); ++i) {
-			PiVector vertices = m_geometry.getElement(i);
-			assert vertices.getSize() == 3;
-			PdMatrix A = new PdMatrix(3, 3);
-			PdVector b_x = new PdVector(3);
-			PdVector b_y = new PdVector(3);
-			// build coefficient matrix A (from position of vertices)
-			// and expected results b_x, b_y (from vector field)
-			for(int j = 0; j < 3; ++j) {
-				// A gets the vertex positions in a row, and last column entry = 1
-				PdVector v = m_geometry.getVertex(vertices.getEntry(j));
-				assert v.getSize() == 2;
-				A.setEntry(j, 0, v.getEntry(0));
-				A.setEntry(j, 1, v.getEntry(1));
-				A.setEntry(j, 2, 1);
-				// result b_x, b_y get the x and y values of the field
-				PdVector f = m_field.getVector(vertices.getEntry(j));
-				assert f.getSize() == 2;
-				b_x.setEntry(j, f.getEntry(0));
-				b_y.setEntry(j, f.getEntry(1));
-			}
-			// interpolate
-			PdVector solvedX = Utils.solveCramer(A, b_x);
-			PdVector solvedY = Utils.solveCramer(A, b_y);
-			// filter out bad stuff, field might be zero e.g....
-			if (Double.isNaN(solvedX.length()) || Double.isNaN(solvedY.length())) {
-				continue;
-			}
-			// store result as 2x2 matrix and 2dim vector
-			ElementField elementField = new ElementField();
-			elementField.a = new PdMatrix(2, 2);
-			elementField.b = new PdVector(2);
-			for(int j = 0; j < 3; ++j) {
-				if (j == 2) {
-					elementField.b.setEntry(0, solvedX.getEntry(2));
-					elementField.b.setEntry(1, solvedY.getEntry(2));
-				} else {
-					elementField.a.setEntry(0, j, solvedX.getEntry(j));
-					elementField.a.setEntry(1, j, solvedY.getEntry(j));
-				}
-			}
-			m_interpolated[i] = elementField;
-		}
-	}
-
-	ArrayList<Singularity> m_singularities;
-	public ArrayList<Singularity> findSingularities()
-	{
-		if (m_singularities == null) {
-			m_singularities = new ArrayList<Singularity>(10);
-			for(int i = 0; i < m_interpolated.length; ++i) {
-				ElementField field = m_interpolated[i];
-				if (field == null) {
-					continue;
-				}
-				PdVector b = PdVector.copyNew(field.b);
-				b.multScalar(-1);
-				PdVector pos = Utils.solveCramer(field.a, b);
-				if (pos.length() == 0) {
-					continue;
-				}
-				if (inTriangle(i, pos)) {
-					Singularity singularity = new Singularity();
-					singularity.position = pos;
-					singularity.element = i;
-					singularity.jacobian = field.a;
-					singularity.eigenValues = new PdVector(2);
-					singularity.eigenVectors = Utils.solveEigen2x2(singularity.jacobian,
-																	singularity.eigenValues);
-					double se1 = Math.signum(singularity.eigenValues.getEntry(0));
-					double se2 = Math.signum(singularity.eigenValues.getEntry(1));
-					if (se1 != se2) {
-						singularity.type = Singularity.Type.Saddle;
-					} else if (se1 < 0) {
-						singularity.type = Singularity.Type.Sink;
-					} else {
-						singularity.type = Singularity.Type.Source;
-					}
-					m_singularities.add(singularity);
-				}
-			}
-			m_singularities.trimToSize();
-		}
-		return m_singularities;
-	}
-	private boolean onSameSide(PdVector p1, PdVector a, PdVector b, PdVector c)
-	{
-		PdVector c_min_b = PdVector.subNew(c, b);
-		PdVector cp1 = PdVector.crossNew(c_min_b, PdVector.subNew(p1, b));
-		PdVector cp2 = PdVector.crossNew(c_min_b, PdVector.subNew(a, b));
-		return cp1.dot(cp2) >= 0;
-	}
-	private boolean inTriangle(int i, PdVector p)
-	{
-		PdVector[] vertices = m_geometry.getElementVertices(i);
-		PdVector a = vertices[0];
-		PdVector b = vertices[1];
-		PdVector c = vertices[2];
-		return onSameSide(p, a, b, c) && onSameSide(p, b, a, c) && onSameSide(p, c, a, b);
-	}
-}
 
 /**
  * Solution to fourth exercise of the second project
@@ -213,6 +66,7 @@ public class Ex3_2
 	private Checkbox m_flowReflect;
 	private Timer m_timer;
 	private PgPointSet m_singularities;
+	private PgPolygonSet m_separatrices;
 
 	public static void main(String[] args)
 	{
@@ -394,6 +248,10 @@ public class Ex3_2
 			m_disp.removeGeometry(m_singularities);
 		}
 
+		if (m_separatrices != null) {
+			m_disp.removeGeometry(m_separatrices);
+		}
+
 		m_singularities = new PgPolygonSet(2);
 		m_singularities.setName("Calculated Singularities");
 		m_singularities.showVertices(true);
@@ -407,6 +265,7 @@ public class Ex3_2
 			switch(singularity.type) {
 			case Saddle:
 				c = Color.blue;
+				traceSeparatrix(singularity, m_separatrices);
 				break;
 			case Sink:
 				c = Color.red;
@@ -423,6 +282,13 @@ public class Ex3_2
 		m_disp.update(m_singularities);
 		m_disp.addGeometry(m_singularities);
 	}
+	private void traceSeparatrix(Singularity singularity, PgPolygonSet output)
+	{
+		assert singularity.type == Singularity.Type.Saddle;
+		final double h = 0.5;
+		
+	}
+
 	@Override
 	public boolean update(Object event) {
 		if (event == m_lic) {
