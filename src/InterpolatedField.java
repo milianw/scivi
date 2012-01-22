@@ -39,7 +39,7 @@ class Singularity
 	PdVector eigenValues;
 }
 
-class InterpolatedField
+class InterpolatedField implements LineTracer.Functor
 {
 	private PgElementSet m_geometry;
 	private PgVectorField m_field;

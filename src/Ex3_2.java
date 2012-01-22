@@ -41,7 +41,6 @@ import jv.project.PvPickEvent;
 import jv.project.PvPickListenerIf;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
-import jv.vecmath.PiVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
 import jvx.vector.PwLIC;
@@ -68,8 +67,9 @@ public class Ex3_2
 	private Checkbox m_flowReflect;
 	private Timer m_timer;
 	private PgPointSet m_singularities;
-	private PgPolygonSet m_separatrices;
+	private PgPolygonSet m_majorSeparatrices;
 	private Button m_clear;
+	private PgPolygonSet m_minorSeparatrices;
 
 	public static void main(String[] args)
 	{
@@ -266,21 +266,30 @@ public class Ex3_2
 			m_disp.removeGeometry(m_singularities);
 		}
 
-		if (m_separatrices != null) {
-			m_disp.removeGeometry(m_separatrices);
-		}
-
 		m_singularities = new PgPointSet(2);
 		m_singularities.setName("Calculated Singularities");
 		m_singularities.showVertices(true);
 		m_singularities.setGlobalVertexSize(3.0);
 		m_singularities.showVertexColors(true);
 
-		m_separatrices = new PgPolygonSet(2);
-		m_separatrices.setName("Separatrices");
-		m_separatrices.showVertices(true);
-		m_separatrices.setGlobalVertexColor(Color.cyan);
-		
+		if (m_majorSeparatrices != null) {
+			m_disp.removeGeometry(m_majorSeparatrices);
+		}
+		m_majorSeparatrices = new PgPolygonSet(2);
+		m_majorSeparatrices.setName("Major Separatrices");
+		m_majorSeparatrices.showVertices(true);
+		m_majorSeparatrices.setGlobalVertexColor(Color.cyan);
+
+		if (m_minorSeparatrices != null) {
+			m_disp.removeGeometry(m_minorSeparatrices);
+		}
+		m_minorSeparatrices = new PgPolygonSet(2);
+		m_minorSeparatrices.setName("Minor Separatrices");
+		m_minorSeparatrices.showVertices(true);
+		m_minorSeparatrices.setGlobalVertexColor(Color.orange);
+
+		LineTracer trace = new LineTracer(field);
+
 		int i = 0;
 		for(Singularity singularity : field.findSingularities()) {
 			m_singularities.addVertex(singularity.position);
@@ -288,7 +297,20 @@ public class Ex3_2
 			switch(singularity.type) {
 			case Saddle:
 				c = Color.blue;
-				traceSeparatrix(singularity, field, m_separatrices);
+				// trace separatrices
+				final double stepSize = 0.5;
+				// small offset so it's not directly at the singularity
+				final double initialOffset = 0.01;
+
+				for(int minor = 0; minor < 2; ++minor) {
+				for(int down = 0; down < 2; ++down) {
+						PdVector y0 = PdVector.blendNew(1, singularity.position,
+														initialOffset * (down == 1 ? -1 : +1),
+														singularity.eigenVectors.getRow(minor));
+						trace.trace(minor == 1 ? m_minorSeparatrices : m_majorSeparatrices,
+									y0, 1000, stepSize * (minor == 1 ? -1 : +1));
+					}
+				}
 				break;
 			case Sink:
 				c = Color.red;
@@ -303,28 +325,8 @@ public class Ex3_2
 		assert m_singularities.getNumVertices() == field.findSingularities().size();
 		System.out.println("singularities found: " + m_singularities.getNumVertices());
 		m_disp.addGeometry(m_singularities);
-		m_disp.addGeometry(m_separatrices);
-	}
-	private void traceSeparatrix(Singularity singularity, InterpolatedField field,
-									PgPolygonSet output)
-	{
-		assert singularity.type == Singularity.Type.Saddle;
-		final double h = 0.5;
-		// small offset so it's not directly at the singularity
-		// TODO: other directions!
-		PdVector y0 = PdVector.blendNew(1, singularity.position,
-										0.01, singularity.eigenVectors.getRow(0));
-		output.addVertex(y0);
-		PdVector cur = y0;
-		for(int i = 1; i <= 1000; ++i) {
-			PdVector f = field.evaluate(cur);
-			if (f == null) {
-				break;
-			}
-			cur = PdVector.blendNew(1.0, cur, h, f);
-			int v = output.addVertex(cur);
-			output.addPolygon(new PiVector(v-1, v));
-		}
+		m_disp.addGeometry(m_majorSeparatrices);
+		m_disp.addGeometry(m_minorSeparatrices);
 	}
 
 	@Override
