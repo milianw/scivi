@@ -70,6 +70,7 @@ public class Ex3_2
 	private PgPolygonSet m_majorSeparatrices;
 	private Button m_clear;
 	private PgPolygonSet m_minorSeparatrices;
+	private Checkbox m_showSeparatrices;
 
 	public static void main(String[] args)
 	{
@@ -172,6 +173,16 @@ public class Ex3_2
 		c.gridy++;
 
 		c.fill = GridBagConstraints.CENTER;
+		m_panel.add(boldLabel("Separatrices"), c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridy++;
+
+		m_showSeparatrices = new Checkbox("Show Separatrices", true);
+		m_showSeparatrices.addItemListener(this);
+		m_panel.add(m_showSeparatrices, c);
+		c.gridy++;
+
+		c.fill = GridBagConstraints.CENTER;
 		m_panel.add(boldLabel("Singularity"), c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridy++;
@@ -208,6 +219,16 @@ public class Ex3_2
 			System.out.println("click near a feature to select it");
 		} else if (source == m_flowReflect) {
 			updateVectorField();
+		} else if (source == m_showSeparatrices) {
+			if (m_showSeparatrices.getState()) {
+				m_disp.addGeometry(m_majorSeparatrices);
+				m_disp.addGeometry(m_minorSeparatrices);
+			} else {
+				m_disp.removeGeometry(m_majorSeparatrices);
+				m_disp.removeGeometry(m_minorSeparatrices);
+			}
+			m_disp.update(m_majorSeparatrices);
+			m_disp.update(m_minorSeparatrices);
 		} else {
 			assert false : "Unhandled item changed: " + source;
 		}
@@ -272,23 +293,25 @@ public class Ex3_2
 		m_singularities.setGlobalVertexSize(3.0);
 		m_singularities.showVertexColors(true);
 
-		if (m_majorSeparatrices != null) {
+		if (m_majorSeparatrices != null && m_disp.containsGeometry(m_majorSeparatrices)) {
 			m_disp.removeGeometry(m_majorSeparatrices);
 		}
 		m_majorSeparatrices = new PgPolygonSet(2);
 		m_majorSeparatrices.setName("Major Separatrices");
 		m_majorSeparatrices.showVertices(true);
 		m_majorSeparatrices.setGlobalVertexColor(Color.cyan);
+		m_majorSeparatrices.setGlobalPolygonColor(Color.cyan);
 
-		if (m_minorSeparatrices != null) {
+		if (m_minorSeparatrices != null && m_disp.containsGeometry(m_minorSeparatrices)) {
 			m_disp.removeGeometry(m_minorSeparatrices);
 		}
 		m_minorSeparatrices = new PgPolygonSet(2);
 		m_minorSeparatrices.setName("Minor Separatrices");
 		m_minorSeparatrices.showVertices(true);
 		m_minorSeparatrices.setGlobalVertexColor(Color.orange);
+		m_minorSeparatrices.setGlobalPolygonColor(Color.orange);
 
-		LineTracer trace = new LineTracer(field);
+		LineTracer trace = new ExplicitEulerTracer(field);
 
 		int i = 0;
 		for(Singularity singularity : field.findSingularities()) {
@@ -325,8 +348,10 @@ public class Ex3_2
 		assert m_singularities.getNumVertices() == field.findSingularities().size();
 		System.out.println("singularities found: " + m_singularities.getNumVertices());
 		m_disp.addGeometry(m_singularities);
-		m_disp.addGeometry(m_majorSeparatrices);
-		m_disp.addGeometry(m_minorSeparatrices);
+		if (m_showSeparatrices.getState()) {
+			m_disp.addGeometry(m_majorSeparatrices);
+			m_disp.addGeometry(m_minorSeparatrices);
+		}
 	}
 
 	@Override

@@ -131,8 +131,6 @@ class InterpolatedField implements LineTracer.Functor
 					Singularity singularity = new Singularity();
 					singularity.position = pos;
 					singularity.element = i;
-					assert elementAt(pos) == i : pos.toShortString();
-					assert evaluate(pos).length() < 1E-10 : pos.toShortString();
 					singularity.jacobian = field.a;
 					singularity.eigenValues = new PdVector(2);
 					singularity.eigenVectors = Utils.solveEigen2x2(singularity.jacobian,
@@ -183,13 +181,7 @@ class InterpolatedField implements LineTracer.Functor
 		assert PdVector.subNew(event.getVertex(), pos).length() < 1E-10;
 		int element = event.getElementInd();
 		if (!inTriangle(element, pos)) {
-			// bah wth happens here? fallback to linear search :-/
-			for(int i = 0; i < m_geometry.getNumElements(); ++i) {
-				if (inTriangle(i, pos)) {
-					element = i;
-					break;
-				}
-			}
+			return -1;
 		}
 
 		assert inTriangle(element, pos)

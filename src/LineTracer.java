@@ -19,7 +19,7 @@ import jv.geom.PgPolygonSet;
 import jv.vecmath.PdVector;
 import jv.vecmath.PiVector;
 
-class LineTracer
+abstract class LineTracer
 {
 	interface Functor
 	{
@@ -41,9 +41,21 @@ class LineTracer
 			if (f == null) {
 				break;
 			}
-			cur = PdVector.blendNew(1.0, cur, stepSize, f);
+			cur = next(cur, stepSize, f);
 			int v = output.addVertex(cur);
 			output.addPolygon(new PiVector(v-1, v));
 		}
+	}
+	abstract PdVector next(PdVector y_i, double h, PdVector yPrime);
+}
+
+class ExplicitEulerTracer extends LineTracer
+{
+	public ExplicitEulerTracer(Functor function) {
+		super(function);
+	}
+	@Override
+	PdVector next(PdVector y_i, double h, PdVector yPrime) {
+		return PdVector.blendNew(1.0, y_i, h, yPrime);
 	}
 }
