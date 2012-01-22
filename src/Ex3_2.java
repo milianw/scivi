@@ -40,6 +40,7 @@ import jv.project.PvPickEvent;
 import jv.project.PvPickListenerIf;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
+import jv.vecmath.PiVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
 import jvx.vector.PwLIC;
@@ -252,12 +253,16 @@ public class Ex3_2
 			m_disp.removeGeometry(m_separatrices);
 		}
 
-		m_singularities = new PgPolygonSet(2);
+		m_singularities = new PgPointSet(2);
 		m_singularities.setName("Calculated Singularities");
 		m_singularities.showVertices(true);
 		m_singularities.setGlobalVertexSize(3.0);
 		m_singularities.showVertexColors(true);
 
+		m_separatrices = new PgPolygonSet(2);
+		m_separatrices.setName("Separatrices");
+		m_separatrices.showVertices(true);
+		
 		int i = 0;
 		for(Singularity singularity : field.findSingularities()) {
 			m_singularities.addVertex(singularity.position);
@@ -265,7 +270,7 @@ public class Ex3_2
 			switch(singularity.type) {
 			case Saddle:
 				c = Color.blue;
-				traceSeparatrix(singularity, m_separatrices);
+				traceSeparatrix(singularity, field, m_separatrices);
 				break;
 			case Sink:
 				c = Color.red;
@@ -279,14 +284,29 @@ public class Ex3_2
 		}
 		assert m_singularities.getNumVertices() == field.findSingularities().size();
 		System.out.println("singularities found: " + m_singularities.getNumVertices());
-		m_disp.update(m_singularities);
 		m_disp.addGeometry(m_singularities);
+		m_disp.addGeometry(m_separatrices);
 	}
-	private void traceSeparatrix(Singularity singularity, PgPolygonSet output)
+	private void traceSeparatrix(Singularity singularity, InterpolatedField field,
+									PgPolygonSet output)
 	{
 		assert singularity.type == Singularity.Type.Saddle;
 		final double h = 0.5;
-		
+		// small offset so it's not directly at the singularity
+		// TODO: other directions!
+		PdVector y0 = PdVector.blendNew(1, singularity.position,
+										0.01, singularity.eigenVectors.getRow(0));
+		output.addVertex(y0);
+		PdVector cur = y0;
+		for(int i = 1; i <= 10; ++i) {
+			PdVector f = field.evaluate(cur);
+			if (f == null) {
+				break;
+			}
+			cur = PdVector.blendNew(1.0, cur, h, f);
+			int v = output.addVertex(cur);
+			output.addPolygon(new PiVector(v-1, v));
+		}
 	}
 
 	@Override

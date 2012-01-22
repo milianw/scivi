@@ -175,15 +175,35 @@ class InterpolatedField
 		// TODO: optimize?
 		PdVector up = new PdVector(pos.getEntry(0), pos.getEntry(1), +1);
 		PdVector down = new PdVector(0, 0, -1);
-		PvPickEvent i = m_geometry.intersectionWithLine(up, down);
-		assert i != null;
-		assert inTriangle(i.getElementInd(), pos);
+		PvPickEvent event = m_geometry.intersectionWithLine(up, down);
+		assert PdVector.subNew(event.getVertex(), pos).length() < 1E-10;
+		if (event == null || event.getElementInd() == -1) {
+			// out of bounds
+			return -1;
+		}
+		int element = event.getElementInd();
+		if (!inTriangle(element, pos)) {
+			// bah wth happens here? fallback to linear search :-/
+			for(int i = 0; i < m_geometry.getNumElements(); ++i) {
+				if (inTriangle(i, pos)) {
+					element = i;
+					break;
+				}
+			}
+		}
 
-		return i.getElementInd();
+		assert inTriangle(element, pos)
+			: pos.toShortString() + ", " + element;
+
+		return element;
 	}
 	public PdVector evaluate(PdVector pos)
 	{
-		ElementField field = m_interpolated[elementAt(pos)];
+		int i = elementAt(pos);
+		if (i == -1) {
+			return null;
+		}
+		ElementField field = m_interpolated[i];
 
 		PdVector ret = PdVector.copyNew(pos);
 		ret.leftMultMatrix(field.a);
