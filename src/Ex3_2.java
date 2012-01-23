@@ -324,15 +324,17 @@ public class Ex3_2
 				// trace separatrices
 				final double stepSize = 0.5;
 				// small offset so it's not directly at the singularity
-				final double initialOffset = 0.01;
+				final double initialOffset = 0.05;
 
 				for(int minor = 0; minor < 2; ++minor) {
 				for(int down = 0; down < 2; ++down) {
+						int signum_minor = minor == 1 ? -1 : 1;
+						int signum_down = signum_minor * (down == 1 ? -1 : 1);
 						PdVector y0 = PdVector.blendNew(1, singularity.position,
-														initialOffset * (down == 1 ? -1 : +1),
+														initialOffset * signum_down,
 														singularity.eigenVectors.getRow(minor));
 						trace.trace(minor == 1 ? m_minorSeparatrices : m_majorSeparatrices,
-									y0, 1000, stepSize * (minor == 1 ? -1 : +1));
+									y0, 1000, stepSize * signum_minor);
 					}
 				}
 				break;
