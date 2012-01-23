@@ -238,13 +238,14 @@ public class Ex3_2
 		Object source = e.getSource();
 		if (source == m_clear) {
 			m_field.clear();
-			updateVectorField_internal();
+			updateVectorField();
 		} else {
 			assert e.getSource() == m_timer;
 			m_timer.stop();
 			if (!m_lic.isComputingLIC()) {
 				updateVectorField_internal();
 			} else {
+				m_lic.stopLIC();
 				updateVectorField();
 			}
 		}
