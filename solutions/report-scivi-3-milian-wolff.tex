@@ -122,7 +122,7 @@ Lastly saddles are colored blue while generic items are black.
 \begin{figure}
   \centering
   \includegraphics[scale=0.5]{img-3-2/constant.png}
-  \caption{constant vector field design element}
+  \caption{constant vector field design element, without decay}
   \label{fig:constant}
 \end{figure}
 
@@ -327,7 +327,52 @@ are negative and a source otherwise, i.e. for positive eigenvalues.
 
 \subsection{Examples}
 
+Two examples of the above algorithm to find singularities can be seen in fig.
+\ref{fig:singularities}. The singularities are again color coded similar to
+above and can be differentiated from the user-supplied design terms by their
+smaller size.
 
+\begin{figure}
+  \centering
+  \subfloat{
+    \includegraphics[scale=0.4]{img-3-2/singularities-a.png}}
+  \\
+  \subfloat{
+    \includegraphics[scale=0.4]{img-3-2/singularities-b.png}}
+  \caption{finding singularities}
+  \label{fig:singularities}
+\end{figure}
+
+\chapter{Separatrices}
+
+After having found the singularities in the vector field we can go one step
+further by also visualizing the separatrices. To do this we trace pathes
+starting from the saddle points and go in the direction of the minor and
+major eigenvectors of the Jacobian $\mat{C}$.
+
+My implementation uses the classical Runge-Kutta integration scheme with a
+stepsize of $h = 0.5$ and up to $N = 1000$ steps. The integration stops as soon
+as it gets outside the domain boundary. There are no built-in checks to prevent
+crossing separatrices, which may result in noisy images esp. when multiple
+saddles are in the vicinity of a vortex. Furthermore the tracer does not stop
+when it gets close to a singularity, which sometimes might lead to a small
+overshoot, yet most of the time is not so important.
+
+To see the above in action, look at fig. \ref{fig:separatrices}. Note that
+separatrices in major direction are colored cyan while those in the minor
+direction are orange. Furthermore each integration step is shown by a vertex
+node on the separatrix.
+
+\begin{figure}
+  \centering
+  \subfloat{
+    \includegraphics[scale=0.5]{img-3-2/separatrices-a.png}}
+  \\
+  \subfloat{
+    \includegraphics[scale=0.5]{img-3-2/separatrices-b.png}}
+  \caption{finding separatrices}
+  \label{fig:separatrices}
+\end{figure}
 
 \end{document}
 
