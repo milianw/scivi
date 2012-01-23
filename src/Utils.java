@@ -22,10 +22,10 @@ class Utils
 {
 	public static PdMatrix principleDirections2x2(PdMatrix matrix2x2)
 	{
-		return solveEigen2x2(matrix2x2, null);
+		return solveEigen2x2(matrix2x2, null, false);
 	}
 	// see also: http://en.wikipedia.org/wiki/Eigenvalue_algorithm#Eigenvalues_of_2.C3.972_matrices
-	public static PdMatrix solveEigen2x2(PdMatrix A, PdVector eigenValues)
+	public static PdMatrix solveEigen2x2(PdMatrix A, PdVector eigenValues, boolean allowNonOrthogonal)
 	{
 		assert eigenValues == null || eigenValues.getSize() == 2;
 		assert A.getNumCols() == 2;
@@ -68,7 +68,7 @@ class Utils
 			minor.setEntry(0, 0);
 			minor.setEntry(1, 1);
 		}
-		if (minor.dot(major) > 1E-10) {
+		if (!allowNonOrthogonal && minor.dot(major) > 1E-10) {
 			System.err.println("Non-Orthogonal principle directions computed:");
 			System.err.println("Minor: " + minor.toShortString());
 			System.err.println("Major: "+ major.toShortString());

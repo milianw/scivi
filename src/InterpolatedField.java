@@ -134,7 +134,7 @@ class InterpolatedField implements LineTracer.Functor
 					singularity.jacobian = field.a;
 					singularity.eigenValues = new PdVector(2);
 					singularity.eigenVectors = Utils.solveEigen2x2(singularity.jacobian,
-																	singularity.eigenValues);
+																	singularity.eigenValues, true);
 					double se1 = Math.signum(singularity.eigenValues.getEntry(0));
 					double se2 = Math.signum(singularity.eigenValues.getEntry(1));
 					if (se1 != se2) {
