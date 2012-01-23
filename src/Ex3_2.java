@@ -353,6 +353,7 @@ public class Ex3_2
 			m_disp.addGeometry(m_majorSeparatrices);
 			m_disp.addGeometry(m_minorSeparatrices);
 		}
+		m_disp.selectGeometry(m_field.termBasePoints());
 	}
 
 	@Override
