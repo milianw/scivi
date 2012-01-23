@@ -114,6 +114,11 @@ In the equations above, $\sigma$ is the scaling factor
 with $s$ denoting the strength and $\vec{r}_i$ being the base point of the
 design element, i.e. the point where the user clicked.
 
+Note that user-placed vector field elements are shown as large dots in the LIC
+image. They are furthermore color coded such that centers, focuses and sources
+and diverging elements are green, while converging elements and sinks are red.
+Lastly saddles are colored blue while generic items are black.
+
 \begin{figure}
   \centering
   \includegraphics[scale=0.5]{img-3-2/constant.png}
@@ -184,6 +189,13 @@ design element, i.e. the point where the user clicked.
   \label{fig:diverging}
 \end{figure}
 
+\section{Parametrization}
+
+I reuse the given parametrization of the plane in a triangulated quad. I have
+chosen a equidistant discretization of $10 \times 10 = 100$ vertices. The
+discrete vector field is then given by evaluating the sum of all design
+elements at each vertex point.
+
 \section{Flow Rotation}
 
 The flow can easily rotated by an arbitrary angle $\theta$ via
@@ -239,6 +251,71 @@ An example for flow reflection is shown in fig. \ref{fig:flow-reflection}.
   \caption{flow reflection}
   \label{fig:flow-reflection}
 \end{figure}
+
+\section{Finding Singularities}
+
+Whenever the vector field is updated, I extract the singularities while LIC is
+running in the background. To do so we first need to interpolate the discretized
+vector field, yielding an element-wise continous vector field.
+
+\subsection{Vector Field Interpolation}
+
+For each element, i.e. triangle we first combine the three vertex positions
+into a matrix
+
+\begin{equation}
+ \mat{A} = \left(
+\begin{array}{ccc}
+x_1 & y_1 & 1 \\
+x_2 & y_2 & 1 \\
+x_3 & y_3 & 1 \end{array} \right).
+\end{equation}
+
+The actual values of the discrete vector field we store in two vectors
+$\vec{b}_x$ and $\vec{b}_y$ such that
+
+\begin{equation}
+ \vec{b}_{k} = \left( \begin{array}{c} k_1 \\ k_2 \\ k_3 \end{array} \right) .
+\qquad k = x,y
+\end{equation}
+
+Now we can solve, using the Cramer method, the following two equations:
+
+\begin{equation}
+ \mat{A} \vec{c}_k = \vec{b}_k \qquad k = x,y
+\end{equation}
+
+We obtain six coefficients which define our interpolated vector field:
+
+\begin{eqnarray}
+ \vec{V}'_i(\vec{r}) &=& \left(
+\begin{array}{cc}
+c_{x,1} & c_{x,2} \\
+c_{y,1} & c_{y,2} \end{array} \right) \vec{r} + \left( \begin{array}{c} c_{x,3}
+\\ c_{y,3} \end{array} \right) \\
+ &=& \mat{C} \vec{r} + \vec{c}
+\label{eq:interpolated-field}
+\end{eqnarray}
+
+The above is implemented in \texttt{InterpolatedField::interpolate()}.
+
+\subsection{Singularities}
+
+Using eq. \ref{eq:interpolated-field} we can easily find singularities by
+solving the equation
+
+\begin{equation}
+ \mat{C} \vec{r}_s = - \vec{c}.
+ \label{eq:singularity}
+\end{equation}
+
+One must consider the boundary though, i.e. our interpolated vector field is
+only valid inside the triangle area. Hence a solution obtained by
+eq. \ref{eq:singularity} is only a ``real'' singularity if $\vec{r}_s$ is
+inside the triangle. The latter is easily checked by the usual vector
+multiplication approach as implemented in \texttt{::inTriangle()} and
+\texttt{::onSameSide()}. All the above is implemented in cmp.
+\texttt{::findSingularities()}.
 
 \end{document}
 
