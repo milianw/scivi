@@ -317,6 +317,18 @@ multiplication approach as implemented in \texttt{::inTriangle()} and
 \texttt{::onSameSide()}. All the above is implemented in cmp.
 \texttt{::findSingularities()}.
 
+\subsection{Classification}
+
+To classify the singularities found by applying the above method, we look at
+the eigenvalues of the Jacobian, in our case $\mat{C}$. If the two eigen values
+have a different sign, i.e. $\sigma(\lambda_1) \neq \sigma(\lambda_2)$ then the
+singularity is a saddle. Otherwise the singularity is a sink if the eigenvalues
+are negative and a source otherwise, i.e. for positive eigenvalues.
+
+\subsection{Examples}
+
+
+
 \end{document}
 
 % kate: replace-tabs on;
