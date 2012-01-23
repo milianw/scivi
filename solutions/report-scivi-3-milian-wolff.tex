@@ -186,7 +186,59 @@ design element, i.e. the point where the user clicked.
 
 \section{Flow Rotation}
 
+The flow can easily rotated by an arbitrary angle $\theta$ via
+matrix-multiplication of each vector in the discretized domain with a rotation
+matrix:
 
+\begin{equation}
+ \vec{v}'(\vec{r}) = \mat{R} \vec{v}(\vec{r})
+\end{equation}
+
+The rotation matrix is given by
+
+\begin{equation}
+ \mat{R} = \left(
+\begin{array}{cc}
+\cos(\theta) & -\sin(\theta) \\
+\sin(\theta) & \cos(\theta) \end{array} \right)
+\end{equation}
+
+An example can be seen in fig. \ref{fig:flow-rotation}.
+
+\begin{figure}
+  \centering
+  \subfloat[basis]{
+    \includegraphics[scale=0.5]{img-3-2/rotate-a.png}}
+  \\
+  \subfloat[rotated]{
+    \includegraphics[scale=0.5]{img-3-2/rotate-b.png}}
+  \caption{flow rotation}
+  \label{fig:flow-rotation}
+\end{figure}
+
+\section{Flow Reflection}
+
+Similar to above, flow reflection is achieved via matrix multiplication. In my
+implementation, reflection can be turned on and off and is supposed to be used
+in combination with flow rotation. When flow reflection is turned on, the sign
+of the second column in the rotation matrix changes sign:
+
+\begin{equation}
+ \mat{R}' = \mat{R} \cdot \left( \begin{array}{c} 1 \\ -1\end{array} \right)
+\end{equation}
+
+An example for flow reflection is shown in fig. \ref{fig:flow-reflection}.
+
+\begin{figure}
+  \centering
+  \subfloat[basis]{
+    \includegraphics[scale=0.5]{img-3-2/reflect-a.png}}
+  \\
+  \subfloat[reflected]{
+    \includegraphics[scale=0.5]{img-3-2/reflect-b.png}}
+  \caption{flow reflection}
+  \label{fig:flow-reflection}
+\end{figure}
 
 \end{document}
 
