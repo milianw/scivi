@@ -1,4 +1,4 @@
-\documentclass[a4paper,10pt,notitlepage]{scrreprt}
+\documentclass[a4paper,10pt,notitlepage]{scrartcl}
 
 \usepackage[T1]{fontenc}
 \usepackage[english]{babel}
@@ -37,7 +37,6 @@
 \title{Scientific Visualization\\Project III}
 \author{Milian Wolff}
 
-
 \begin{document}
 \maketitle
 
@@ -58,7 +57,122 @@ The source code of my exercise solutions can be found online under
 \tableofcontents
 \endgroup
 
-\chapter{Vector Field Design}
+\section{Scalar Field Topology}
+
+In the following we analyze the topology of scalar vector fields defined on
+the unit sphere in 3D. We leverage the periodic boundary conditions by applying
+spherical coordinates with $r = 1$, which yields the following parametrization:
+
+\begin{equation}
+ \vec{r} = \left( \begin{array}{c} x \\ y \\ z \end{array} \right)
+        = \left( \begin{array}{c} \cos \phi \sin \theta \\ \sin \phi \sin
+\theta \\ \cos \theta \end{array} \right)
+\end{equation}
+
+The value ranges are $0 \leq \theta \leq \pi$ and
+$0 \leq \phi \leq 2 \pi$.
+
+In the following we investigate scalar vector fields $f(\vec{r})$ and want to
+know whether they are Morse, i.e. smooth and have only isolated
+and non-degenerate critical points.
+
+The critical points can be found by solving
+
+\begin{equation}
+ \nabla f(\vec{r}) = 0,
+\end{equation}
+
+
+with the Nabla-Operator $\nabla$ in spherical coordinates and $r = 1$ being
+
+\begin{equation}
+ \nabla = \frac{\partial}{\partial \theta} \vec{e}_\theta + \frac{1}{\sin
+\theta} \frac{\partial}{\partial \phi} \vec{e}_\phi.
+\end{equation}
+
+Frankly I have no clue how to calculate the Hessian or the determinant
+of said in spherical coordinates. I'll thus limit myself to finding the critical
+points then.
+
+\subsection{Case a)}
+
+\begin{eqnarray}
+ f(\vec{r}) &=& 1 \\
+ \nabla f(\vec{r}) &=& 0
+\end{eqnarray}
+
+The vector field is not morse since every point is critical and thus
+non-isolated.
+
+\subsection{Case b)}
+
+\begin{eqnarray}
+ f(\vec{r}) &=& x = \cos\phi \sin\theta \\
+ \nabla f(\vec{r}) &=& \cos\phi \cos\theta \vec{e}_\theta - \sin\phi
+\vec{e}_\phi
+\end{eqnarray}
+
+The above turns zero for $\sin\phi = 0$ and $\cos\theta = 0$, i.e. at $\phi =
+0°, 180°$ and $\theta = \pm 90°$. I.e. there are two isolated critical points at
+$[\pm 1, 0, 0]^T$.
+
+\subsection{Case c)}
+
+\begin{eqnarray}
+ f(\vec{r}) &=& x^2 = \cos^2 \phi \sin^2 \theta \\
+ \nabla f(\vec{r}) &=& 2 \cos^2 \phi \cos\theta \sin\theta \vec{e}_\theta -
+2 \cos\phi \sin\phi \sin\theta \vec{e}_\phi
+\end{eqnarray}
+
+The above turns zero for $\cos\phi = 0$ and any value of $\theta$. As such the
+critical points are not isolated and the function non-morse.
+
+\subsection{Case d)}
+
+\begin{eqnarray}
+ f(\vec{r}) &=& x^2 - y^2 = \sin^2 \theta( \cos^2 \phi  - \sin^2 \phi) \\
+ \nabla f(\vec{r}) &=& 2 \sin \theta \cos \theta (\cos^2 \phi - \sin^2 \phi)
+\vec{e}_\theta -
+4 \sin \theta \cos\phi \sin\phi \vec{e}_\phi
+\end{eqnarray}
+
+The above turns zero for $\sin\theta = 0$, i.e. at the north and
+southpole ($\theta = 0, \pi$). It is furthermore zero when $\cos \theta = 0$,
+i.e. on the equator, and additionally $\sin \phi = 0$ or $\cos \phi = 0$, i.e.
+at $x = \pm 1$ and $y = 0$ or $x = 0$ and $y = \pm 1$.
+
+These singularities are isolated.
+
+\subsection{Case e)}
+
+\begin{eqnarray}
+ f(\vec{r}) &=& \sum^N_{k = 0} { \left(\begin{array}{c} N \\ K \end{array}
+\right) x^k y^{N-k} \cos \left(\frac{N-k}{2} \pi\right) } \\
+  &=& \sin^N \theta \sum^N_{k = 0} { \left(\begin{array}{c} N \\ K \end{array}
+\right) \cos^{k}\phi \sin^{N-k} \phi \cos \left(\frac{N-k}{2} \pi\right) } \\
+ \nabla f(\vec{r}) &=& \sum^N_{k = 0} { \left(\begin{array}{c} N \\ K
+\end{array} \right) \dots }
+\end{eqnarray}
+
+For $N = 0$ we have case a), $N = 1$ yields case b). Anything larger boggles my
+mind. Lets skip this.
+
+\subsection{Case f)}
+
+\begin{eqnarray}
+ f(\vec{r}) &=& x^4 + y^4 + z^4 = \sin^4 \theta ( \cos^4 \phi + \sin^4 \phi ) +
+\cos^4 \theta \\
+ \nabla f(\vec{r}) &=& 4 (\sin^3 \theta \cos \theta ( \cos^4 \phi + \sin^4 \phi
+) - \cos^3 \theta \sin \theta)) \vec{e}_\theta \\
+  && + 4 \sin^3 \theta ( \sin^3
+\phi \cos \phi - \cos^3 \phi \sin \phi ) \vec{e}_\phi
+\end{eqnarray}
+
+There are two critical points once again at $\sin \theta = 0$. For $\cos \theta
+= 0$, i.e. on the equator, are again four more singularities for $\cos \phi =
+0$ and $\sin \phi = 0$, just like in case d).
+
+\section{Vector Field Design}
 
 The vector field design application is based on JavaView which already has
 built-in LIC visualization support. As such, this task was quite easy.
@@ -68,7 +182,7 @@ wants to add to the vector field. Then he can add such a feature to the vector
 field by clicking into the vector field domain. Existing features can be
 removed, altered and moved via drag'n'drop. The view gets updated automatically.
 
-\section{Design Elements}
+\subsection{Design Elements}
 
 I have decided to implement the following design elements based on the
 equations given in the recitation:
@@ -189,14 +303,14 @@ Lastly saddles are colored blue while generic items are black.
   \label{fig:diverging}
 \end{figure}
 
-\section{Parametrization}
+\subsection{Parametrization}
 
 I reuse the given parametrization of the plane in a triangulated quad. I have
 chosen a equidistant discretization of $10 \times 10 = 100$ vertices. The
 discrete vector field is then given by evaluating the sum of all design
 elements at each vertex point.
 
-\section{Flow Rotation}
+\subsection{Flow Rotation}
 
 The flow can easily rotated by an arbitrary angle $\theta$ via
 matrix-multiplication of each vector in the discretized domain with a rotation
@@ -228,7 +342,7 @@ An example can be seen in fig. \ref{fig:flow-rotation}.
   \label{fig:flow-rotation}
 \end{figure}
 
-\section{Flow Reflection}
+\subsection{Flow Reflection}
 
 Similar to above, flow reflection is achieved via matrix multiplication. In my
 implementation, reflection can be turned on and off and is supposed to be used
@@ -252,13 +366,13 @@ An example for flow reflection is shown in fig. \ref{fig:flow-reflection}.
   \label{fig:flow-reflection}
 \end{figure}
 
-\section{Singularities}
+\subsection{Singularities}
 
 Whenever the vector field is updated, I extract the singularities while LIC is
 running in the background. To do so we first need to interpolate the discretized
 vector field, yielding an element-wise continous vector field.
 
-\subsection{Vector Field Interpolation}
+\subsubsection{Vector Field Interpolation}
 
 For each element, i.e. triangle we first combine the three vertex positions
 into a matrix
@@ -299,7 +413,7 @@ c_{y,1} & c_{y,2} \end{array} \right) \vec{r} + \left( \begin{array}{c} c_{x,3}
 
 The above is implemented in \texttt{InterpolatedField::interpolate()}.
 
-\subsection{Finding Singularities}
+\subsubsection{Finding Singularities}
 
 Using eq. \ref{eq:interpolated-field} we can easily find singularities by
 solving the equation
@@ -317,7 +431,7 @@ multiplication approach as implemented in \texttt{::inTriangle()} and
 \texttt{::onSameSide()}. All the above is implemented in cmp.
 \texttt{::findSingularities()}.
 
-\subsection{Classification}
+\subsubsection{Classification}
 
 To classify the singularities found by applying the above method, we look at
 the eigenvalues of the Jacobian, in our case $\mat{C}$. If the two eigen values
@@ -325,7 +439,7 @@ have a different sign, i.e. $\sigma(\lambda_1) \neq \sigma(\lambda_2)$ then the
 singularity is a saddle. Otherwise the singularity is a sink if the eigenvalues
 are negative and a source otherwise, i.e. for positive eigenvalues.
 
-\subsection{Examples}
+\subsubsection{Examples}
 
 Two examples of the above algorithm to find singularities can be seen in fig.
 \ref{fig:singularities}. The singularities are again color coded similar to
@@ -343,14 +457,14 @@ smaller size.
   \label{fig:singularities}
 \end{figure}
 
-\section{Separatrices}
+\subsection{Separatrices}
 
 After having found the singularities in the vector field we can go one step
 further by also visualizing the separatrices, i.e. the two isolines originating
 at a saddle and going into the major and minor direction of the Jacobian
 $\mat{C}$.
 
-\subsection{Line Tracing}
+\subsubsection{Line Tracing}
 
 To trace an separatrix we take a seed $\vec{y_0}$ that is slightly displaced
 from the singularity in the direction we want to go to. The next point on the
@@ -383,7 +497,7 @@ with
  \vec{k}_4 &=& h \vec{V}(\vec{y}_i + \vec{k}_3).
 \end{eqnarray}
 
-\subsection{Caveats}
+\subsubsection{Caveats}
 
 There are no built-in checks to prevent crossing separatrices, which may result
 in noisy images esp. when multiple saddles are in the vicinity of a vortex.
@@ -395,7 +509,7 @@ ignored.
 Both of the above could be implemented but will impose a significant
 performance burden.
 
-\subsection{Examples}
+\subsubsection{Examples}
 
 To see the above in action, look at fig. \ref{fig:separatrices}. Note that
 separatrices in major direction are colored cyan while those in the minor
