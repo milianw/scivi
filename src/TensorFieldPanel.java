@@ -167,12 +167,24 @@ abstract class AbstractTensorUIItem extends BasicUpdateIf
 	{
 		switch(t) {
 		case Constant:
-//			return new ConstantTensorUIItem(panel);
+			return new ConstantTensorUIItem(panel);
 		case Wedge:
 			return new WedgeUIItem(panel);
 		}
 //		assert false : "Unhandled type: " + t;
 		return null;
+	}
+}
+
+class ConstantTensorUIItem extends AbstractTensorUIItem
+{
+	public ConstantTensorUIItem(Panel panel)
+	{
+		super(panel);
+	}
+	@Override
+	public TensorTerm createTerm(PdVector base) {
+		return new ConstantTensorTerm(base, strength(), decay(), angle());
 	}
 }
 

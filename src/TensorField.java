@@ -209,3 +209,25 @@ class WedgeTerm extends TensorTerm
 		ret.setEntry(1, 1, -x);
 	}
 }
+
+class ConstantTensorTerm extends TensorTerm
+{
+	public ConstantTensorTerm(PdVector base, double strength, double decay, double rotation)
+	{
+		super(base, strength, decay, rotation);
+	}
+	@Override
+	public TensorFeatureType type() {
+		return TensorFeatureType.Constant;
+	}
+	@Override
+	public Color vertexColor() {
+		return Color.white;
+	}
+	@Override
+	protected void evaluate(double x, double y, PdMatrix ret) {
+		//FIXME: what are the correct values here?
+		ret.setEntry(0, 0, 1);
+		ret.setEntry(1, 1, -1);
+	}
+}
