@@ -210,6 +210,32 @@ class WedgeTerm extends TensorTerm
 	}
 }
 
+class TrisectorTerm extends TensorTerm
+{
+	public TrisectorTerm(PdVector base, double strength, double decay, double rotation)
+	{
+		super(base, strength, decay, rotation);
+	}
+	@Override
+	public TensorFeatureType type()
+	{
+		return TensorFeatureType.Wedge;
+	}
+	@Override
+	public Color vertexColor()
+	{
+		return Color.orange;
+	}
+	@Override
+	public void evaluate(double x, double y, PdMatrix ret)
+	{
+		ret.setEntry(0, 0, x);
+		ret.setEntry(0, 1, -y);
+		ret.setEntry(1, 0, -y);
+		ret.setEntry(1, 1, -x);
+	}
+}
+
 class ConstantTensorTerm extends TensorTerm
 {
 	public ConstantTensorTerm(PdVector base, double strength, double decay, double rotation)
@@ -229,5 +255,74 @@ class ConstantTensorTerm extends TensorTerm
 		//FIXME: what are the correct values here?
 		ret.setEntry(0, 0, 1);
 		ret.setEntry(1, 1, -1);
+	}
+}
+
+class NodeTensorTerm extends TensorTerm
+{
+	public NodeTensorTerm(PdVector base, double strength, double decay, double rotation)
+	{
+		super(base, strength, decay, rotation);
+	}
+	@Override
+	public TensorFeatureType type() {
+		return TensorFeatureType.Node;
+	}
+	@Override
+	protected void evaluate(double x, double y, PdMatrix ret) {
+		ret.setEntry(0, 0, x*x - y*y);
+		ret.setEntry(0, 1, 2*x*y);
+		ret.setEntry(1, 0, 2*x*y);
+		ret.setEntry(1, 1, -x*x + y*y);
+	}
+	@Override
+	public Color vertexColor() {
+		return Color.green;
+	}
+}
+
+class CenterTensorTerm extends TensorTerm
+{
+	public CenterTensorTerm(PdVector base, double strength, double decay, double rotation)
+	{
+		super(base, strength, decay, rotation);
+	}
+	@Override
+	public TensorFeatureType type() {
+		return TensorFeatureType.Node;
+	}
+	@Override
+	protected void evaluate(double x, double y, PdMatrix ret) {
+		ret.setEntry(0, 0, y*y - x*x);
+		ret.setEntry(0, 1, - 2*x*y);
+		ret.setEntry(1, 0, - 2*x*y);
+		ret.setEntry(1, 1, -y*y + x*x);
+	}
+	@Override
+	public Color vertexColor() {
+		return Color.yellow;
+	}
+}
+
+class SaddleTensorTerm extends TensorTerm
+{
+	public SaddleTensorTerm(PdVector base, double strength, double decay, double rotation)
+	{
+		super(base, strength, decay, rotation);
+	}
+	@Override
+	public TensorFeatureType type() {
+		return TensorFeatureType.Node;
+	}
+	@Override
+	protected void evaluate(double x, double y, PdMatrix ret) {
+		ret.setEntry(0, 0, x*x - y*y);
+		ret.setEntry(0, 1, - 2*x*y);
+		ret.setEntry(1, 0, - 2*x*y);
+		ret.setEntry(1, 1, -x*x + y*y);
+	}
+	@Override
+	public Color vertexColor() {
+		return Color.blue;
 	}
 }

@@ -122,7 +122,7 @@ abstract class AbstractTensorUIItem extends BasicUpdateIf
 		panel.add(m_decay.getInfoPanel());
 		m_angle = new PuDouble("Angle");
 		m_angle.setBounds(0, 360);
-		m_angle.setValue(45);
+		m_angle.setValue(0);
 		m_angle.addUpdateListener(this);
 		panel.add(m_angle.getInfoPanel());
 	}
@@ -170,8 +170,16 @@ abstract class AbstractTensorUIItem extends BasicUpdateIf
 			return new ConstantTensorUIItem(panel);
 		case Wedge:
 			return new WedgeUIItem(panel);
+		case Center:
+			return new CenterTensorUIItem(panel);
+		case Node:
+			return new NodeTensorUIItem(panel);
+		case Saddle:
+			return new SaddleTensorUIItem(panel);
+		case Trisector:
+			return new TrisectorUIItem(panel);
 		}
-//		assert false : "Unhandled type: " + t;
+		assert false : "Unhandled type: " + t;
 		return null;
 	}
 }
@@ -196,5 +204,49 @@ class WedgeUIItem extends AbstractTensorUIItem
 	@Override
 	public TensorTerm createTerm(PdVector base) {
 		return new WedgeTerm(base, strength(), decay(), angle());
+	}
+}
+
+class TrisectorUIItem extends AbstractTensorUIItem
+{
+	public TrisectorUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public TensorTerm createTerm(PdVector base) {
+		return new TrisectorTerm(base, strength(), decay(), angle());
+	}
+}
+
+class NodeTensorUIItem extends AbstractTensorUIItem
+{
+	public NodeTensorUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public TensorTerm createTerm(PdVector base) {
+		return new NodeTensorTerm(base, strength(), decay(), angle());
+	}
+}
+
+class CenterTensorUIItem extends AbstractTensorUIItem
+{
+	public CenterTensorUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public TensorTerm createTerm(PdVector base) {
+		return new CenterTensorTerm(base, strength(), decay(), angle());
+	}
+}
+
+class SaddleTensorUIItem extends AbstractTensorUIItem
+{
+	public SaddleTensorUIItem(Panel panel) {
+		super(panel);
+	}
+	@Override
+	public TensorTerm createTerm(PdVector base) {
+		return new SaddleTensorTerm(base, strength(), decay(), angle());
 	}
 }
