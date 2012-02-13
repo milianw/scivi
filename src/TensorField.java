@@ -173,7 +173,8 @@ abstract class TensorTerm extends BasicUpdateIf
 	public PdMatrix evaluate(PdVector pos)
 	{
 		PdMatrix ret = new PdMatrix(2, 2);
-		evaluate(pos.getEntry(0), pos.getEntry(1), ret);
+		// note: x,y in m_base reference system
+		evaluate(pos.getEntry(0) - m_base.getEntry(0), pos.getEntry(1) - m_base.getEntry(1), ret);
 		ret.rightMult(m_rotation_transposed);
 		ret.leftMult(m_rotation);
 		ret.multScalar(scaleFactor(pos));
