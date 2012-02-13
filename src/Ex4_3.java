@@ -258,16 +258,10 @@ public class Ex4_3
 	 * (Re)Compute vector field.
 	 */
 	public void updateVectorField_internal() {
-		PdMatrix A = new PdMatrix(2, 2);
 		double theta = Math.toRadians(m_flowRotate.getValue());
-		A.setEntry(0, 0, Math.cos(theta));
-		A.setEntry(0, 1, -Math.sin(theta));
-		A.setEntry(1, 0, Math.sin(theta));
-		A.setEntry(1, 1, Math.cos(theta));
-		if (m_flowReflect.getState()) {
-			A.setEntry(0, 1, A.getEntry(0, 1) * -1);
-			A.setEntry(1, 1, A.getEntry(1, 1) * -1);
-		}
+		PdMatrix A = m_flowReflect.getState() 
+				? Utils.reflectionMatrix(theta / 2)
+				: Utils.rotationMatrix(theta / 2);
 
 		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
 			PdVector pos = m_domain.getVertex(i);
