@@ -19,11 +19,13 @@ import java.awt.Button;
 import java.awt.Checkbox;
 import java.awt.CheckboxGroup;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.image.BufferedImage;
 
 import javax.swing.Box;
 import javax.swing.Timer;
@@ -39,8 +41,10 @@ import jv.project.PvDisplayIf;
 import jv.project.PvGeometryListenerIf;
 import jv.project.PvPickEvent;
 import jv.project.PvPickListenerIf;
+import jv.vecmath.PdBary;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
+import jv.vecmath.PiVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
 import jvx.vector.PwLIC;
@@ -99,6 +103,8 @@ public class Ex4_3
 		PgDomainDescr descr = m_domain.getDescr();
 		descr.setSize( -10., -10., 10., 10.);
 		descr.setDiscr(10, 10);
+		//update vector field if descritization changes
+		descr.addUpdateListener(this);
 		m_domain.compute();
 		
 		m_vec = new PgVectorField(2);
@@ -258,21 +264,11 @@ public class Ex4_3
 	 * (Re)Compute vector field.
 	 */
 	public void updateVectorField_internal() {
-		double theta = Math.toRadians(m_flowRotate.getValue());
-		PdMatrix A = m_flowReflect.getState() 
-				? Utils.reflectionMatrix(theta / 2)
-				: Utils.rotationMatrix(theta / 2);
-
-		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
-			PdVector pos = m_domain.getVertex(i);
-			PdMatrix m = m_field.evaluate(pos);
-			PdVector vec = Utils.solveEigen2x2(m, null, true).getRow(0);
-			vec.leftMultMatrix(A);
-			m_vec.setVector(i, vec);
-			assert m_vec.getVector(i).getSize() == 2 : m_vec.getVector(i).getSize();
+		updateLICImage();
+		if (true) {
+			return;
 		}
-		m_vec.update(m_vec);
-		m_lic.startLIC();
+
 		assert m_vec != null;
 		assert m_domain != null;
 		InterpolatedField field = new InterpolatedField(m_domain, m_vec);
@@ -350,7 +346,152 @@ public class Ex4_3
 		}
 		m_disp.selectGeometry(m_field.termBasePoints());
 	}
+	
+	/**
+	 * (Re)Compute vector field.
+	 */
+	public void updateLICImage() {
+		if (m_field.termBasePoints().getNumVertices() == 0) {
+			PdVector.setConstant(m_vec.getVectors(), 1);
+			m_lic.startLIC();
+			return;
+		}
 
+		double theta = Math.toRadians(m_flowRotate.getValue());
+		PdMatrix R = m_flowReflect.getState() 
+				? Utils.reflectionMatrix(theta / 2)
+				: Utils.rotationMatrix(theta / 2);
+		PdMatrix R_t = PdMatrix.copyNew(R);
+		R_t.transpose();
+
+		PdVector[] minor = new PdVector[m_domain.getNumVertices()];
+		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
+			PdVector pos = m_domain.getVertex(i);
+			PdMatrix m = m_field.evaluate(pos);
+			m.rightMult(R_t);
+			m.leftMult(R);
+			PdMatrix eV = Utils.solveEigen2x2(m, null, true);
+			PdVector vec = eV.getRow(0);
+			minor[i] = eV.getRow(1);
+			m_vec.setVector(i, vec);
+			assert m_vec.getVector(i).getSize() == 2 : m_vec.getVector(i).getSize();
+		}
+
+		//get the two lic textures
+		BufferedImage lic1 = generateLICImage();
+
+		for(int i = 0; i < minor.length; ++i) {
+			m_vec.setVector(i, minor[i]);
+		}
+		BufferedImage lic2 = generateLICImage();
+		
+		//get weights
+		double[][] weights = computeBlendWeights();
+		
+		//compute final texture
+		int width = m_lic.getTextureSize().width;
+		int height = m_lic.getTextureSize().height;
+		BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				double col = (lic1.getRGB(i, j)&0xff)*weights[i][j] + (lic2.getRGB(i, j)&0xff)*(1-weights[i][j]);  
+				result.setRGB(i, j, Color.HSBtoRGB(0f, 0f, (float)col/256));
+				
+//				//for debugging try also to look at this
+//				result.setRGB(i, j, Color.HSBtoRGB(0f, 0f, (float)weights[i][j]));
+//				//or this
+//				result.setRGB(i, j, lic1.getRGB(i, j));
+			}
+		}
+		
+		m_domain.getTexture().setImage(result);
+		m_disp.update(m_domain);
+	}
+
+	/**
+	 * @param dir
+	 * @return
+	 */
+	private BufferedImage generateLICImage() {
+		//run lic and wait till computation is done
+		m_vec.update(m_vec);
+		m_lic.startLIC();
+		while(m_lic.isComputingLIC())
+			try {
+				synchronized (this) {
+					wait(100);
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				break;
+			}
+		
+		//get lic image
+		Dimension dim = m_lic.getTextureSize();
+		BufferedImage lic = new BufferedImage(dim.width, dim.height, BufferedImage.TYPE_INT_RGB);
+		lic.getGraphics().drawImage(m_domain.getTextureImage(), 0, 0, null);
+		
+		return lic;
+	}
+
+	/**
+	 * @param vertex	Position in global coordinates.
+	 * @param idx		Index of element.
+	 * @param bary		Position in barizentric coordinates.
+	 * @return	Weight for blending.
+	 */
+	private double computeWeight(PdVector vertex, int idx, PdBary bary) {
+		//TODO: get linear tensor field for element idx
+		//TODO: compute tensor at position
+		//TODO: compute theta and therefore the weight
+		
+		//for debugging purposes return gray value based distance to origin
+		return 2*vertex.length()/m_domain.getDiameter();
+	}
+
+	/**
+	 * @return	Weights for blending.
+	 */
+	private double[][] computeBlendWeights() {
+
+		int width = m_lic.getTextureSize().width;
+		int height = m_lic.getTextureSize().height;
+		double[][] weights = new double[width][height];
+		
+		//generate texture containg weights
+		PdVector[] verts = m_domain.getVertices();
+		for(int i = 0; i < m_domain.getNumElements(); i++){
+			PiVector face = m_domain.getElement(i);
+			//texture coordinates
+			PdVector[] coords = m_domain.getElementTexture(i);
+			//bounding box in texture
+			double u_min = Float.MAX_VALUE, u_max = 0, v_min = Float.MAX_VALUE, v_max = 0;
+			for(PdVector coord : coords){
+				if(coord.m_data[0] < u_min) u_min = coord.m_data[0];
+				if(coord.m_data[0] > u_max) u_max = coord.m_data[0];
+				if(coord.m_data[1] < v_min) v_min = coord.m_data[1];
+				if(coord.m_data[1] > v_max) v_max = coord.m_data[1];
+			}
+			u_min = Math.floor(u_min*width);
+			u_max = Math.ceil(u_max*width);
+			v_min = Math.floor(v_min*height);
+			v_max = Math.ceil(v_max*height);
+			//rasterize triangle
+			for(double u = u_min; u < u_max; u++){
+				for (double v = v_min; v < v_max; v++) {
+					PdBary bary = new PdBary(3);
+					PdBary.getBary(bary, new PdVector(u/width,v/height), coords);
+					if(bary.isInside(1./m_domain.getDescr().getNumULines())){
+						//compute weight
+						PdVector vertex = bary.getVertex(null, verts[face.m_data[0]], verts[face.m_data[1]], verts[face.m_data[2]]);
+						weights[(int)(u)][height-(int)(v)-1] = computeWeight(vertex, i, bary);
+					}
+				}
+			}
+		}
+		
+		return weights;
+	}
 	@Override
 	public boolean update(Object event) {
 		if (event == m_lic) {
@@ -360,6 +501,11 @@ public class Ex4_3
 			updateVectorField();
 			return true;
 		} else if (event == m_flowRotate) {
+			updateVectorField();
+			return true;
+		} else if (event == m_domain.getDescr()) {
+			m_lic.setGeometry(m_domain);
+			m_lic.update(m_lic);
 			updateVectorField();
 			return true;
 		}
