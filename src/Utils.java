@@ -121,4 +121,19 @@ class Utils
 		R.setEntry(1, 1, R.getEntry(1, 1) * -1);
 		return R;
 	}
+	public static boolean onSameSide(PdVector p1, PdVector a, PdVector b, PdVector c)
+	{
+		PdVector c_min_b = PdVector.subNew(c, b);
+		PdVector cp1 = PdVector.crossNew(c_min_b, PdVector.subNew(p1, b));
+		PdVector cp2 = PdVector.crossNew(c_min_b, PdVector.subNew(a, b));
+		return cp1.dot(cp2) >= 0;
+	}
+	public static boolean inTriangle(PdVector p, PdVector[] triangle)
+	{
+		assert triangle.length == 3;
+		PdVector a = triangle[0];
+		PdVector b = triangle[1];
+		PdVector c = triangle[2];
+		return onSameSide(p, a, b, c) && onSameSide(p, b, a, c) && onSameSide(p, c, a, b);
+	}
 }

@@ -61,6 +61,7 @@ public class Ex4_3
 	private PgDomain m_domain;
 	private PgVectorField m_vec;
 	private TensorField m_field;
+	private InterpolatedTensorField m_interpolatedField;
 	private TensorFieldPanel m_tensorPanel;
 	private Checkbox m_add;
 	private Checkbox m_remove;
@@ -264,6 +265,7 @@ public class Ex4_3
 	 * (Re)Compute vector field.
 	 */
 	public void updateVectorField_internal() {
+		m_interpolatedField = new InterpolatedTensorField(m_domain, m_field);
 		updateLICImage();
 		if (true) {
 			return;
@@ -271,7 +273,6 @@ public class Ex4_3
 
 		assert m_vec != null;
 		assert m_domain != null;
-		InterpolatedField field = new InterpolatedField(m_domain, m_vec);
 
 		if (m_singularities != null) {
 			m_disp.removeGeometry(m_singularities);
@@ -301,6 +302,7 @@ public class Ex4_3
 		m_minorSeparatrices.setGlobalVertexColor(Color.orange);
 		m_minorSeparatrices.setGlobalPolygonColor(Color.orange);
 
+		/*
 		LineTracer trace = new ClassicalRungeKuttaTracer(field);
 
 		int i = 0;
@@ -345,6 +347,7 @@ public class Ex4_3
 			m_disp.addGeometry(m_minorSeparatrices);
 		}
 		m_disp.selectGeometry(m_field.termBasePoints());
+		*/
 	}
 	
 	/**
@@ -364,24 +367,42 @@ public class Ex4_3
 		PdMatrix R_t = PdMatrix.copyNew(R);
 		R_t.transpose();
 
-		PdVector[] minor = new PdVector[m_domain.getNumVertices()];
+		PdVector[] V_y_field = new PdVector[m_domain.getNumVertices()];
 		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
 			PdVector pos = m_domain.getVertex(i);
 			PdMatrix m = m_field.evaluate(pos);
 			m.rightMult(R_t);
 			m.leftMult(R);
 			PdMatrix eV = Utils.solveEigen2x2(m, null, true);
-			PdVector vec = eV.getRow(0);
-			minor[i] = eV.getRow(1);
-			m_vec.setVector(i, vec);
+			//FIXME: just major/minor ?
+			PdVector E_1 = eV.getRow(0);
+			double rho = E_1.length();
+			double cosTheta = E_1.getEntry(0) / rho;
+			double sinTheta = E_1.getEntry(1) / rho;
+			PdVector V_x = new PdVector(2);
+			if (cosTheta >= 0) {
+				V_x = PdVector.copyNew(E_1);
+			} else {
+				V_x = PdVector.copyNew(E_1);
+				V_x.multScalar(-1);
+			}
+			PdVector V_y = new PdVector(2);
+			if (sinTheta >= 0) {
+				V_y = PdVector.copyNew(E_1);
+			} else {
+				V_y = PdVector.copyNew(E_1);
+				V_y.multScalar(-1);
+			}
+			m_vec.setVector(i, V_x);
+			V_y_field[i] = V_y;
 			assert m_vec.getVector(i).getSize() == 2 : m_vec.getVector(i).getSize();
 		}
 
 		//get the two lic textures
 		BufferedImage lic1 = generateLICImage();
 
-		for(int i = 0; i < minor.length; ++i) {
-			m_vec.setVector(i, minor[i]);
+		for(int i = 0; i < V_y_field.length; ++i) {
+			m_vec.setVector(i, V_y_field[i]);
 		}
 		BufferedImage lic2 = generateLICImage();
 		
@@ -441,12 +462,11 @@ public class Ex4_3
 	 * @return	Weight for blending.
 	 */
 	private double computeWeight(PdVector vertex, int idx, PdBary bary) {
-		//TODO: get linear tensor field for element idx
-		//TODO: compute tensor at position
-		//TODO: compute theta and therefore the weight
-		
-		//for debugging purposes return gray value based distance to origin
-		return 2*vertex.length()/m_domain.getDiameter();
+		PdMatrix T = m_interpolatedField.evaluateIn(vertex, idx);
+		PdVector E_1 = Utils.solveEigen2x2(T, null, true).getRow(0);
+		double rho = E_1.length();
+		double cosTheta = E_1.getEntry(0) / rho;
+		return cosTheta * cosTheta;
 	}
 
 	/**

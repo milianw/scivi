@@ -18,13 +18,12 @@
 import java.util.ArrayList;
 
 import jv.geom.PgElementSet;
-import jv.geom.PgVectorField;
 import jv.project.PvPickEvent;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 import jv.vecmath.PiVector;
 
-class Singularity
+class DegeneratePoint
 {
 	enum Type {
 		Source,
@@ -39,11 +38,11 @@ class Singularity
 	PdVector eigenValues;
 }
 
-class InterpolatedField implements LineTracer.Functor
+class InterpolatedTensorField /* implements LineTracer.Functor */
 {
 	private PgElementSet m_geometry;
-	private PgVectorField m_field;
-	public InterpolatedField(PgElementSet geometry, PgVectorField field)
+	private TensorField m_field;
+	public InterpolatedTensorField(PgElementSet geometry, TensorField field)
 	{
 		m_geometry = geometry;
 		m_field = field;
@@ -54,11 +53,16 @@ class InterpolatedField implements LineTracer.Functor
 	{
 		PdMatrix a;
 		PdVector b;
-		public PdVector evaluate(PdVector pos)
+		public PdMatrix evaluate(PdVector pos)
 		{
-			PdVector ret = new PdVector(2);
-			a.leftMultMatrix(ret, pos);
-			ret.add(b);
+			PdVector col1 = new PdVector(2);
+			a.leftMultMatrix(col1, pos);
+			col1.add(b);
+			PdMatrix ret = new PdMatrix(2,2);
+			ret.setEntry(0, 0, col1.getEntry(0));
+			ret.setEntry(1, 0, col1.getEntry(1));
+			ret.setEntry(0, 1, col1.getEntry(1));
+			ret.setEntry(1, 1, -col1.getEntry(0));
 			return ret;
 		}
 	}
@@ -82,10 +86,10 @@ class InterpolatedField implements LineTracer.Functor
 				A.setEntry(j, 1, v.getEntry(1));
 				A.setEntry(j, 2, 1);
 				// result b_x, b_y get the x and y values of the field
-				PdVector f = m_field.getVector(vertices.getEntry(j));
+				PdMatrix f = m_field.evaluate(m_geometry.getVertex(vertices.getEntry(j)));
 				assert f.getSize() == 2;
-				b_x.setEntry(j, f.getEntry(0));
-				b_y.setEntry(j, f.getEntry(1));
+				b_x.setEntry(j, f.getEntry(0, 0));
+				b_y.setEntry(j, f.getEntry(1, 0));
 			}
 			// interpolate
 			PdVector solvedX = Utils.solveCramer(A, b_x);
@@ -111,11 +115,11 @@ class InterpolatedField implements LineTracer.Functor
 		}
 	}
 
-	private ArrayList<Singularity> m_singularities;
-	public ArrayList<Singularity> findSingularities()
+	private ArrayList<DegeneratePoint> m_degenPoints;
+	public ArrayList<DegeneratePoint> findDegeneratePoints()
 	{
-		if (m_singularities == null) {
-			m_singularities = new ArrayList<Singularity>(10);
+		if (m_degenPoints == null) {
+			m_degenPoints = new ArrayList<DegeneratePoint>(10);
 			for(int i = 0; i < m_interpolated.length; ++i) {
 				ElementField field = m_interpolated[i];
 				if (field == null) {
@@ -128,7 +132,8 @@ class InterpolatedField implements LineTracer.Functor
 					continue;
 				}
 				if (inTriangle(i, pos)) {
-					Singularity singularity = new Singularity();
+					///FIXME
+					DegeneratePoint singularity = new DegeneratePoint();
 					singularity.position = pos;
 					singularity.element = i;
 					singularity.jacobian = field.a;
@@ -138,18 +143,18 @@ class InterpolatedField implements LineTracer.Functor
 					double se1 = Math.signum(singularity.eigenValues.getEntry(0));
 					double se2 = Math.signum(singularity.eigenValues.getEntry(1));
 					if (se1 != se2) {
-						singularity.type = Singularity.Type.Saddle;
+						singularity.type = DegeneratePoint.Type.Saddle;
 					} else if (se1 < 0) {
-						singularity.type = Singularity.Type.Sink;
+						singularity.type = DegeneratePoint.Type.Sink;
 					} else {
-						singularity.type = Singularity.Type.Source;
+						singularity.type = DegeneratePoint.Type.Source;
 					}
-					m_singularities.add(singularity);
+					m_degenPoints.add(singularity);
 				}
 			}
-			m_singularities.trimToSize();
+			m_degenPoints.trimToSize();
 		}
-		return m_singularities;
+		return m_degenPoints;
 	}
 	private boolean inTriangle(int i, PdVector p)
 	{
@@ -178,17 +183,17 @@ class InterpolatedField implements LineTracer.Functor
 
 		return element;
 	}
-	public PdVector evaluate(PdVector pos)
+	public PdMatrix evaluate(PdVector pos)
 	{
 		int i = elementAt(pos);
 		if (i == -1) {
 			return null;
 		}
 		ElementField field = m_interpolated[i];
-
-		PdVector ret = PdVector.copyNew(pos);
-		ret.leftMultMatrix(field.a);
-		ret.add(field.b);
-		return ret;
+		return field.evaluate(pos);
+	}
+	public PdMatrix evaluateIn(PdVector pos, int element)
+	{
+		return m_interpolated[element].evaluate(pos);
 	}
 }
