@@ -46,20 +46,18 @@ import jvx.surface.PgDomainDescr;
 import jvx.vector.PwLIC;
 
 /**
- * Solution to fourth exercise of the second project
- * 
  * @author		Milian Wolff
  * @version		10.01.2012, 1.00 created
  */
-public class Ex3_2
+public class Ex4_3
 	extends ProjectBase
 	implements PvGeometryListenerIf, PsUpdateIf, PvPickListenerIf, ItemListener, ActionListener
 {
 	private PwLIC m_lic;
 	private PgDomain m_domain;
 	private PgVectorField m_vec;
-	private VectorField m_field;
-	private VectorFieldPanel m_singularityPanel;
+	private TensorField m_field;
+	private TensorFieldPanel m_tensorPanel;
 	private Checkbox m_add;
 	private Checkbox m_remove;
 	private Checkbox m_select;
@@ -74,18 +72,18 @@ public class Ex3_2
 
 	public static void main(String[] args)
 	{
-		new Ex3_2(args);
+		new Ex4_3(args);
 	}
 
-	public Ex3_2(String[] args)
+	public Ex4_3(String[] args)
 	{
-		super(args, "SciVis - Project 3 - Exercise 2 - Milian Wolff");
+		super(args, "SciVis - Project 4 - Exercise 3 - Milian Wolff");
 
 		m_timer = new Timer(100, this);
 
 		m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
 
-		m_field = new VectorField();
+		m_field = new TensorField();
 		m_field.setParent(this);
 		m_disp.addGeometry(m_field.termBasePoints());
 
@@ -93,7 +91,7 @@ public class Ex3_2
 		m_disp.addGeometryListener(this);
 
 		m_domain = new PgDomain(2);
-		m_domain.setName("Domain for Vector Field");
+		m_domain.setName("Domain for Tensor Field");
 		m_domain.setDimOfElements(3);
 		m_domain.showVectorFields(false);
 		m_domain.showEdges(false);
@@ -187,8 +185,8 @@ public class Ex3_2
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridy++;
 
-		m_singularityPanel = new VectorFieldPanel();
-		m_panel.add(m_singularityPanel, c);
+		m_tensorPanel = new TensorFieldPanel();
+		m_panel.add(m_tensorPanel, c);
 		c.gridy++;
 
 		c.weighty = 1;
@@ -206,15 +204,15 @@ public class Ex3_2
 	public void itemStateChanged(ItemEvent e) {
 		Object source = e.getSource();
 		if (source == m_add) {
-			m_singularityPanel.setTypeChangeEnabled(true);
+			m_tensorPanel.setTypeChangeEnabled(true);
 			m_disp.setMajorMode(PvDisplayIf.MODE_INITIAL_PICK);
 			System.out.println("click into the display to add a feature");
 		} else if (source == m_remove) {
-			m_singularityPanel.setTypeChangeEnabled(false);
+			m_tensorPanel.setTypeChangeEnabled(false);
 			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
 			System.out.println("click near a feature to remove it");
 		} else if (source == m_select) {
-			m_singularityPanel.setTypeChangeEnabled(false);
+			m_tensorPanel.setTypeChangeEnabled(false);
 			m_disp.setMajorMode(PvDisplayIf.MODE_PICK);
 			System.out.println("click near a feature to select it");
 		} else if (source == m_flowReflect) {
@@ -260,14 +258,21 @@ public class Ex3_2
 	 * (Re)Compute vector field.
 	 */
 	public void updateVectorField_internal() {
+		PdMatrix A = new PdMatrix(2, 2);
 		double theta = Math.toRadians(m_flowRotate.getValue());
-		PdMatrix A = m_flowReflect.getState() 
-						? Utils.reflectionMatrix(theta)
-						: Utils.rotationMatrix(theta);
+		A.setEntry(0, 0, Math.cos(theta));
+		A.setEntry(0, 1, -Math.sin(theta));
+		A.setEntry(1, 0, Math.sin(theta));
+		A.setEntry(1, 1, Math.cos(theta));
+		if (m_flowReflect.getState()) {
+			A.setEntry(0, 1, A.getEntry(0, 1) * -1);
+			A.setEntry(1, 1, A.getEntry(1, 1) * -1);
+		}
 
 		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
 			PdVector pos = m_domain.getVertex(i);
-			PdVector vec = m_field.evaluate(pos);
+			PdMatrix m = m_field.evaluate(pos);
+			PdVector vec = Utils.solveEigen2x2(m, null, true).getRow(0);
 			vec.leftMultMatrix(A);
 			m_vec.setVector(i, vec);
 			assert m_vec.getVector(i).getSize() == 2 : m_vec.getVector(i).getSize();
@@ -406,9 +411,9 @@ public class Ex3_2
 
 	@Override
 	public void pickInitial(PvPickEvent pos) {
-		Term term = m_singularityPanel.createTerm(pos.getVertex());
+		TensorTerm term = m_tensorPanel.createTerm(pos.getVertex());
 		m_field.addTerm(term);
-		m_singularityPanel.setTerm(term);
+		m_tensorPanel.setTerm(term);
 	}
 
 	@Override
@@ -416,10 +421,10 @@ public class Ex3_2
 		if (geom == m_field.termBasePoints()) {
 			if (m_remove.getState()) {
 				m_field.removeTerm(index);
-				m_singularityPanel.setTerm(null);
+				m_tensorPanel.setTerm(null);
 			} else {
 				assert m_select.getState();
-				m_singularityPanel.setTerm(m_field.getTerm(index));
+				m_tensorPanel.setTerm(m_field.getTerm(index));
 			}
 		}
 	}

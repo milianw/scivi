@@ -108,10 +108,28 @@ public class Ex3_1
 	{
 		for(int i = 0; i < m_geometry.getNumVertices(); ++i) {
 			PdVector pos = m_geometry.getVertex(i);
+			double x = pos.getEntry(0) / (1 - pos.getEntry(2));
+			double y = pos.getEntry(1) / (1 - pos.getEntry(2));
+			PdVector vec2d = new PdVector(2);
+			vec2d.setEntry(0, x);
+			vec2d.setEntry(1, -y);
+			vec2d.setLength(Math.max(1, Math.exp(-((x*x) + y*y))));
+			PdVector vec = new PdVector(3);
+			vec.setEntry(0, 2 * vec2d.getEntry(0));
+			vec.setEntry(1, 2 * vec2d.getEntry(1));
+			vec.setEntry(2, -1 + vec2d.getEntry(0) * vec2d.getEntry(0) + vec2d.getEntry(1) * vec2d.getEntry(1));
+			vec.multScalar(1.0d/ (vec.getEntry(2) + 2));
+			vec.setLength(Math.min(0.1, vec.length()));
+			m_field.setVector(i, vec);
+			continue;
+			/*
 			double theta = Math.acos(pos.getEntry(2));
 			double phi = Math.atan2(pos.getEntry(1), pos.getEntry(0));
 			m_field.setVector(i, getVector(theta, phi, (Fields) m_fieldCombo.getSelectedItem()));
+			*/
 		}
+		m_field.showVectorArrows(true);
+		m_geometry.showTransparency(false);
 		m_disp.update(m_geometry);
 	}
 

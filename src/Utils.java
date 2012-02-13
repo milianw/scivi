@@ -24,7 +24,16 @@ class Utils
 	{
 		return solveEigen2x2(matrix2x2, null, false);
 	}
-	// see also: http://en.wikipedia.org/wiki/Eigenvalue_algorithm#Eigenvalues_of_2.C3.972_matrices
+	/**
+	 * Calculate eigenvalues and vectors of a 2x2 matrix.
+	 * 
+	 * see also: http://en.wikipedia.org/wiki/Eigenvalue_algorithm#Eigenvalues_of_2.C3.972_matrices
+	 *
+	 * @param A 2x2 matrix for with the eigen problem should be solved
+	 * @param eigenValues optional 2dim vector that will hold the eigen values
+	 * @param allowNonOrthogonal set to true if non-orthogonal eigen vectors should be allowed
+	 * @return matrix of eigen vectors, row 0 contains the major, row 1 the minor
+	 */
 	public static PdMatrix solveEigen2x2(PdMatrix A, PdVector eigenValues, boolean allowNonOrthogonal)
 	{
 		assert eigenValues == null || eigenValues.getSize() == 2;
@@ -93,5 +102,23 @@ class Utils
 			x.setEntry(k, A2.det() / det);
 		}
 		return x;
+	}
+	// theta in radians!
+	public static PdMatrix rotationMatrix(double theta)
+	{
+		PdMatrix R = new PdMatrix(2, 2);
+		R.setEntry(0, 0, Math.cos(theta));
+		R.setEntry(0, 1, -Math.sin(theta));
+		R.setEntry(1, 0, Math.sin(theta));
+		R.setEntry(1, 1, Math.cos(theta));
+		return R;
+	}
+	// theta in radians!
+	public static PdMatrix reflectionMatrix(double theta)
+	{
+		PdMatrix R = rotationMatrix(theta);
+		R.setEntry(0, 1, R.getEntry(0, 1) * -1);
+		R.setEntry(1, 1, R.getEntry(1, 1) * -1);
+		return R;
 	}
 }

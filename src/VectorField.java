@@ -289,3 +289,50 @@ class ConvergingElementTerm extends AngleTerm
 		return m_strength < 0 ? FeatureType.ConvergingElement : FeatureType.DivergingElement;
 	}
 }
+
+class Term4b extends Term {
+	@Override
+	public PdVector evaluate(PdVector pos) {
+		PdVector ret = new PdVector(2);
+		double x = pos.getEntry(0) - m_base.getEntry(0);
+		double y = pos.getEntry(1) - m_base.getEntry(1);
+		ret.setEntry(0, x * x - y * y);
+		ret.setEntry(1, - 2 * x * y);
+		ret.multScalar(scaleFactor(pos));
+		return ret;
+	}
+	@Override
+	public FeatureType type() {
+		return FeatureType.Generic;
+	}
+	@Override
+	public Color vertexColor() {
+		return Color.pink;
+	}
+	public Term4b(PdVector base, double strength, double decay) {
+		super(base, strength, decay);
+	}
+}
+class Term4c extends Term {
+	@Override
+	public PdVector evaluate(PdVector pos) {
+		PdVector ret = new PdVector(2);
+		double x = pos.getEntry(0) - m_base.getEntry(0);
+		double y = pos.getEntry(1) - m_base.getEntry(1);
+		ret.setEntry(0, x * (1 - Math.sqrt(x*x + y*y)) - y);
+		ret.setEntry(1, x + y * (1 - Math.sqrt(x*x + y*y)));
+		ret.multScalar(scaleFactor(pos));
+		return ret;
+	}
+	@Override
+	public FeatureType type() {
+		return FeatureType.Generic;
+	}
+	@Override
+	public Color vertexColor() {
+		return Color.pink;
+	}
+	public Term4c(PdVector base, double strength, double decay) {
+		super(base, strength, decay);
+	}
+}
