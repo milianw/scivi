@@ -220,7 +220,7 @@ class TrisectorTerm extends TensorTerm
 	@Override
 	public TensorFeatureType type()
 	{
-		return TensorFeatureType.Wedge;
+		return TensorFeatureType.Trisector;
 	}
 	@Override
 	public Color vertexColor()
@@ -290,7 +290,7 @@ class CenterTensorTerm extends TensorTerm
 	}
 	@Override
 	public TensorFeatureType type() {
-		return TensorFeatureType.Node;
+		return TensorFeatureType.Center;
 	}
 	@Override
 	protected void evaluate(double x, double y, PdMatrix ret) {
@@ -313,7 +313,7 @@ class SaddleTensorTerm extends TensorTerm
 	}
 	@Override
 	public TensorFeatureType type() {
-		return TensorFeatureType.Node;
+		return TensorFeatureType.Saddle;
 	}
 	@Override
 	protected void evaluate(double x, double y, PdMatrix ret) {

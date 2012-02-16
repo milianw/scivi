@@ -132,7 +132,6 @@ class InterpolatedTensorField /* implements LineTracer.Functor */
 				continue;
 			}
 			if (inTriangle(i, pos)) {
-				///FIXME
 				DegeneratePoint singularity = new DegeneratePoint();
 				singularity.position = pos;
 				singularity.element = i;
@@ -189,5 +188,9 @@ class InterpolatedTensorField /* implements LineTracer.Functor */
 	public PdMatrix evaluateIn(PdVector pos, int element)
 	{
 		return m_interpolated[element].evaluate(pos);
+	}
+	public ElementField fieldIn(int element)
+	{
+		return m_interpolated[element];
 	}
 }

@@ -27,6 +27,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 
 import javax.swing.Box;
 import javax.swing.JComboBox;
@@ -35,6 +36,7 @@ import javax.swing.Timer;
 import jv.geom.PgPointSet;
 import jv.geom.PgPolygonSet;
 import jv.geom.PgVectorField;
+import jv.number.PuComplex;
 import jv.number.PuDouble;
 import jv.object.PsUpdateIf;
 import jv.project.PgGeometryIf;
@@ -315,9 +317,11 @@ public class Ex4_3
 			switch(p.type) {
 			case Wedge:
 				c = Color.yellow;
+				findSeparatrices(p);
 				break;
 			case Trisector:
 				c = Color.blue;
+				findSeparatrices(p);
 				break;
 			case HigherOrder:
 				c = Color.white;
@@ -333,7 +337,54 @@ public class Ex4_3
 		}
 		m_disp.selectGeometry(m_field.termBasePoints());
 	}
-	
+	public void findSeparatrices(DegeneratePoint p)
+	{
+		assert p.type == DegeneratePoint.Type.Trisector
+			|| p.type == DegeneratePoint.Type.Wedge;
+		InterpolatedTensorField.ElementField field = m_interpolatedField.fieldIn(p.element);
+		double a = field.a.getEntry(0, 0);
+		double b = field.a.getEntry(0, 1);
+		double c = field.a.getEntry(1, 0);
+		double d = field.a.getEntry(1, 1);
+		// find roots u = tan\theta from equation:
+		// d u^3 + (c+2b) u^2 + (2a -d) u - c = 0
+		ArrayList<PuComplex> roots = Utils.cubicRoots(d, (c+2d*b), (2d*a-d), -c);
+		int base = m_separatrices.addVertex(p.position);
+		for(PuComplex r : roots) {
+			if (Math.abs(r.im()) > 1E-6) {
+				// ignore complex roots
+				continue;
+			}
+			final double theta = Math.atan(r.re());
+			final PdVector n1 = PdVector.addNew(p.position,
+					new PdVector(Math.cos(theta), Math.sin(theta)));
+
+			final double theta2 = theta < 0 ? theta + Math.PI : theta - Math.PI;
+			final PdVector n2 = PdVector.addNew(p.position,
+					new PdVector(Math.cos(theta2), Math.sin(theta2)));
+
+			int v = m_separatrices.addVertex(n1);
+			m_separatrices.addPolygon(new PiVector(base, v));
+			int v2 = m_separatrices.addVertex(n2);
+			m_separatrices.addPolygon(new PiVector(base, v2));
+			/*
+			FIXME: find out which direction is major/minor
+			System.out.println("theta = " + Math.toDegrees(theta) + ", theta2 = " + Math.toDegrees(theta2));
+			PdVector node = null;
+			double c1 = Math.abs(field.a.leftMultMatrix(null, PdVector.blendNew(1, p.position, 0.1, n1)).dot(n1));
+			double c2 = Math.abs(field.a.leftMultMatrix(null, PdVector.blendNew(1, p.position, 0.1, n2)).dot(n2));
+			if (c1 > c2) {
+				node = m_direction.getSelectedItem() == Direction.Major ? n1 : n2;
+			} else {
+				node = m_direction.getSelectedItem() == Direction.Major ? n2 : n1;
+			}
+			System.out.println(c1 + " VS " + c2);
+			node.add(p.position);
+			int v = m_separatrices.addVertex(node);
+			m_separatrices.addPolygon(new PiVector(base, v));
+			*/
+		}
+	}
 	/**
 	 * (Re)Compute vector field.
 	 */
@@ -533,7 +584,6 @@ public class Ex4_3
 	}
 	@Override
 	public void setParent(PsUpdateIf parent) {
-		// TODO Auto-generated method stub
 		System.err.println("set parent: " + parent);
 	}
 

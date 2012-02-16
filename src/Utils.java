@@ -15,6 +15,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import java.util.ArrayList;
+
+import jv.number.PuComplex;
 import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 
@@ -135,5 +138,98 @@ class Utils
 		PdVector b = triangle[1];
 		PdVector c = triangle[2];
 		return onSameSide(p, a, b, c) && onSameSide(p, b, a, c) && onSameSide(p, c, a, b);
+	}
+	/**
+	 * Find roots of a cubic polynomial
+	 *
+	 * see also: http://en.wikipedia.org/wiki/Cubic_function#Roots_of_a_cubic_function
+	 *
+	 * @param a coefficient of x^3
+	 * @param b coefficient of x^2
+	 * @param c coefficient of x^1
+	 * @param d coefficient of x^0
+	 *
+	 * @return list of potentially complex roots
+	 */
+	public static ArrayList<PuComplex> cubicRoots(double a, double b, double c, double d)
+	{
+		ArrayList<PuComplex> ret = new ArrayList<PuComplex>(3);
+		assert a != 0;
+		final double discriminant = 18d * a * b * c * d - 4d * b * b * b * d
+								+ b * b * c * c - 4d * a * c * c * c
+								- 27d * a * a * d * d;
+		System.out.println("a = " + a + ", b = " + b + ", c = " + c + ", d = " + d);
+		final PuComplex Q = PuComplex.sqrt(new PuComplex(-27d * a * a * discriminant));
+		PuComplex C = PuComplex.mult(PuComplex.add(Q, 2d*b*b*b-9d*a*b*c+27d*a*a*d), 0.5d);
+		C.pow(1d/3d);
+		
+		final double alpha = -b / (3d * a);
+		final PuComplex gamma = PuComplex.div(b*b - 3d*a*c, C);
+		final PuComplex betaPlus = new PuComplex(1d/(6d*a), +Math.sqrt(3)/(6d*a));
+		final PuComplex betaMinus = new PuComplex(1d/(6d*a), -Math.sqrt(3)/(6d*a));
+		
+		{
+			PuComplex x1 = new PuComplex(alpha);
+			x1.sub(PuComplex.div(C, 3d * a));
+			x1.sub(PuComplex.div(gamma, 3d * a));
+			ret.add(x1);
+		}
+		{
+			PuComplex x2 = new PuComplex(alpha);
+			x2.add(PuComplex.mult(C, betaPlus));
+			x2.add(PuComplex.mult(gamma, betaMinus));
+			ret.add(x2);
+		}
+		{
+			// NOTE: actually just the complex conjugate of x2...
+			PuComplex x3 = new PuComplex(alpha);
+			x3.add(PuComplex.mult(C, betaMinus));
+			x3.add(PuComplex.mult(gamma, betaPlus));
+			ret.add(x3);
+		}
+		/*
+		double innerRoot = Math.sqrt(innerRadicand);
+		assert !Double.isNaN(innerRoot);
+		double cubicRootOperand = 2d * b*b*b - 9d * a*b*c + 27d * a*a*d;
+		double cubicRootPlus = Math.pow(0.5d*(cubicRootOperand + innerRoot), 1d/3d);
+		assert !Double.isNaN(cubicRootPlus);
+		double cubicRootMinus = Math.pow(0.5d*(cubicRootOperand - innerRoot), 1d/3d);
+		assert !Double.isNaN(cubicRootMinus);
+		ret.add(new PuComplex(negBOver3a - cubicRootPlus / (3d*a) - cubicRootMinus / (3d*a)));
+		*/
+		/*
+		PuComplex innerRoot = new PuComplex(-27d * a * a * discriminant);
+		innerRoot.sqrt();
+		PuComplex cubicRootPlus = new PuComplex(2d * b*b*b - 9d * a*b*c + 27d*a*a*d);
+		cubicRootPlus.add(innerRoot);
+		cubicRootPlus.mult(0.5d);
+		cubicRootPlus.pow(1d/3d);
+		PuComplex cubicRootMinus = new PuComplex(2d * b*b*b - 9d * a*b*c + 27d*a*a*d);
+		cubicRootMinus.sub(innerRoot);
+		cubicRootMinus.mult(0.5d);
+		cubicRootMinus.pow(1d/3d);
+		
+		{
+			PuComplex x1 = new PuComplex(negBOver3a);
+			x1.sub(PuComplex.mult(cubicRootPlus, 1d/(3d*a)));
+			x1.sub(PuComplex.mult(cubicRootMinus, 1d/(3d*a)));
+			ret.add(x1);
+		}
+		{
+			PuComplex x2 = new PuComplex(negBOver3a);
+			x2.add(PuComplex.mult(cubicRootPlus, imagPlus));
+			x2.add(PuComplex.mult(cubicRootMinus, imagNeg));
+			ret.add(x2);
+		}
+		{
+			PuComplex x3 = new PuComplex(negBOver3a);
+			x3.add(PuComplex.mult(cubicRootPlus, imagNeg));
+			x3.add(PuComplex.mult(cubicRootMinus, imagPlus));
+			ret.add(x3);
+		}
+		*/
+		ret.trimToSize();
+		System.out.println(ret);
+		return ret;
 	}
 }
