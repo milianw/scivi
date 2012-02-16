@@ -71,10 +71,9 @@ public class Ex4_3
 	private PuDouble m_flowRotate;
 	private Checkbox m_flowReflect;
 	private Timer m_timer;
-	private PgPointSet m_singularities;
-	private PgPolygonSet m_majorSeparatrices;
+	private PgPointSet m_degeneratePoints;
 	private Button m_clear;
-	private PgPolygonSet m_minorSeparatrices;
+	private PgPolygonSet m_separatrices;
 	private Checkbox m_showSeparatrices;
 	private JComboBox m_direction;
 	private enum Direction {
@@ -245,14 +244,11 @@ public class Ex4_3
 			updateVectorField();
 		} else if (source == m_showSeparatrices) {
 			if (m_showSeparatrices.getState()) {
-				m_disp.addGeometry(m_majorSeparatrices);
-				m_disp.addGeometry(m_minorSeparatrices);
+				m_disp.addGeometry(m_separatrices);
 			} else {
-				m_disp.removeGeometry(m_majorSeparatrices);
-				m_disp.removeGeometry(m_minorSeparatrices);
+				m_disp.removeGeometry(m_separatrices);
 			}
-			m_disp.update(m_majorSeparatrices);
-			m_disp.update(m_minorSeparatrices);
+			m_disp.update(m_separatrices);
 		} else if (source == m_direction) {
 			updateVectorField();
 		} else {
@@ -288,87 +284,54 @@ public class Ex4_3
 	public void updateVectorField_internal() {
 		m_interpolatedField = new InterpolatedTensorField(m_domain, m_field);
 		updateLICImage();
-		if (true) {
-			return;
+
+		if (m_degeneratePoints != null) {
+			m_disp.removeGeometry(m_degeneratePoints);
 		}
 
-		assert m_vec != null;
-		assert m_domain != null;
+		m_degeneratePoints = new PgPointSet(2);
+		m_degeneratePoints.setName("Calculated Degenerate Points");
+		m_degeneratePoints.showVertices(true);
+		m_degeneratePoints.setGlobalVertexSize(3.0);
+		m_degeneratePoints.showVertexColors(true);
 
-		if (m_singularities != null) {
-			m_disp.removeGeometry(m_singularities);
+		if (m_separatrices != null && m_disp.containsGeometry(m_separatrices)) {
+			m_disp.removeGeometry(m_separatrices);
 		}
-
-		m_singularities = new PgPointSet(2);
-		m_singularities.setName("Calculated Singularities");
-		m_singularities.showVertices(true);
-		m_singularities.setGlobalVertexSize(3.0);
-		m_singularities.showVertexColors(true);
-
-		if (m_majorSeparatrices != null && m_disp.containsGeometry(m_majorSeparatrices)) {
-			m_disp.removeGeometry(m_majorSeparatrices);
-		}
-		m_majorSeparatrices = new PgPolygonSet(2);
-		m_majorSeparatrices.setName("Major Separatrices");
-		m_majorSeparatrices.showVertices(true);
-		m_majorSeparatrices.setGlobalVertexColor(Color.cyan);
-		m_majorSeparatrices.setGlobalPolygonColor(Color.cyan);
-
-		if (m_minorSeparatrices != null && m_disp.containsGeometry(m_minorSeparatrices)) {
-			m_disp.removeGeometry(m_minorSeparatrices);
-		}
-		m_minorSeparatrices = new PgPolygonSet(2);
-		m_minorSeparatrices.setName("Minor Separatrices");
-		m_minorSeparatrices.showVertices(true);
-		m_minorSeparatrices.setGlobalVertexColor(Color.orange);
-		m_minorSeparatrices.setGlobalPolygonColor(Color.orange);
+		m_separatrices = new PgPolygonSet(2);
+		m_separatrices.setName("Separatrices");
+		m_separatrices.showVertices(true);
+		m_separatrices.setGlobalVertexColor(Color.orange);
+		m_separatrices.setGlobalPolygonColor(Color.orange);
 
 		/*
 		LineTracer trace = new ClassicalRungeKuttaTracer(field);
+		*/
 
 		int i = 0;
-		for(Singularity singularity : field.findSingularities()) {
-			m_singularities.addVertex(singularity.position);
+		for(DegeneratePoint p : m_interpolatedField.findDegeneratePoints()) {
+			m_degeneratePoints.addVertex(p.position);
 			Color c = null;
-			switch(singularity.type) {
-			case Saddle:
+			switch(p.type) {
+			case Wedge:
+				c = Color.yellow;
+				break;
+			case Trisector:
 				c = Color.blue;
-				// trace separatrices
-				final double stepSize = 0.5;
-				// small offset so it's not directly at the singularity
-				final double initialOffset = 0.05;
-
-				for(int minor = 0; minor < 2; ++minor) {
-				for(int down = 0; down < 2; ++down) {
-						int signum_minor = minor == 1 ? -1 : 1;
-						int signum_down = signum_minor * (down == 1 ? -1 : 1);
-						PdVector y0 = PdVector.blendNew(1, singularity.position,
-														initialOffset * signum_down,
-														singularity.eigenVectors.getRow(minor));
-						trace.trace(minor == 1 ? m_minorSeparatrices : m_majorSeparatrices,
-									y0, 1000, stepSize * signum_minor);
-					}
-				}
 				break;
-			case Sink:
-				c = Color.red;
-				break;
-			case Source:
-				c = Color.green;
+			case HigherOrder:
+				c = Color.white;
 				break;
 			}
-			m_singularities.setVertexColor(i, c);
+			m_degeneratePoints.setVertexColor(i, c);
 			++i;
 		}
-		assert m_singularities.getNumVertices() == field.findSingularities().size();
-		System.out.println("singularities found: " + m_singularities.getNumVertices());
-		m_disp.addGeometry(m_singularities);
+		System.out.println("degenerate points found: " + m_degeneratePoints.getNumVertices());
+		m_disp.addGeometry(m_degeneratePoints);
 		if (m_showSeparatrices.getState()) {
-			m_disp.addGeometry(m_majorSeparatrices);
-			m_disp.addGeometry(m_minorSeparatrices);
+			m_disp.addGeometry(m_separatrices);
 		}
 		m_disp.selectGeometry(m_field.termBasePoints());
-		*/
 	}
 	
 	/**

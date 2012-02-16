@@ -26,16 +26,13 @@ import jv.vecmath.PiVector;
 class DegeneratePoint
 {
 	enum Type {
-		Source,
-		Sink,
-		Saddle
+		Wedge,
+		Trisector,
+		HigherOrder
 	}
 	Type type;
 	PdVector position;
 	int element;
-	PdMatrix jacobian;
-	PdMatrix eigenVectors;
-	PdVector eigenValues;
 }
 
 class InterpolatedTensorField /* implements LineTracer.Functor */
@@ -118,42 +115,39 @@ class InterpolatedTensorField /* implements LineTracer.Functor */
 	private ArrayList<DegeneratePoint> m_degenPoints;
 	public ArrayList<DegeneratePoint> findDegeneratePoints()
 	{
-		if (m_degenPoints == null) {
-			m_degenPoints = new ArrayList<DegeneratePoint>(10);
-			for(int i = 0; i < m_interpolated.length; ++i) {
-				ElementField field = m_interpolated[i];
-				if (field == null) {
-					continue;
-				}
-				PdVector b = PdVector.copyNew(field.b);
-				b.multScalar(-1);
-				PdVector pos = Utils.solveCramer(field.a, b);
-				if (pos.length() == 0) {
-					continue;
-				}
-				if (inTriangle(i, pos)) {
-					///FIXME
-					DegeneratePoint singularity = new DegeneratePoint();
-					singularity.position = pos;
-					singularity.element = i;
-					singularity.jacobian = field.a;
-					singularity.eigenValues = new PdVector(2);
-					singularity.eigenVectors = Utils.solveEigen2x2(singularity.jacobian,
-																	singularity.eigenValues, true);
-					double se1 = Math.signum(singularity.eigenValues.getEntry(0));
-					double se2 = Math.signum(singularity.eigenValues.getEntry(1));
-					if (se1 != se2) {
-						singularity.type = DegeneratePoint.Type.Saddle;
-					} else if (se1 < 0) {
-						singularity.type = DegeneratePoint.Type.Sink;
-					} else {
-						singularity.type = DegeneratePoint.Type.Source;
-					}
-					m_degenPoints.add(singularity);
-				}
-			}
-			m_degenPoints.trimToSize();
+		if (m_degenPoints != null) {
+			return m_degenPoints;
 		}
+		
+		m_degenPoints = new ArrayList<DegeneratePoint>(10);
+		for(int i = 0; i < m_interpolated.length; ++i) {
+			ElementField field = m_interpolated[i];
+			if (field == null) {
+				continue;
+			}
+			PdVector b = PdVector.copyNew(field.b);
+			b.multScalar(-1);
+			PdVector pos = Utils.solveCramer(field.a, b);
+			if (pos.length() == 0) {
+				continue;
+			}
+			if (inTriangle(i, pos)) {
+				///FIXME
+				DegeneratePoint singularity = new DegeneratePoint();
+				singularity.position = pos;
+				singularity.element = i;
+				double det = field.a.det();
+				if (det > 0) {
+					singularity.type = DegeneratePoint.Type.Wedge;
+				} else if (det < 0) {
+					singularity.type = DegeneratePoint.Type.Trisector;
+				} else {
+					singularity.type = DegeneratePoint.Type.HigherOrder;
+				}
+				m_degenPoints.add(singularity);
+			}
+		}
+		m_degenPoints.trimToSize();
 		return m_degenPoints;
 	}
 	private boolean inTriangle(int i, PdVector p)
