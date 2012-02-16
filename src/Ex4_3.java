@@ -21,6 +21,7 @@ import java.awt.CheckboxGroup;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
+import java.awt.Label;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -28,6 +29,7 @@ import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
 
 import javax.swing.Box;
+import javax.swing.JComboBox;
 import javax.swing.Timer;
 
 import jv.geom.PgPointSet;
@@ -74,7 +76,12 @@ public class Ex4_3
 	private Button m_clear;
 	private PgPolygonSet m_minorSeparatrices;
 	private Checkbox m_showSeparatrices;
-
+	private JComboBox m_direction;
+	private enum Direction {
+		Major,
+		Minor
+	}
+	
 	public static void main(String[] args)
 	{
 		new Ex4_3(args);
@@ -131,7 +138,7 @@ public class Ex4_3
 		m_disp.fit();
 
 		GridBagConstraints c = new GridBagConstraints();
-		c.gridwidth = 3;
+		c.gridwidth = 2;
 		c.gridx = 0;
 		c.gridy = 0;
 		c.weighty = 0;
@@ -140,6 +147,18 @@ public class Ex4_3
 		m_panel.add(boldLabel("Flow Direction"), c);
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridy++;
+
+		c.gridwidth = 1;
+		m_panel.add(new Label("Eigen Direction:"), c);
+		c.gridx++;
+		m_direction = new JComboBox();
+		m_direction.addItemListener(this);
+		m_panel.add(m_direction, c);
+		m_direction.addItem(Direction.Major);
+		m_direction.addItem(Direction.Minor);
+		c.gridy++;
+		c.gridx = 0;
+		c.gridwidth = 2;
 
 		m_flowReflect = new Checkbox("Reflect Flow", false);
 		m_flowReflect.addItemListener(this);
@@ -234,6 +253,8 @@ public class Ex4_3
 			}
 			m_disp.update(m_majorSeparatrices);
 			m_disp.update(m_minorSeparatrices);
+		} else if (source == m_direction) {
+			updateVectorField();
 		} else {
 			assert false : "Unhandled item changed: " + source;
 		}
@@ -374,25 +395,24 @@ public class Ex4_3
 			m.rightMult(R_t);
 			m.leftMult(R);
 			PdMatrix eV = Utils.solveEigen2x2(m, null, true);
-			//FIXME: just major/minor ?
-			PdVector E_1 = eV.getRow(0);
-			double rho = E_1.length();
-			double cosTheta = E_1.getEntry(0) / rho;
-			double sinTheta = E_1.getEntry(1) / rho;
-			PdVector V_x = new PdVector(2);
-			if (cosTheta >= 0) {
-				V_x = PdVector.copyNew(E_1);
+			PdVector E;
+			if (m_direction.getSelectedItem() == Direction.Major) {
+				E = eV.getRow(0);
 			} else {
-				V_x = PdVector.copyNew(E_1);
+				E = eV.getRow(1);
+			}
+			// pick V_x such that its x-component is always >= 0
+			PdVector V_x = PdVector.copyNew(E);
+			if (V_x.getEntry(0) < 0) {
 				V_x.multScalar(-1);
 			}
-			PdVector V_y = new PdVector(2);
-			if (sinTheta >= 0) {
-				V_y = PdVector.copyNew(E_1);
-			} else {
-				V_y = PdVector.copyNew(E_1);
+			// pick V_y such that its y-component is always >= 0
+			PdVector V_y = PdVector.copyNew(E);
+			if (V_y.getEntry(1) < 0) {
 				V_y.multScalar(-1);
 			}
+			assert V_x.getEntry(0) >= 0;
+			assert V_y.getEntry(1) >= 0;
 			m_vec.setVector(i, V_x);
 			V_y_field[i] = V_y;
 			assert m_vec.getVector(i).getSize() == 2 : m_vec.getVector(i).getSize();
@@ -465,11 +485,21 @@ public class Ex4_3
 	private double computeWeight(PdVector vertex, int idx, PdBary bary, PdMatrix rotation)
 	{
 		PdMatrix T = m_interpolatedField.evaluateIn(vertex, idx);
-		PdVector E_1 = Utils.solveEigen2x2(T, null, true).getRow(0);
-		E_1.leftMultMatrix(rotation);
-		double rho = E_1.length();
-		double cosTheta = E_1.getEntry(0) / rho;
-		return cosTheta * cosTheta;
+		PdMatrix eV = Utils.solveEigen2x2(T, null, true);
+		// NOTE: it seems like we need to weight by W_x = cos^2 \theta for major
+		// and by W_y = sin^2 \theta for minor direction!
+		PdVector E;
+		if (m_direction.getSelectedItem() == Direction.Major) {
+			E = eV.getRow(0);
+		} else {
+			E = eV.getRow(1);
+		}
+		E.leftMultMatrix(rotation);
+		double rho = E.length();
+		// x-coordinate it cos \theta for major, and -sin \theta for minor
+		// hence its square is just what we need!
+		double weight = E.getEntry(0) / rho;
+		return weight * weight;
 	}
 
 	/**
