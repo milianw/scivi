@@ -407,7 +407,7 @@ public class Ex4_3
 		BufferedImage lic2 = generateLICImage();
 		
 		//get weights
-		double[][] weights = computeBlendWeights();
+		double[][] weights = computeBlendWeights(R);
 		
 		//compute final texture
 		int width = m_lic.getTextureSize().width;
@@ -459,11 +459,14 @@ public class Ex4_3
 	 * @param vertex	Position in global coordinates.
 	 * @param idx		Index of element.
 	 * @param bary		Position in barizentric coordinates.
+	 * @param rotation	Rotation matrix
 	 * @return	Weight for blending.
 	 */
-	private double computeWeight(PdVector vertex, int idx, PdBary bary) {
+	private double computeWeight(PdVector vertex, int idx, PdBary bary, PdMatrix rotation)
+	{
 		PdMatrix T = m_interpolatedField.evaluateIn(vertex, idx);
 		PdVector E_1 = Utils.solveEigen2x2(T, null, true).getRow(0);
+		E_1.leftMultMatrix(rotation);
 		double rho = E_1.length();
 		double cosTheta = E_1.getEntry(0) / rho;
 		return cosTheta * cosTheta;
@@ -472,8 +475,8 @@ public class Ex4_3
 	/**
 	 * @return	Weights for blending.
 	 */
-	private double[][] computeBlendWeights() {
-
+	private double[][] computeBlendWeights(PdMatrix rotation)
+	{
 		int width = m_lic.getTextureSize().width;
 		int height = m_lic.getTextureSize().height;
 		double[][] weights = new double[width][height];
@@ -504,7 +507,7 @@ public class Ex4_3
 					if(bary.isInside(1./m_domain.getDescr().getNumULines())){
 						//compute weight
 						PdVector vertex = bary.getVertex(null, verts[face.m_data[0]], verts[face.m_data[1]], verts[face.m_data[2]]);
-						weights[(int)(u)][height-(int)(v)-1] = computeWeight(vertex, i, bary);
+						weights[(int)(u)][height-(int)(v)-1] = computeWeight(vertex, i, bary, rotation);
 					}
 				}
 			}
