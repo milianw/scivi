@@ -339,6 +339,13 @@ public class Ex4_3
 	}
 	public void findSeparatrices(DegeneratePoint p)
 	{
+		double rot = Math.toRadians(m_flowRotate.getValue());
+		PdMatrix R = m_flowReflect.getState() 
+				? Utils.reflectionMatrix(rot / 2)
+				: Utils.rotationMatrix(rot / 2);
+		PdMatrix R_t = PdMatrix.copyNew(R);
+		R_t.transpose();
+
 		assert p.type == DegeneratePoint.Type.Trisector
 			|| p.type == DegeneratePoint.Type.Wedge;
 		InterpolatedTensorField.ElementField field = m_interpolatedField.fieldIn(p.element);
@@ -356,33 +363,36 @@ public class Ex4_3
 				continue;
 			}
 			final double theta = Math.atan(r.re());
-			final PdVector n1 = PdVector.addNew(p.position,
-					new PdVector(Math.cos(theta), Math.sin(theta)));
+			final PdVector E_1 = new PdVector(Math.cos(theta), Math.sin(theta));
+			final PdVector E_2 = new PdVector(-Math.sin(theta), Math.cos(theta));
+			final PdVector n1 = PdVector.addNew(p.position, E_1);
+
+			PdMatrix T = field.evaluate(n1);
+			T.rightMult(R_t);
+			T.leftMult(R);
+			boolean w = T.leftMultMatrix(null, E_1).dot(E_1) > T.leftMultMatrix(null, E_2).dot(E_2);
+			if ((w && m_direction.getSelectedItem() == Direction.Major)
+				|| (!w && m_direction.getSelectedItem() == Direction.Minor))
+			{
+				int v = m_separatrices.addVertex(n1);
+				m_separatrices.addPolygon(new PiVector(base, v));
+			}
 
 			final double theta2 = theta < 0 ? theta + Math.PI : theta - Math.PI;
-			final PdVector n2 = PdVector.addNew(p.position,
-					new PdVector(Math.cos(theta2), Math.sin(theta2)));
+			final PdVector E2_1 = new PdVector(Math.cos(theta2), Math.sin(theta2));
+			final PdVector E2_2 = new PdVector(-Math.sin(theta2), Math.cos(theta2));
+			final PdVector n2 = PdVector.addNew(p.position, E2_1);
 
-			int v = m_separatrices.addVertex(n1);
-			m_separatrices.addPolygon(new PiVector(base, v));
-			int v2 = m_separatrices.addVertex(n2);
-			m_separatrices.addPolygon(new PiVector(base, v2));
-			/*
-			FIXME: find out which direction is major/minor
-			System.out.println("theta = " + Math.toDegrees(theta) + ", theta2 = " + Math.toDegrees(theta2));
-			PdVector node = null;
-			double c1 = Math.abs(field.a.leftMultMatrix(null, PdVector.blendNew(1, p.position, 0.1, n1)).dot(n1));
-			double c2 = Math.abs(field.a.leftMultMatrix(null, PdVector.blendNew(1, p.position, 0.1, n2)).dot(n2));
-			if (c1 > c2) {
-				node = m_direction.getSelectedItem() == Direction.Major ? n1 : n2;
-			} else {
-				node = m_direction.getSelectedItem() == Direction.Major ? n2 : n1;
+			PdMatrix T2 = field.evaluate(n2);
+			T2.rightMult(R_t);
+			T2.leftMult(R);
+			boolean w2 = T2.leftMultMatrix(null, E2_1).dot(E2_1) > T2.leftMultMatrix(null, E2_2).dot(E2_2);
+			if ((w2 && m_direction.getSelectedItem() == Direction.Major)
+				|| (!w2 && m_direction.getSelectedItem() == Direction.Minor))
+			{
+				int v = m_separatrices.addVertex(n2);
+				m_separatrices.addPolygon(new PiVector(base, v));
 			}
-			System.out.println(c1 + " VS " + c2);
-			node.add(p.position);
-			int v = m_separatrices.addVertex(node);
-			m_separatrices.addPolygon(new PiVector(base, v));
-			*/
 		}
 	}
 	/**
