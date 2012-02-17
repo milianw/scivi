@@ -371,7 +371,6 @@ public class Ex4_3
 		// find roots u = tan\theta from equation:
 		// d u^3 + (c+2b) u^2 + (2a -d) u - c = 0
 		ArrayList<PuComplex> roots = Utils.cubicRoots(d, (c+2d*b), (2d*a-d), -c);
-		m_separatrices.addVertex(p.position);
 		TensorFieldFunctor functor = new TensorFieldFunctor(m_interpolatedField,
 				m_direction.getSelectedItem() == Direction.Major);
 		LineTracer tracer = new ClassicalRungeKuttaTracer(functor);
