@@ -29,6 +29,8 @@ public class TensorField extends BasicUpdateIf
 {
 	private ArrayList<TensorTerm> m_terms;
 	private PgPointSet m_termBasePoints;
+	private PdMatrix m_rot;
+	private PdMatrix m_rot_t;
 	public TensorField()
 	{
 		m_terms = new ArrayList<TensorTerm>(10);
@@ -37,6 +39,17 @@ public class TensorField extends BasicUpdateIf
 		m_termBasePoints.showVertices(true);
 		m_termBasePoints.showVertexColors(true);
 		m_termBasePoints.setGlobalVertexSize(5.0);
+		// no rotation by default
+		m_rot = new PdMatrix(2, 2);
+		m_rot.setEntry(0, 0, 1);
+		m_rot.setEntry(1, 1, 1);
+		m_rot_t = PdMatrix.copyNew(m_rot);
+	}
+	public void setRotation(PdMatrix rot)
+	{
+		m_rot = PdMatrix.copyNew(rot);
+		m_rot_t = PdMatrix.copyNew(m_rot);
+		m_rot_t.transpose();
 	}
 	public PgPointSet termBasePoints()
 	{
@@ -48,6 +61,8 @@ public class TensorField extends BasicUpdateIf
 		for(TensorTerm t : m_terms) {
 			ret.add(t.evaluate(pos));
 		}
+		ret.rightMult(m_rot_t);
+		ret.leftMult(m_rot);
 		return ret;
 	}
 	public void addTerm(TensorTerm term)

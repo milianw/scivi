@@ -284,6 +284,11 @@ public class Ex4_3
 	 * (Re)Compute vector field.
 	 */
 	public void updateVectorField_internal() {
+		double theta = Math.toRadians(m_flowRotate.getValue());
+		PdMatrix rotation = m_flowReflect.getState() 
+				? Utils.reflectionMatrix(theta / 2)
+				: Utils.rotationMatrix(theta / 2);
+		m_field.setRotation(rotation);
 		m_interpolatedField = new InterpolatedTensorField(m_domain, m_field);
 		updateLICImage();
 
@@ -339,13 +344,6 @@ public class Ex4_3
 	}
 	public void findSeparatrices(DegeneratePoint p)
 	{
-		double rot = Math.toRadians(m_flowRotate.getValue());
-		PdMatrix R = m_flowReflect.getState() 
-				? Utils.reflectionMatrix(rot / 2)
-				: Utils.rotationMatrix(rot / 2);
-		PdMatrix R_t = PdMatrix.copyNew(R);
-		R_t.transpose();
-
 		assert p.type == DegeneratePoint.Type.Trisector
 			|| p.type == DegeneratePoint.Type.Wedge;
 		InterpolatedTensorField.ElementField field = m_interpolatedField.fieldIn(p.element);
@@ -368,8 +366,6 @@ public class Ex4_3
 			final PdVector n1 = PdVector.addNew(p.position, E_1);
 
 			PdMatrix T = field.evaluate(n1);
-			T.rightMult(R_t);
-			T.leftMult(R);
 			boolean w = T.leftMultMatrix(null, E_1).dot(E_1) > T.leftMultMatrix(null, E_2).dot(E_2);
 			if ((w && m_direction.getSelectedItem() == Direction.Major)
 				|| (!w && m_direction.getSelectedItem() == Direction.Minor))
@@ -384,8 +380,6 @@ public class Ex4_3
 			final PdVector n2 = PdVector.addNew(p.position, E2_1);
 
 			PdMatrix T2 = field.evaluate(n2);
-			T2.rightMult(R_t);
-			T2.leftMult(R);
 			boolean w2 = T2.leftMultMatrix(null, E2_1).dot(E2_1) > T2.leftMultMatrix(null, E2_2).dot(E2_2);
 			if ((w2 && m_direction.getSelectedItem() == Direction.Major)
 				|| (!w2 && m_direction.getSelectedItem() == Direction.Minor))
@@ -405,20 +399,10 @@ public class Ex4_3
 			return;
 		}
 
-		double theta = Math.toRadians(m_flowRotate.getValue());
-		PdMatrix R = m_flowReflect.getState() 
-				? Utils.reflectionMatrix(theta / 2)
-				: Utils.rotationMatrix(theta / 2);
-		PdMatrix R_t = PdMatrix.copyNew(R);
-		R_t.transpose();
-
 		PdVector[] V_y_field = new PdVector[m_domain.getNumVertices()];
 		for(int i = 0; i < m_domain.getNumVertices(); ++i) {
 			PdVector pos = m_domain.getVertex(i);
-			PdMatrix m = m_field.evaluate(pos);
-			m.rightMult(R_t);
-			m.leftMult(R);
-			PdMatrix eV = Utils.solveEigen2x2(m, null, true);
+			PdMatrix eV = Utils.solveEigen2x2(m_field.evaluate(pos), null, true);
 			PdVector E;
 			if (m_direction.getSelectedItem() == Direction.Major) {
 				E = eV.getRow(0);
@@ -451,7 +435,7 @@ public class Ex4_3
 		BufferedImage lic2 = generateLICImage();
 		
 		//get weights
-		double[][] weights = computeBlendWeights(R);
+		double[][] weights = computeBlendWeights();
 		
 		//compute final texture
 		int width = m_lic.getTextureSize().width;
@@ -506,7 +490,7 @@ public class Ex4_3
 	 * @param rotation	Rotation matrix
 	 * @return	Weight for blending.
 	 */
-	private double computeWeight(PdVector vertex, int idx, PdBary bary, PdMatrix rotation)
+	private double computeWeight(PdVector vertex, int idx, PdBary bary)
 	{
 		PdMatrix T = m_interpolatedField.evaluateIn(vertex, idx);
 		PdMatrix eV = Utils.solveEigen2x2(T, null, true);
@@ -518,7 +502,6 @@ public class Ex4_3
 		} else {
 			E = eV.getRow(1);
 		}
-		E.leftMultMatrix(rotation);
 		double rho = E.length();
 		// x-coordinate it cos \theta for major, and -sin \theta for minor
 		// hence its square is just what we need!
@@ -529,7 +512,7 @@ public class Ex4_3
 	/**
 	 * @return	Weights for blending.
 	 */
-	private double[][] computeBlendWeights(PdMatrix rotation)
+	private double[][] computeBlendWeights()
 	{
 		int width = m_lic.getTextureSize().width;
 		int height = m_lic.getTextureSize().height;
@@ -561,7 +544,7 @@ public class Ex4_3
 					if(bary.isInside(1./m_domain.getDescr().getNumULines())){
 						//compute weight
 						PdVector vertex = bary.getVertex(null, verts[face.m_data[0]], verts[face.m_data[1]], verts[face.m_data[2]]);
-						weights[(int)(u)][height-(int)(v)-1] = computeWeight(vertex, i, bary, rotation);
+						weights[(int)(u)][height-(int)(v)-1] = computeWeight(vertex, i, bary);
 					}
 				}
 			}
