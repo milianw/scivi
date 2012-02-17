@@ -24,12 +24,15 @@ abstract class LineTracer
 	interface Functor
 	{
 		public PdVector evaluate(PdVector at);
+		PdVector[] stopPoints();
 	}
 
 	protected Functor m_function;
+	PdVector[] m_stops;
 	LineTracer(Functor function)
 	{
 		m_function = function;
+		m_stops = m_function.stopPoints();
 	}
 	void trace(PgPolygonSet output, PdVector seed,
 				int steps, double stepSize)
@@ -37,12 +40,26 @@ abstract class LineTracer
 		output.addVertex(seed);
 		PdVector cur = seed;
 		for(int s = 1; s <= steps; ++s) {
+			PdVector last = cur;
 			cur = next(cur, stepSize);
 			if (cur == null) {
 				break;
 			}
-			int v = output.addVertex(cur);
-			output.addPolygon(new PiVector(v-1, v));
+			int vertex = output.addVertex(cur);
+			output.addPolygon(new PiVector(vertex-1, vertex));
+			if (PdVector.dist(last, cur) < (stepSize/10d)) {
+				break;
+			}
+			boolean stop = false;
+			for(PdVector v : m_stops) {
+				if (PdVector.dist(v, cur) < (stepSize/10d)) {
+					stop = true;
+					break;
+				}
+			}
+			if (stop) {
+				break;
+			}
 		}
 	}
 	protected abstract PdVector next(PdVector y_i, double h);

@@ -191,4 +191,14 @@ class InterpolatedField implements LineTracer.Functor
 		ret.add(field.b);
 		return ret;
 	}
+	@Override
+	public PdVector[] stopPoints() {
+		ArrayList<Singularity> singularities = findSingularities();
+		PdVector[] ret = new PdVector[singularities.size()];
+		int i = 0;
+		for(Singularity s : singularities) {
+			ret[i++] = s.position;
+		}
+		return ret;
+	}
 }

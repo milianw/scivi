@@ -229,4 +229,14 @@ class TensorFieldFunctor implements LineTracer.Functor
 		}
 		return ret;
 	}
+	@Override
+	public PdVector[] stopPoints() {
+		ArrayList<DegeneratePoint> degenPoints = m_field.findDegeneratePoints();
+		PdVector[] ret = new PdVector[degenPoints.size()];
+		int i = 0;
+		for(DegeneratePoint p : degenPoints) {
+			ret[i++] = p.position;
+		}
+		return ret;
+	}
 }
