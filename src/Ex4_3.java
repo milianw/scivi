@@ -38,6 +38,7 @@ import jv.geom.PgPolygonSet;
 import jv.geom.PgVectorField;
 import jv.number.PuComplex;
 import jv.number.PuDouble;
+import jv.number.PuInteger;
 import jv.object.PsUpdateIf;
 import jv.project.PgGeometryIf;
 import jv.project.PvCameraIf;
@@ -78,6 +79,8 @@ public class Ex4_3
 	private PgPolygonSet m_separatrices;
 	private Checkbox m_showSeparatrices;
 	private JComboBox m_direction;
+	private PuDouble m_stepSize;
+	private PuInteger m_steps;
 	private enum Direction {
 		Major,
 		Minor
@@ -205,6 +208,20 @@ public class Ex4_3
 		m_showSeparatrices = new Checkbox("Show Separatrices", true);
 		m_showSeparatrices.addItemListener(this);
 		m_panel.add(m_showSeparatrices, c);
+		c.gridy++;
+
+		m_stepSize = new PuDouble("Stepsize:");
+		m_stepSize.setBounds(0.001, 1, 0.1, 0.2);
+		m_stepSize.setValue(0.2);
+		m_stepSize.addUpdateListener(this);
+		m_panel.add(m_stepSize.getInfoPanel(), c);
+		c.gridy++;
+
+		m_steps = new PuInteger("Steps:");
+		m_steps.setBounds(1, 1000, 10, 50);
+		m_steps.setValue(100);
+		m_steps.addUpdateListener(this);
+		m_panel.add(m_steps.getInfoPanel(), c);
 		c.gridy++;
 
 		c.fill = GridBagConstraints.CENTER;
@@ -354,7 +371,12 @@ public class Ex4_3
 		// find roots u = tan\theta from equation:
 		// d u^3 + (c+2b) u^2 + (2a -d) u - c = 0
 		ArrayList<PuComplex> roots = Utils.cubicRoots(d, (c+2d*b), (2d*a-d), -c);
-		int base = m_separatrices.addVertex(p.position);
+		m_separatrices.addVertex(p.position);
+		TensorFieldFunctor functor = new TensorFieldFunctor(m_interpolatedField,
+				m_direction.getSelectedItem() == Direction.Major);
+		LineTracer tracer = new ClassicalRungeKuttaTracer(functor);
+		final double stepSize = m_stepSize.getValue();
+		final int steps = m_steps.getValue();
 		for(PuComplex r : roots) {
 			if (Math.abs(r.im()) > 1E-6) {
 				// ignore complex roots
@@ -370,8 +392,8 @@ public class Ex4_3
 			if ((w && m_direction.getSelectedItem() == Direction.Major)
 				|| (!w && m_direction.getSelectedItem() == Direction.Minor))
 			{
-				int v = m_separatrices.addVertex(n1);
-				m_separatrices.addPolygon(new PiVector(base, v));
+				tracer.trace(m_separatrices, PdVector.blendNew(1, p.position, stepSize, E_1),
+						steps, stepSize);
 			}
 
 			final double theta2 = theta < 0 ? theta + Math.PI : theta - Math.PI;
@@ -384,8 +406,10 @@ public class Ex4_3
 			if ((w2 && m_direction.getSelectedItem() == Direction.Major)
 				|| (!w2 && m_direction.getSelectedItem() == Direction.Minor))
 			{
-				int v = m_separatrices.addVertex(n2);
-				m_separatrices.addPolygon(new PiVector(base, v));
+				functor.setRevert(true);
+				tracer.trace(m_separatrices, PdVector.blendNew(1, p.position, stepSize, E2_1),
+						steps, stepSize);
+				functor.setRevert(false);
 			}
 		}
 	}
@@ -568,6 +592,10 @@ public class Ex4_3
 			m_lic.update(m_lic);
 			updateVectorField();
 			return true;
+		} else if (event == m_steps) {
+			updateVectorField();
+		} else if (event == m_stepSize) {
+			updateVectorField();
 		}
 		return false;
 	}

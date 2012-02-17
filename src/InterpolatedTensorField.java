@@ -35,7 +35,7 @@ class DegeneratePoint
 	int element;
 }
 
-class InterpolatedTensorField /* implements LineTracer.Functor */
+class InterpolatedTensorField
 {
 	private PgElementSet m_geometry;
 	private TensorField m_field;
@@ -177,13 +177,20 @@ class InterpolatedTensorField /* implements LineTracer.Functor */
 
 		return element;
 	}
-	public PdMatrix evaluate(PdVector pos)
+	public ElementField fieldAt(PdVector pos)
 	{
 		int i = elementAt(pos);
 		if (i == -1) {
 			return null;
 		}
-		ElementField field = m_interpolated[i];
+		return m_interpolated[i];
+	}
+	public PdMatrix evaluate(PdVector pos)
+	{
+		ElementField field = fieldAt(pos);
+		if (field == null) {
+			return null;
+		}
 		return field.evaluate(pos);
 	}
 	public PdMatrix evaluateIn(PdVector pos, int element)
@@ -193,5 +200,33 @@ class InterpolatedTensorField /* implements LineTracer.Functor */
 	public ElementField fieldIn(int element)
 	{
 		return m_interpolated[element];
+	}
+}
+
+class TensorFieldFunctor implements LineTracer.Functor
+{
+	private InterpolatedTensorField m_field;
+	boolean m_major;
+	public TensorFieldFunctor(InterpolatedTensorField field, boolean major)
+	{
+		m_field = field;
+		m_major = major;
+	}
+	boolean m_revert;
+	public void setRevert(boolean revert)
+	{
+		m_revert = revert;
+	}
+	@Override
+	public PdVector evaluate(PdVector at) {
+		PdMatrix m = m_field.evaluate(at);
+		if (m == null) {
+			return null;
+		}
+		PdVector ret = Utils.solveEigen2x2(m, null, true).getRow(m_major ? 0 : 1);
+		if (m_revert) {
+			ret.multScalar(-1);
+		}
+		return ret;
 	}
 }
