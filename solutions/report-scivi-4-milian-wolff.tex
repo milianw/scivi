@@ -63,6 +63,8 @@ The source code of my exercise solutions can be found online under
 \tableofcontents
 \endgroup
 
+\newpage
+
 \section{Tensor Field Design}
 
 Our programming task consisted this time of adapting our previous vector field
@@ -110,57 +112,6 @@ The total second order tensor field is then defined through
     \includegraphics[width=0.3\textwidth]{img-4-2/saddle-s.eps}}
   \caption{tensor field design elements}
   \label{fig:tfd-elements}
-\end{figure}
-
-\subsection{Visualization Via Eigenvector Field}
-
-To visualize the tensor field use the image based approach outlined in
-\cite{tfd} p.~98f, which allows us to reuse the LIC code from JavaView. To
-visualize the major eigenvector field, we can follow the equations outlined
-there. For the minor eigenvector field though, we have to make small
-adjustments: The minor eigenvector $\vec{E}_2$ is orthogonal to $\vec{E}_1$,
-such that
-
-\begin{equation}
- \vec{E}_2 = \left( \begin{array}{c}
-              -\sin \theta \\
-              \cos \theta
-             \end{array} \right)
-\end{equation}
-
-We now create $\vec{V}_x$ such that the $x$-component is positive, i.e.:
-
-\begin{equation}
- \vec{V}_x = \left \{  \begin{array}{l l}
-                       \vec{E}_2 & \quad \text{if $-\sin \theta > 0$} \\
-                       -\vec{E}_2 & \quad \text{otherwise}
-                       \end{array} \right.
-\end{equation}
-
-Analogously we create $\vec{V}_y$ such that its $y$-component, i.e. $\cos
-\theta$, is positive. The weighting factors $W_{x,y}$ use the $x$- and
-$y$-component of $\vec{E}_2$. Hence they are
-
-\begin{eqnarray}
- W_x &=& \sin^2 \theta \qquad \text{, and}\\
- W_y &=& 1 - W_x = \cos^2 \theta .
-\end{eqnarray}
-
-You can see an example of the above code in fig. \ref{fig:tfd-majorminor}.
-
-\begin{figure}
-  \centering
-  \subfloat[major]{
-    \includegraphics[width=0.4\textwidth]{img-4-2/major.eps}
-    \includegraphics[width=0.4\textwidth]{img-4-2/major-s.eps}
-  }
-  \\
-  \subfloat[minor]{
-    \includegraphics[width=0.4\textwidth]{img-4-2/minor.eps}
-    \includegraphics[width=0.4\textwidth]{img-4-2/minor-s.eps}
-  }
-  \caption{minor and major eigenvector fields}
-  \label{fig:tfd-majorminor}
 \end{figure}
 
 \subsection{Rotation and Reflection}
@@ -223,8 +174,124 @@ fig. \ref{fig:tfd-reflection} for tensor field reflection.
   \label{fig:tfd-reflection}
 \end{figure}
 
+\subsection{Discretization and Interpolation}
 
-\bibliography{sources}
+The continous tensor field in eq. \ref{eq:tf} must be discretized for numerical
+analysis and visualization. We use a triangulated domain and compute the tensor
+field at each vertex.
+
+Then we interpolate the tensor field in each triangle from the three
+fields  $\mat{T}_{1,2,3}$ at the vertices $\vec{v}_{1,2,3}$. Then we solve the
+two equation systems
+
+\begin{equation}
+ \left ( \begin{array}{c c c}
+          a/c & b/d & c/f \\
+          x_1 & y_1 & 1 \\
+          x_2 & y_2 & 1 \\
+          x_3 & y_3 & 1
+         \end{array}
+         \right \rvert
+ \left .
+      \begin{array}{c c}
+      \alpha & \beta \\
+       T_{1_{0,0}} & T_{1_{1,0}} \\
+       T_{2_{0,0}} & T_{2_{1,0}} \\
+       T_{3_{0,0}} & T_{3_{1,0}}
+      \end{array}
+ \right )
+\end{equation}
+
+yielding the symmetric second order interpolated tensor field
+
+\begin{equation}
+ \mat{T}_I(\vec{r}) = \left(\begin{array}{c c}
+                       ax + by + e & cx + dy + f \\
+                       cx + dy + f & -ax -by -e
+                      \end{array}\right).
+ \label{eq:tf-linear}
+\end{equation}
+
+Note that this interpolation is of course only valid inside the triangle
+spanned by the vertices $\vec{v}_{1,2,3}$.
+
+\subsection{Eigenvector Field Visualization}
+
+To visualize the tensor field use the image based approach outlined in
+\cite{tfd} p.~98f, which allows us to reuse the LIC code from JavaView. To
+visualize the major eigenvector field, we can follow the equations outlined
+there. For the minor eigenvector field though, we have to make small
+adjustments: The minor eigenvector $\vec{E}_2$ is orthogonal to $\vec{E}_1$,
+such that
+
+\begin{equation}
+ \vec{E}_2 = \left( \begin{array}{c}
+              -\sin \theta \\
+              \cos \theta
+             \end{array} \right)
+\end{equation}
+
+We now create $\vec{V}_x$ such that the $x$-component is positive, i.e.:
+
+\begin{equation}
+ \vec{V}_x = \left \{  \begin{array}{l l}
+                       \vec{E}_2 & \quad \text{if $-\sin \theta > 0$} \\
+                       -\vec{E}_2 & \quad \text{otherwise}
+                       \end{array} \right.
+\end{equation}
+
+Analogously we create $\vec{V}_y$ such that its $y$-component, i.e. $\cos
+\theta$, is positive. The weighting factors $W_{x,y}$ use the $x$- and
+$y$-component of $\vec{E}_2$. Hence they are
+
+\begin{eqnarray}
+ W_x &=& \sin^2 \theta \qquad \text{, and}\\
+ W_y &=& 1 - W_x = \cos^2 \theta .
+\end{eqnarray}
+
+You can see an example of the above code in fig. \ref{fig:tfd-majorminor}.
+
+\begin{figure}
+  \centering
+  \subfloat[major]{
+    \includegraphics[width=0.4\textwidth]{img-4-2/major.eps}
+    \includegraphics[width=0.4\textwidth]{img-4-2/major-s.eps}
+  }
+  \\
+  \subfloat[minor]{
+    \includegraphics[width=0.4\textwidth]{img-4-2/minor.eps}
+    \includegraphics[width=0.4\textwidth]{img-4-2/minor-s.eps}
+  }
+  \caption{minor and major eigenvector fields}
+  \label{fig:tfd-majorminor}
+\end{figure}
+
+\subsection{Degenerate Points}
+
+To find the degenerate points of a symmetric second order tensor field we
+iterate over all interpolated tensor fields (see eq. \ref{eq:tf-linear} in our
+domain and solve the equation system
+
+\begin{equation}
+  \left(\begin{array}{c c}
+         a & b \\
+         c & d
+        \end{array} \right)
+ \vec{r}_0 = \left( \begin{array}{c} -e \\ -f \end{array} \right).
+\end{equation}
+
+If $\vec{r}_0$ lies in the triangle for which the interpolation is valid, then
+we found a degenerate point. We can furthermore classify it by calculating the
+determinant of the coefficient matrix in the equation above. The degenerate
+point is a wedge if the determinant is positive, a trisector if it is negative
+and a higher-order degenerate point if the determinant is zero.
+
+You can see the results of this algorithm in the figures of this report, e.g.
+fig. \ref{fig:tfd-majorminor}. Wedges are represented by small yellow dots,
+while trisectors are blue. Higher-order terms are usually not found, but if so
+they would be colored white.
+
+\bibliography{sources}  
 
 \end{document}
 
