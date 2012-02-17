@@ -27,6 +27,7 @@ import javax.swing.JComboBox;
 import javax.swing.JPanel;
 
 import jv.number.PuDouble;
+import jv.number.PuInteger;
 import jv.vecmath.PdVector;
 
 @SuppressWarnings("serial")
@@ -62,7 +63,10 @@ public class TensorFieldPanel extends JPanel implements ItemListener
 			m_panels[t.ordinal()] = panel;
 			AbstractTensorUIItem item = AbstractTensorUIItem.createItem(t, panel);
 			m_items[t.ordinal()] = item;
-			m_typeCombo.addItem(t);
+
+			if (t != TensorFeatureType.Generic) {
+				m_typeCombo.addItem(t);
+			}
 
 			panel.setVisible(false);
 			add(panel, c);
@@ -82,6 +86,7 @@ public class TensorFieldPanel extends JPanel implements ItemListener
 			for(int i = 0; i < m_panels.length; ++i) {
 				m_panels[i].setVisible(i == m_typeCombo.getSelectedIndex());
 			}
+			getParent().validate();
 			validate();
 		}
 	}
@@ -178,6 +183,8 @@ abstract class AbstractTensorUIItem extends BasicUpdateIf
 			return new SaddleTensorUIItem(panel);
 		case Trisector:
 			return new TrisectorUIItem(panel);
+		case Generic:
+			return new GenericTensorUIItem(panel);
 		}
 		assert false : "Unhandled type: " + t;
 		return null;
@@ -248,5 +255,39 @@ class SaddleTensorUIItem extends AbstractTensorUIItem
 	@Override
 	public TensorTerm createTerm(PdVector base) {
 		return new SaddleTensorTerm(base, strength(), decay(), angle());
+	}
+}
+
+class GenericTensorUIItem extends AbstractTensorUIItem
+{
+	PuInteger m_n;
+	public GenericTensorUIItem(Panel panel) {
+		super(panel);
+		m_n = new PuInteger("N:");
+		m_n.setBounds(-10, 10, 1, 2);
+		m_n.setValue(1);
+		m_n.addUpdateListener(this);
+		panel.add(m_n.getInfoPanel());
+	}
+	@Override
+	public TensorTerm createTerm(PdVector base) {
+		return new GenericTensorTerm(m_n.getValue(), base, strength(), decay(), angle());
+	}
+	public void setTerm(TensorTerm term)
+	{
+		super.setTerm(term);
+		GenericTensorTerm t = (GenericTensorTerm) term;
+		if (t != null) {
+			m_n.setValue(t.n());
+		}
+	}
+	@Override
+	public boolean update(Object event) {
+		if (event == m_n && m_term != null) {
+			GenericTensorTerm t = (GenericTensorTerm) m_term;
+			t.setN(m_n.getValue());
+			return true;
+		}
+		return super.update(event);
 	}
 }

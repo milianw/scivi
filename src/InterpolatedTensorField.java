@@ -93,7 +93,8 @@ class InterpolatedTensorField /* implements LineTracer.Functor */
 			PdVector solvedY = Utils.solveCramer(A, b_y);
 			// filter out bad stuff, field might be zero e.g....
 			if (Double.isNaN(solvedX.length()) || Double.isNaN(solvedY.length())) {
-				continue;
+				solvedX.setConstant(0);
+				solvedY.setConstant(0);
 			}
 			// store result as 2x2 matrix and 2dim vector
 			ElementField elementField = new ElementField();

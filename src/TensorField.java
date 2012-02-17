@@ -117,7 +117,8 @@ enum TensorFeatureType {
 	Trisector,
 	Node,
 	Center,
-	Saddle
+	Saddle,
+	Generic
 }
 
 abstract class TensorTerm extends BasicUpdateIf
@@ -340,5 +341,47 @@ class SaddleTensorTerm extends TensorTerm
 	@Override
 	public Color vertexColor() {
 		return Color.blue;
+	}
+}
+
+class GenericTensorTerm extends TensorTerm
+{
+	private int m_n;
+	public GenericTensorTerm(int n, PdVector base, double strength, double decay, double rotation)
+	{
+		super(base, strength, decay, rotation);
+		m_n = n;
+	}
+	@Override
+	public TensorFeatureType type() {
+		return TensorFeatureType.Generic;
+	}
+	@Override
+	protected void evaluate(double x, double y, PdMatrix ret) {
+		final double D = Math.sqrt(x*x - y*y);
+		final double theta = Math.atan2(y, x);
+		assert !Double.isNaN(theta);
+		//TODO: ??
+		double a = 1;
+		double b = 0;
+		double c = 0;
+		double d = 1;
+		assert a*d - b*c > 0;
+		ret.setEntry(0, 0, a * Math.cos(m_n * theta) + b * Math.sin(m_n * theta));
+		ret.setEntry(0, 1, c * Math.cos(m_n * theta) + d * Math.sin(m_n * theta));
+		ret.setEntry(1, 0, ret.getEntry(0, 1));
+		ret.setEntry(1, 1, -ret.getEntry(0, 0));
+		ret.multScalar(Math.pow(D, m_n));
+	}
+	@Override
+	public Color vertexColor() {
+		return Color.blue;
+	}
+	public int n() {
+		return m_n;
+	}
+	public void setN(int n) {
+		m_n = n;
+		update(this);
 	}
 }
