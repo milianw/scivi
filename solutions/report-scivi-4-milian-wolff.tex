@@ -95,6 +95,9 @@ The total second order tensor field is then defined through
  \label{eq:tf}
 \end{equation}
 
+The class \texttt{TensorField} and the inheritors classes of
+\texttt{TensorTerm} provide the code implementation of this.
+
 \begin{figure}
   \centering
   \subfloat[constant]{
@@ -215,6 +218,9 @@ yielding the symmetric second order interpolated tensor field
 Note that this interpolation is of course only valid inside the triangle
 spanned by the vertices $\vec{v}_{1,2,3}$.
 
+The class \texttt{InterpolatedTensorField} implements the interpolation scheme
+outlined above.
+
 \subsection{Eigenvector Field Visualization}
 
 To visualize the tensor field use the image based approach outlined in
@@ -249,7 +255,9 @@ $y$-component of $\vec{E}_2$. Hence they are
  W_y &=& 1 - W_x = \cos^2 \theta .
 \end{eqnarray}
 
-You can see an example of the above code in fig. \ref{fig:tfd-majorminor}.
+You can see an example of the above code in fig. \ref{fig:tfd-majorminor}. If
+you are interested in the code that implements the calculations above, take a
+look at \texttt{Ex4\_3.updateLICImage} and \texttt{Ex4\_3.computeWeight}.
 
 \begin{figure}
   \centering
@@ -269,7 +277,7 @@ You can see an example of the above code in fig. \ref{fig:tfd-majorminor}.
 \subsection{Degenerate Points}
 
 To find the degenerate points of a symmetric second order tensor field we
-iterate over all interpolated tensor fields (see eq. \ref{eq:tf-linear} in our
+iterate over all interpolated tensor fields (see eq. \ref{eq:tf-linear}) in our
 domain and solve the equation system
 
 \begin{equation}
@@ -291,7 +299,63 @@ fig. \ref{fig:tfd-majorminor}. Wedges are represented by small yellow dots,
 while trisectors are blue. Higher-order terms are usually not found, but if so
 they would be colored white.
 
-\bibliography{sources}  
+\texttt{InterpolatedTensorField.findDegeneratePoints} implements the above.
+
+\subsection{Separatrices}
+
+Another important feature of the tensor topology beside the degenerate points
+are the separatrices. Following the scheme that was shown to us in-class we can
+extract the directions of the separatrices at a wedge or trisector, by finding
+the roots of the cubic polynomial
+
+\begin{equation}
+ d u^3 + (c+2b)u^2 + (2a-d)u -c = 0, \qquad \text{with $u = tan\theta$}.
+\end{equation}
+
+The coefficients $a$, $b$, $c$ and $d$ are again those from eq.
+\ref{eq:tf-linear}. Solving the equation yields up to three real-valued roots
+$u$. It has to be noted that the algorithm applied is not very numerically
+stable and hence imaginary parts below a threshold of $1E-6$ are ignored. For
+each value of $u$ we can then find two values of $\theta$. Again it can be
+observed that the $atan$ calculation is very unreliably for expected values
+near $90\degree$ or $270\degree$.
+
+To figure out whether a given $\theta$ points into a minor or major direction,
+we compare the eigen values, i.e.
+
+\begin{eqnarray}
+ \lambda_1 &=& \mat{T}_I(\vec{r}_0 + \vec{e}_\theta) \vec{e}_\theta \cdot
+\vec{e}_\theta \\
+ \lambda_2 &=& \mat{T}_I(\vec{r}_0 + \vec{e}_\theta) \vec{e}_{\theta+\pi/2}
+\cdot
+\vec{e}_{\theta+\pi/2},
+\end{eqnarray}
+
+where $\vec{e}_{\phi}$ is a unit vector in direction of an angle $\phi$:
+
+\begin{equation}
+ \vec{e}_{\phi} = \left( \begin{array}{c}
+                          \cos \phi
+                          \sin \phi
+                         \end{array} \right )
+\end{equation}
+
+If now $\lambda_1 > \lambda_2$, then $\theta$ points into the direction of a
+major separatrix. Otherwise it points into a minor direction. Based on this we
+can start a classical Runge-Kutta line tracer in the selected direction, using
+the eigenvector field direction as seed values for the integration scheme.
+
+The above was already applied to find the separatrices (the orange lines) in the
+previously shown images, see e.g. fig. \ref{fig:tfd-majorminor}. The
+application allows the user to define the numer of steps and the stepsize. The
+tracer stops near degenerate points, i.e. when the distance to a degenerate
+point is less than one tenth of the stepsize.
+
+The code that visualizes the separatrices of wedges and trisectors is
+implemented in \texttt{Ex4\_3.findSeparatrices},
+\texttt{TensorFieldFunctor} and \texttt{ClassicalRungeKuttaTracer}.
+
+\bibliography{sources}
 
 \end{document}
 
