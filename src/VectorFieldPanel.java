@@ -223,8 +223,7 @@ class ConstantUIItem extends AbstractAngleUIItem
 	@Override
 	public Term createTerm(PdVector base)
 	{
-		return new Term4c(base, m_strength.getValue(), m_decay.getValue());
-//		return new ConstantTerm(base, m_strength.getValue(), m_decay.getValue(), angle());
+		return new ConstantTerm(base, m_strength.getValue(), m_decay.getValue(), angle());
 	}
 }
 

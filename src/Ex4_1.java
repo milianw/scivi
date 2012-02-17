@@ -15,6 +15,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import java.awt.Checkbox;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.event.ItemEvent;
@@ -26,19 +27,29 @@ import jv.geom.PgVectorField;
 import jv.project.PvCameraIf;
 import jv.project.PvDisplayIf;
 import jv.project.PvGeometryListenerIf;
+import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
 
 
 class Term4a extends Term {
+	private boolean m_np;
 	@Override
 	public PdVector evaluate(PdVector pos) {
 		PdVector ret = new PdVector(2);
 		double x = pos.getEntry(0) - m_base.getEntry(0);
 		double y = pos.getEntry(1) - m_base.getEntry(1);
-		ret.setEntry(0, x);
-		ret.setEntry(1, -y);
+		if (m_np) {
+			// D^2
+			double D = Math.pow(x*x + y*y, 1.5);
+			double theta = Math.atan2(y, x);
+			ret.setEntry(0, D * Math.cos(3d * theta));
+			ret.setEntry(1, D * Math.sin(3d * theta));
+		} else {
+			ret.setEntry(0, x);
+			ret.setEntry(1, -y);
+		}
 		ret.multScalar(scaleFactor(pos));
 		return ret;
 	}
@@ -50,19 +61,31 @@ class Term4a extends Term {
 	public Color vertexColor() {
 		return Color.pink;
 	}
-	public Term4a(PdVector base, double strength, double decay) {
+	public Term4a(PdVector base, double strength, double decay, boolean np) {
 		super(base, strength, decay);
+		m_np = np;
 	}
 }
 
 class Term4b extends Term {
+	private boolean m_np;
 	@Override
 	public PdVector evaluate(PdVector pos) {
 		PdVector ret = new PdVector(2);
 		double x = pos.getEntry(0) - m_base.getEntry(0);
 		double y = pos.getEntry(1) - m_base.getEntry(1);
-		ret.setEntry(0, x * x - y * y);
-		ret.setEntry(1, - 2 * x * y);
+
+		if (m_np) {
+			// D^4
+			double D = Math.pow(x*x + y*y, 2);
+			double theta = Math.atan2(y, x);
+			ret.setEntry(0, D * Math.cos(4d * theta));
+			ret.setEntry(1, D * Math.sin(4d * theta));
+		} else {
+			ret.setEntry(0, x * x - y * y);
+			ret.setEntry(1, - 2 * x * y);
+		}
+
 		ret.multScalar(scaleFactor(pos));
 		return ret;
 	}
@@ -74,12 +97,14 @@ class Term4b extends Term {
 	public Color vertexColor() {
 		return Color.pink;
 	}
-	public Term4b(PdVector base, double strength, double decay) {
+	public Term4b(PdVector base, double strength, double decay, boolean np) {
 		super(base, strength, decay);
+		m_np = np;
 	}
 }
 
 class Term4c extends Term {
+	private boolean m_np;
 	@Override
 	public PdVector evaluate(PdVector pos) {
 		PdVector ret = new PdVector(2);
@@ -87,6 +112,9 @@ class Term4c extends Term {
 		double y = pos.getEntry(1) - m_base.getEntry(1);
 		ret.setEntry(0, x * (1 - Math.sqrt(x*x + y*y)) - y);
 		ret.setEntry(1, x + y * (1 - Math.sqrt(x*x + y*y)));
+		if (m_np) {
+			ret.multScalar(-1);
+		}
 		ret.multScalar(scaleFactor(pos));
 		return ret;
 	}
@@ -98,8 +126,9 @@ class Term4c extends Term {
 	public Color vertexColor() {
 		return Color.pink;
 	}
-	public Term4c(PdVector base, double strength, double decay) {
+	public Term4c(PdVector base, double strength, double decay, boolean np) {
 		super(base, strength, decay);
+		m_np = np;
 	}
 }
 
@@ -116,6 +145,7 @@ public class Ex4_1
 	private PgVectorField m_vec;
 	private VectorField m_field;
 	private JComboBox m_fieldType;
+	private Checkbox m_northpole;
 
 	public static void main(String[] args)
 	{
@@ -140,7 +170,7 @@ public class Ex4_1
 		m_domain.showEdges(false);
 		
 		PgDomainDescr descr = m_domain.getDescr();
-		descr.setSize( -10., -10., 10., 10.);
+		descr.setSize( -50., -50., 50., 50.);
 		descr.setDiscr(30, 30);
 		m_domain.compute();
 		
@@ -176,6 +206,11 @@ public class Ex4_1
 		m_fieldType.addItemListener(this);
 		m_panel.add(m_fieldType, c);
 		c.gridy++;
+		
+		m_northpole = new Checkbox("Northpole");
+		m_northpole.addItemListener(this);
+		m_panel.add(m_northpole, c);
+		c.gridy++;
 
 		m_disp.selectGeometry(m_field.termBasePoints());
 		m_disp.fit();
@@ -188,8 +223,6 @@ public class Ex4_1
 
 	@Override
 	public void itemStateChanged(ItemEvent e) {
-		Object source = e.getSource();
-		assert source == m_fieldType;
 		updateVectorField();
 	}
 	public void updateVectorField() {
@@ -208,13 +241,13 @@ public class Ex4_1
 		}
 		switch (m_fieldType.getSelectedIndex()) {
 		case 0:
-			t = new Term4a(base, strength, decay);
+			t = new Term4a(base, strength, decay, m_northpole.getState());
 			break;
 		case 1:
-			t = new Term4b(base, strength, decay);
+			t = new Term4b(base, strength, decay, m_northpole.getState());
 			break;
 		case 2:
-			t = new Term4c(base, strength, decay);
+			t = new Term4c(base, strength, decay, m_northpole.getState());
 			break;
 		}
 		assert t != null;
