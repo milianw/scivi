@@ -133,18 +133,18 @@ class InterpolatedTensorField
 				continue;
 			}
 			if (inTriangle(i, pos)) {
-				DegeneratePoint singularity = new DegeneratePoint();
-				singularity.position = pos;
-				singularity.element = i;
+				DegeneratePoint degenPoint = new DegeneratePoint();
+				degenPoint.position = pos;
+				degenPoint.element = i;
 				double det = field.a.det();
 				if (det > 0) {
-					singularity.type = DegeneratePoint.Type.Wedge;
+					degenPoint.type = DegeneratePoint.Type.Wedge;
 				} else if (det < 0) {
-					singularity.type = DegeneratePoint.Type.Trisector;
+					degenPoint.type = DegeneratePoint.Type.Trisector;
 				} else {
-					singularity.type = DegeneratePoint.Type.HigherOrder;
+					degenPoint.type = DegeneratePoint.Type.HigherOrder;
 				}
-				m_degenPoints.add(singularity);
+				m_degenPoints.add(degenPoint);
 			}
 		}
 		m_degenPoints.trimToSize();
