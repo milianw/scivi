@@ -20,6 +20,7 @@
 \usepackage{nicefrac}
 \usepackage{bbold}
 \usepackage{gensymb}
+\usepackage{float}
 
 \captionsetup{labelfont=footnotesize,textfont=footnotesize}
 
@@ -69,11 +70,11 @@ The source code of my exercise solutions can be found online under
 
 Given a vector field $\vec{f}(x,y)$ in $R^2$ we project it onto the sphere
 $S^2$. All three given vector fields have only a single singularity at $(x,y) =
-(0,0)$, which corresponds to the South Pole on $S^2$. The projection would then
-result in a second unexpected singularity at the North Pole. To take this into
-account we modify the magnitude of the field without creating new singularities
-in $R^2$ by multiplying with a scaling factor, just like we did in the last
-project for the vector field design elements. Here we can use for example
+(0,0)$, which corresponds to the South Pole on $S^2$. To have a well-defined
+behavior of the field for $x,y \rightarrow \pm \infty$, we modify the magnitude
+of the field without creating new singularities in $R^2$ by multiplying with a
+scaling factor. This is just like we did in the last project for the vector
+field design elements. Here we can use for example
 
 \begin{equation}
  \sigma = \exp(-x^2-y^2).
@@ -83,9 +84,9 @@ Through this modification we can safely apply the reverse stereographic
 projection and will now always encounter a properly defined singularity at the
 North Pole.
 
-Furthermore we know the euler characteristic of a sphere $\chi(M_S) = 2$.
-Combined with the equation for the sum of Poincar\`e-indizes $p_i$ of the
-singularities, i.e. $\chi(M) = \sum_i^N p_i$ we find
+Since we know the euler characteristic of a sphere to be $\chi(S) = 2$, and
+that this equals the sum of Poincar\`e-indizes $p_i$, i.e. $\chi(S) = 2 =
+\sum p_i = p_{\text{NP}} + p_{\text{SP}}$, we find
 
 \begin{equation}
   p_{\text{NP}} = 2 - p_{\text{SP}}.
@@ -96,9 +97,9 @@ directly from the index $p_{\text{SP}}$ of the South Pole.
 
 Note: To visualize the fields at the poles I wrote a small application,
 \texttt{Ex4\_1}, which shows the field-direction. The higher-order design
-elements at the North Pole can be computed using eq. 10 from \cite{tfd} on page
-106, with $a = 1$, $b = 0$, $c = 0$ and $d = 1$. $N$ is then the double of
-$p_{\text{NP}}$.
+elements, required to visualize the singularities at the North Pole can be
+computed using eq. 10 from \cite{tfd},~p.~106, with $a = 1$, $b = 0$, $c = 0$,
+$d = 1$, and $N = 2 \cdot p_{\text{NP}}$.
 
 \subsection{Saddle}
 
@@ -111,11 +112,11 @@ The first vector field we investigate is that of a saddle:
  \label{eq:vf-saddle}
 \end{equation}
 
-A saddle has an index $p = -1$. As such there will be a Quadrupole at the North
+A saddle has an index $p = -1$. As such there will be a quadrupole at the North
 Pole with an index of $p = 3$. See also fig. \ref{fig:vf-saddle} for images
 of the field at both poles.
 
-\begin{figure}
+\begin{figure}[H]
   \centering
   \subfloat[Saddle at South Pole]{
     \includegraphics[width=0.4\textwidth]{img-4-2/f1-sp.eps}}
@@ -136,11 +137,11 @@ The second vector field we investigate is that of a monkey-saddle:
  \label{eq:vf-monkey-saddle}
 \end{equation}
 
-A monkey-saddle has an index $p = -2$. As such there will be an Hexapole at
+A monkey-saddle has an index $p = -2$. As such there will be a hexapole at
 the North Pole with an index of $p = 4$. See also fig.
 \ref{fig:vf-monkey-saddle} for images of the field at both poles.
 
-\begin{figure}
+\begin{figure}[H]
   \centering
   \subfloat[Monkey-Saddle at South Pole]{
     \includegraphics[width=0.4\textwidth]{img-4-2/f2-sp.eps}}
@@ -152,7 +153,7 @@ the North Pole with an index of $p = 4$. See also fig.
 
 \subsection{Attractive CCW Rotation}
 
-The third vector field represents and attractive clockwise rotation:
+The third vector field represents an attractive clockwise rotation:
 
 \begin{equation}
  \vec{f} = \sigma \left( \begin{array}{c}
@@ -166,7 +167,7 @@ Pole will have the same index. Due to flow and symmetry conservation the
 singularity must be a repulsive clockwise rotation. See also
 \ref{fig:vf-rotation}.
 
-\begin{figure}
+\begin{figure}[H]
   \centering
   \subfloat[CCW-Rotation at South Pole]{
     \includegraphics[width=0.4\textwidth]{img-4-2/f3-sp.eps}}
@@ -174,6 +175,88 @@ singularity must be a repulsive clockwise rotation. See also
     \reflectbox{\includegraphics[width=0.4\textwidth]{img-4-2/f3-np.eps}}}
   \caption{vector field from eq. \ref{eq:vf-rotation}}
   \label{fig:vf-rotation}
+\end{figure}
+
+\section{Conley Indizes}
+
+\subsection*{0, 0, 0}
+
+Any vector field without a singularity will do the trick, see e.g. fig.
+\ref{fig:conley-000}.
+
+\begin{figure}
+  \centering
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-000-a.jpg}}
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-000-b.jpg}}
+  \caption{vector fields for Conley index $\beta_0 = 0$, $\beta_1 = 0$ and
+$\beta_2 = 0$}
+  \label{fig:conley-000}
+\end{figure}
+
+\subsection*{1, 0, 0}
+
+A sink or a sink-like vortex has a conley index of $(1, 0, 0)$, see fig.
+\ref{fig:conley-100}.
+
+\begin{figure}
+  \centering
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-100-a.jpg}}
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-100-b.jpg}}
+  \caption{vector fields for Conley index $\beta_0 = 1$, $\beta_1 = 0$ and
+$\beta_2 = 0$}
+  \label{fig:conley-100}
+\end{figure}
+
+\subsection*{1, 1, 0}
+
+An attractive periodic orbit has an index of $(1, 1, 0)$ and might induce some
+curl, see fig. \ref{fig:conley-110}.
+
+\begin{figure}
+  \centering
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-110-a.jpg}}
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-110-b.jpg}}
+  \caption{vector fields for Conley index $\beta_0 = 1$, $\beta_1 = 1$ and
+$\beta_2 = 0$}
+  \label{fig:conley-110}
+\end{figure}
+
+\subsection*{0, 2, 1}
+
+I assume we can add two repulsive periodic orbits such that they create a field
+whose combined conley-index is $(0,2,1)$. See also fig. \ref{fig:conley-021}.
+
+\begin{figure}
+  \centering
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-021-a.jpg}}
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-021-b.jpg}}
+  \caption{vector fields for Conley index $\beta_0 = 0$, $\beta_1 = 2$ and
+$\beta_2 = 1$}
+  \label{fig:conley-021}
+\end{figure}
+
+\subsection*{0, 3, 0}
+
+Again, we should be able to superimpose three saddles to create an octupole
+with a conley index of $(0, 3, 0)$. See fig. \ref{fig:conley-030}.
+
+\begin{figure}
+  \centering
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-030-a.jpg}}
+  \subfloat{
+    \includegraphics[width=0.4\textwidth]{img-4-2/conley-030-b.jpg}}
+  \caption{vector fields for Conley index $\beta_0 = 0$, $\beta_1 = 3$ and
+$\beta_2 = 0$}
+  \label{fig:conley-030}
 \end{figure}
 
 \section{Tensor Field Design}
@@ -228,6 +311,8 @@ The class \texttt{TensorField} and the inheritors classes of
   \label{fig:tfd-elements}
 \end{figure}
 
+\newpage
+
 \subsection{Rotation and Reflection}
 
 To rotate the tensor field by an angle $\theta$, we use the reflection matrix
@@ -262,16 +347,16 @@ fig. \ref{fig:tfd-reflection} for tensor field reflection.
   \centering
   \subfloat[original]{
     \includegraphics[width=0.3\textwidth]{img-4-2/wedge-trisector-base.eps}}
-  \subfloat[$45\degree$]{
+  \subfloat[$45\degree$ rotation]{
     \includegraphics[width=0.3\textwidth]{img-4-2/wedge-trisector-45.eps}}
-  \subfloat[$90\degree$]{
+  \subfloat[$90\degree$ rotation]{
     \includegraphics[width=0.3\textwidth]{img-4-2/wedge-trisector-90.eps}}
   \\
-  \subfloat[$135\degree$]{
+  \subfloat[$135\degree$ rotation]{
     \includegraphics[width=0.3\textwidth]{img-4-2/wedge-trisector-135.eps}}
-  \subfloat[$180\degree$]{
+  \subfloat[$180\degree$ rotation]{
     \includegraphics[width=0.3\textwidth]{img-4-2/wedge-trisector-180.eps}}
-  \subfloat[$270\degree$]{
+  \subfloat[$270\degree$ rotation]{
     \includegraphics[width=0.3\textwidth]{img-4-2/wedge-trisector-270.eps}}
   \caption{tensor field rotation}
   \label{fig:tfd-rotation}
@@ -291,12 +376,10 @@ fig. \ref{fig:tfd-reflection} for tensor field reflection.
 \subsection{Discretization and Interpolation}
 
 The continous tensor field in eq. \ref{eq:tf} must be discretized for numerical
-analysis and visualization. We use a triangulated domain and compute the tensor
-field at each vertex.
-
-Then we interpolate the tensor field in each triangle from the three
-fields  $\mat{T}_{1,2,3}$ at the vertices $\vec{v}_{1,2,3}$. Then we solve the
-two equation systems
+analysis and visualization. First, we use a triangulated domain and compute the
+tensor field at each vertex. Then we interpolate the tensor field in each
+triangle from the three fields  $\mat{T}_{1,2,3}$ at the vertices
+$\vec{v}_{i} = (x_i,y_i)$, $i = 1,2,3$, by solving the two equation systems
 
 \begin{equation}
  \left ( \begin{array}{c c c}
@@ -334,21 +417,21 @@ outlined above.
 
 \subsection{Eigenvector Field Visualization}
 
-To visualize the tensor field use the image based approach outlined in
-\cite{tfd} p.~98f, which allows us to reuse the LIC code from JavaView. To
-visualize the major eigenvector field, we can follow the equations outlined
+To visualize the tensor field we use the image based approach outlined in
+\cite{tfd} p.~98f, which allows us to reuse the LIC code from JavaView. For the
+major eigenvector field, we can directly  follow the equations outlined
 there. For the minor eigenvector field though, we have to make small
-adjustments: The minor eigenvector $\vec{E}_2$ is orthogonal to $\vec{E}_1$,
-such that
+adjustments: The minor eigenvector $\vec{E}_2$ is orthogonal to
+$\vec{E}_1$, i.e.
 
 \begin{equation}
  \vec{E}_2 = \left( \begin{array}{c}
               -\sin \theta \\
               \cos \theta
-             \end{array} \right)
+             \end{array} \right).
 \end{equation}
 
-We now create $\vec{V}_x$ such that the $x$-component is positive, i.e.:
+We create $\vec{V}_x$ such that the $x$-component is positive:
 
 \begin{equation}
  \vec{V}_x = \left \{  \begin{array}{l l}
@@ -357,9 +440,9 @@ We now create $\vec{V}_x$ such that the $x$-component is positive, i.e.:
                        \end{array} \right.
 \end{equation}
 
-Analogously we create $\vec{V}_y$ such that its $y$-component, i.e. $\cos
-\theta$, is positive. The weighting factors $W_{x,y}$ use the $x$- and
-$y$-component of $\vec{E}_2$. Hence they are
+Analogously we create $\vec{V}_y$ such that its $y$-component is positive. The
+weighting factors $W_{x,y}$ use the $x$- and $y$-component of $\vec{E}_2$. Hence
+they are
 
 \begin{eqnarray}
  W_x &=& \sin^2 \theta \qquad \text{, and}\\
@@ -446,7 +529,7 @@ where $\vec{e}_{\phi}$ is a unit vector in direction of an angle $\phi$:
 
 \begin{equation}
  \vec{e}_{\phi} = \left( \begin{array}{c}
-                          \cos \phi
+                          \cos \phi \\
                           \sin \phi
                          \end{array} \right )
 \end{equation}
