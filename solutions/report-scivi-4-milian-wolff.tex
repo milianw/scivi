@@ -65,6 +65,117 @@ The source code of my exercise solutions can be found online under
 
 \newpage
 
+\section{Reverse Stereographic Projection}
+
+Given a vector field $\vec{f}(x,y)$ in $R^2$ we project it onto the sphere
+$S^2$. All three given vector fields have only a single singularity at $(x,y) =
+(0,0)$, which corresponds to the South Pole on $S^2$. The projection would then
+result in a second unexpected singularity at the North Pole. To take this into
+account we modify the magnitude of the field without creating new singularities
+in $R^2$ by multiplying with a scaling factor, just like we did in the last
+project for the vector field design elements. Here we can use for example
+
+\begin{equation}
+ \sigma = \exp(-x^2-y^2).
+\end{equation}
+
+Through this modification we can safely apply the reverse stereographic
+projection and will now always encounter a properly defined singularity at the
+North Pole.
+
+Furthermore we know the euler characteristic of a sphere $\chi(M_S) = 2$.
+Combined with the equation for the sum of Poincar\`e-indizes $p_i$ of the
+singularities, i.e. $\chi(M) = \sum_i^N p_i$ we find
+
+\begin{equation}
+  p_{\text{NP}} = 2 - p_{\text{SP}}.
+\end{equation}
+
+As such we can compute the Poincar\`e-index $p_{\text{NP}}$ at the North Pole
+directly from the index $p_{\text{SP}}$ of the South Pole.
+
+Note: To visualize the fields at the poles I wrote a small application,
+\texttt{Ex4\_1}, which shows the field-direction. The higher-order design
+elements at the North Pole can be computed using eq. 10 from \cite{tfd} on page
+106, with $a = 1$, $b = 0$, $c = 0$ and $d = 1$. $N$ is then the double of
+$p_{\text{NP}}$.
+
+\subsection{Saddle}
+
+The first vector field we investigate is that of a saddle:
+
+\begin{equation}
+ \vec{f} = \sigma \left( \begin{array}{c}
+                   x \\ -y
+                  \end{array} \right)
+ \label{eq:vf-saddle}
+\end{equation}
+
+A saddle has an index $p = -1$. As such there will be a Quadrupole at the North
+Pole with an index of $p = 3$. See also fig. \ref{fig:vf-saddle} for images
+of the field at both poles.
+
+\begin{figure}
+  \centering
+  \subfloat[Saddle at South Pole]{
+    \includegraphics[width=0.4\textwidth]{img-4-2/f1-sp.eps}}
+  \subfloat[Quadrupole at North Pole]{
+    \includegraphics[width=0.4\textwidth]{img-4-2/f1-np.eps}}
+  \caption{vector field from eq. \ref{eq:vf-saddle}}
+  \label{fig:vf-saddle}
+\end{figure}
+
+\subsection{Monkey-Saddle}
+
+The second vector field we investigate is that of a monkey-saddle:
+
+\begin{equation}
+ \vec{f} = \sigma \left( \begin{array}{c}
+                   x^2-y^2 \\ -2xy
+                  \end{array} \right)
+ \label{eq:vf-monkey-saddle}
+\end{equation}
+
+A monkey-saddle has an index $p = -2$. As such there will be an Hexapole at
+the North Pole with an index of $p = 4$. See also fig.
+\ref{fig:vf-monkey-saddle} for images of the field at both poles.
+
+\begin{figure}
+  \centering
+  \subfloat[Monkey-Saddle at South Pole]{
+    \includegraphics[width=0.4\textwidth]{img-4-2/f2-sp.eps}}
+  \subfloat[Hexapole at North Pole]{
+    \reflectbox{\includegraphics[width=0.4\textwidth]{img-4-2/f2-np.eps}}}
+  \caption{vector field from eq. \ref{eq:vf-monkey-saddle}}
+  \label{fig:vf-monkey-saddle}
+\end{figure}
+
+\subsection{Attractive CCW Rotation}
+
+The third vector field represents and attractive clockwise rotation:
+
+\begin{equation}
+ \vec{f} = \sigma \left( \begin{array}{c}
+                   x(1-\sqrt{x^2+y^2}) -y \\ x + y(1-\sqrt{x^2+y^2}
+                  \end{array} \right)
+ \label{eq:vf-rotation}
+\end{equation}
+
+Such a singularity has an index $p = 1$ and hence the singularity at the Nort
+Pole will have the same index. Due to flow and symmetry conservation the
+singularity must be a repulsive clockwise rotation. See also
+\ref{fig:vf-rotation}.
+
+\begin{figure}
+  \centering
+  \subfloat[CCW-Rotation at South Pole]{
+    \includegraphics[width=0.4\textwidth]{img-4-2/f3-sp.eps}}
+  \subfloat[CW-Rotation at North Pole]{
+    \reflectbox{\includegraphics[width=0.4\textwidth]{img-4-2/f3-np.eps}}}
+  \caption{vector field from eq. \ref{eq:vf-rotation}}
+  \label{fig:vf-rotation}
+\end{figure}
+
 \section{Tensor Field Design}
 
 Our programming task consisted this time of adapting our previous vector field

@@ -27,7 +27,6 @@ import jv.geom.PgVectorField;
 import jv.project.PvCameraIf;
 import jv.project.PvDisplayIf;
 import jv.project.PvGeometryListenerIf;
-import jv.vecmath.PdMatrix;
 import jv.vecmath.PdVector;
 import jvx.surface.PgDomain;
 import jvx.surface.PgDomainDescr;
@@ -50,7 +49,7 @@ class Term4a extends Term {
 			ret.setEntry(0, x);
 			ret.setEntry(1, -y);
 		}
-		ret.multScalar(scaleFactor(pos));
+//		ret.multScalar(scaleFactor(pos));
 		return ret;
 	}
 	@Override
@@ -86,7 +85,7 @@ class Term4b extends Term {
 			ret.setEntry(1, - 2 * x * y);
 		}
 
-		ret.multScalar(scaleFactor(pos));
+//		ret.multScalar(scaleFactor(pos));
 		return ret;
 	}
 	@Override
@@ -115,7 +114,7 @@ class Term4c extends Term {
 		if (m_np) {
 			ret.multScalar(-1);
 		}
-		ret.multScalar(scaleFactor(pos));
+//		ret.multScalar(scaleFactor(pos));
 		return ret;
 	}
 	@Override
@@ -170,7 +169,7 @@ public class Ex4_1
 		m_domain.showEdges(false);
 		
 		PgDomainDescr descr = m_domain.getDescr();
-		descr.setSize( -50., -50., 50., 50.);
+		descr.setSize( -5., -5., 5., 5.);
 		descr.setDiscr(30, 30);
 		m_domain.compute();
 		
@@ -223,6 +222,14 @@ public class Ex4_1
 
 	@Override
 	public void itemStateChanged(ItemEvent e) {
+		if (e.getSource() == m_northpole) {
+			PvCameraIf cam = m_disp.getCamera();
+			double angle = 180;
+			if (m_fieldType.getSelectedIndex() == 0) {
+				angle = 90;
+			}
+			cam.setRoll(m_northpole.getState() ? angle : 0);
+		}
 		updateVectorField();
 	}
 	public void updateVectorField() {
